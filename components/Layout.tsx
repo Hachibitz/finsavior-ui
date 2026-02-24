@@ -19,6 +19,7 @@ interface LayoutProps {
   unreadCount: number;
   onMarkAsRead: (id: string) => void;
   onClearAll: () => void;
+  onNotificationAction: (notification: Notification) => void;
 }
 
 const Layout: React.FC<LayoutProps> = ({ 
@@ -30,7 +31,8 @@ const Layout: React.FC<LayoutProps> = ({
   notifications,
   unreadCount,
   onMarkAsRead,
-  onClearAll
+  onClearAll,
+  onNotificationAction
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -103,8 +105,7 @@ const Layout: React.FC<LayoutProps> = ({
                           key={n.id} 
                           className={`p-4 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer relative ${!n.read ? 'bg-primary/5' : ''}`}
                           onClick={() => {
-                            onMarkAsRead(n.id);
-                            if (n.type === 'ai') setActiveTab('summary');
+                            onNotificationAction(n);
                             setIsNotificationsOpen(false);
                           }}
                         >

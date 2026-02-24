@@ -1,41 +1,102 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AiAnalysis, Bill, CardTransaction, Asset } from '../types';
 import { MOCK_AI_ANALYSES } from '../constants';
-import { BrainCircuit, Sparkles, MessageSquare, ChevronRight, Play } from 'lucide-react';
+import { BrainCircuit, Sparkles, MessageSquare, ChevronRight, Play, X, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { getFinancialAdvice } from '../services/geminiService';
+import { aiAdviceService } from '../services/aiAdviceService';
+import { useToast } from '../contexts/ToastContext';
 
 interface AiAdvisorViewProps {
   bills: Bill[];
   transactions: CardTransaction[];
   assets: Asset[];
+  initialReportId?: string | null;
+  onCloseReport?: () => void;
 }
 
-const AiAdvisorView: React.FC<AiAdvisorViewProps> = ({ bills, transactions, assets }) => {
-  const [analyses, setAnalyses] = useState<AiAnalysis[]>(MOCK_AI_ANALYSES);
+const AiAdvisorView: React.FC<AiAdvisorViewProps> = ({ 
+  bills, 
+  transactions, 
+  assets,
+  initialReportId,
+  onCloseReport
+}) => {
+  const [analyses, setAnalyses] = useState<AiAnalysis[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedAnalysis, setSelectedAnalysis] = useState<AiAnalysis | null>(null);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const { showToast } = useToast();
+
+  const fetchAnalyses = async () => {
+    setIsLoading(true);
+    try {
+      const data = await aiAdviceService.getAnalyses();
+      setAnalyses(data);
+    } catch (error) {
+      console.error('Error fetching analyses:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAnalyses();
+  }, []);
+
+  useEffect(() => {
+    if (initialReportId && analyses.length > 0) {
+      const found = analyses.find(a => a.id === initialReportId);
+      if (found) {
+        setSelectedAnalysis(found);
+      }
+    }
+  }, [initialReportId, analyses]);
+
+  const handleCloseReport = () => {
+    setSelectedAnalysis(null);
+    onCloseReport?.();
+  };
+
+  const handleDeleteAnalysis = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!window.confirm('Tem certeza que deseja excluir esta análise?')) return;
+    
+    setIsDeleting(id);
+    try {
+      await aiAdviceService.deleteAnalysis(id);
+      setAnalyses(prev => prev.filter(a => a.id !== id));
+      showToast('Análise excluída com sucesso!', 'success');
+    } catch (error) {
+      console.error('Error deleting analysis:', error);
+      showToast('Erro ao excluir análise', 'error');
+    } finally {
+      setIsDeleting(null);
+    }
+  };
 
   const handleNewAnalysis = async () => {
     setIsGenerating(true);
-    // Data adaptation (mocked for demo logic)
-    const allTransactions = [
-        ...bills.map(b => ({ ...b, type: 'expense' as const })),
-        ...transactions.map(t => ({ ...t, type: 'expense' as const })),
-        ...assets.map(a => ({ ...a, type: 'income' as const, category: 'salary' }))
-    ];
+    try {
+      const now = new Date();
+      const startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const finishDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
 
-    const adviceText = await getFinancialAdvice(allTransactions);
-    
-    const newAnalysis: AiAnalysis = {
-        id: Math.random().toString(),
-        date: new Date().toISOString(),
-        period: 'Atual',
-        content: adviceText,
-        creativityLevel: 50
-    };
-
-    setAnalyses([newAnalysis, ...analyses]);
-    setIsGenerating(false);
+      await aiAdviceService.generateFullReport({
+        analysisTypeId: 1,
+        temperature: 0.7,
+        startDate,
+        finishDate,
+        isUsingCoins: false
+      });
+      
+      // Refresh from backend
+      await fetchAnalyses();
+    } catch (error) {
+      console.error('Error generating new analysis:', error);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -70,46 +131,131 @@ const AiAdvisorView: React.FC<AiAdvisorViewProps> = ({ bills, transactions, asse
       <div className="flex-1 space-y-6 mt-4">
         <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-2">Histórico de Insights</h2>
         
-        {analyses.map((analysis, index) => (
-          <div key={analysis.id} className="animate-slide-up" style={{ animationDelay: `${index * 100}ms` }}>
-            <div className="bg-surface border border-slate-700/50 rounded-tl-3xl rounded-tr-3xl rounded-br-3xl rounded-bl-sm p-6 shadow-xl relative ml-4">
-               {/* Decorative Tail */}
-               <div className="absolute top-0 -left-2 w-4 h-4 bg-surface border-l border-t border-slate-700/50 transform -rotate-45"></div>
-               
-               <div className="flex justify-between items-start mb-4 border-b border-slate-800 pb-3">
-                  <div className="flex items-center gap-2">
-                     <BrainCircuit size={16} className="text-purple-400" />
-                     <span className="text-slate-300 font-semibold text-sm">Análise Mensal</span>
-                  </div>
-                  <span className="text-xs text-slate-500">{new Date(analysis.date).toLocaleDateString()}</span>
-               </div>
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4" />
+            <p className="text-slate-500 text-sm">Carregando histórico...</p>
+          </div>
+        ) : analyses.length > 0 ? (
+          analyses.map((analysis, index) => (
+            <div key={analysis.id} className="animate-slide-up" style={{ animationDelay: `${index * 100}ms` }}>
+              <div className="bg-surface border border-slate-700/50 rounded-tl-3xl rounded-tr-3xl rounded-br-3xl rounded-bl-sm p-6 shadow-xl relative ml-4">
+                {/* Decorative Tail */}
+                <div className="absolute top-0 -left-2 w-4 h-4 bg-surface border-l border-t border-slate-700/50 transform -rotate-45"></div>
+                
+                <div className="flex justify-between items-start mb-4 border-b border-slate-800 pb-3">
+                    <div className="flex items-center gap-2">
+                      <BrainCircuit size={16} className="text-purple-400" />
+                      <span className="text-slate-300 font-semibold text-sm">Análise Mensal</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-slate-500">{new Date(analysis.date).toLocaleDateString()}</span>
+                      <button 
+                        onClick={(e) => handleDeleteAnalysis(e, analysis.id)}
+                        disabled={isDeleting === analysis.id}
+                        className="p-1.5 text-slate-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all"
+                        title="Excluir análise"
+                      >
+                        {isDeleting === analysis.id ? (
+                          <div className="w-4 h-4 border-2 border-rose-500/20 border-t-rose-500 rounded-full animate-spin" />
+                        ) : (
+                          <Trash2 size={14} />
+                        )}
+                      </button>
+                    </div>
+                </div>
 
-               <div className="prose prose-invert prose-sm max-w-none text-slate-300">
-                 <ReactMarkdown 
-                    components={{
-                        ul: ({node, ...props}) => <ul className="space-y-2 my-2" {...props} />,
-                        li: ({node, ...props}) => (
-                            <li className="flex gap-2 items-start text-sm">
-                                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></span>
-                                <span {...props} />
-                            </li>
-                        ),
-                        strong: ({node, ...props}) => <span className="text-white font-semibold" {...props} />
-                    }}
-                 >
-                    {analysis.content}
-                 </ReactMarkdown>
-               </div>
-               
-               <div className="mt-4 flex justify-end">
-                  <button className="text-xs text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1 transition-colors">
-                     Ver Detalhes <ChevronRight size={14} />
-                  </button>
-               </div>
+                <div className="prose prose-invert prose-sm max-w-none text-slate-300 line-clamp-4">
+                  <ReactMarkdown 
+                      components={{
+                          ul: ({node, ...props}) => <ul className="space-y-2 my-2" {...props} />,
+                          li: ({node, ...props}) => (
+                              <li className="flex gap-2 items-start text-sm">
+                                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></span>
+                                  <span {...props} />
+                              </li>
+                          ),
+                          strong: ({node, ...props}) => <span className="text-white font-semibold" {...props} />
+                      }}
+                  >
+                      {analysis.resultAnalysis}
+                  </ReactMarkdown>
+                </div>
+                
+                <div className="mt-4 flex justify-end">
+                    <button 
+                      onClick={() => setSelectedAnalysis(analysis)}
+                      className="text-xs text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1 transition-colors"
+                    >
+                      Ver Detalhes <ChevronRight size={14} />
+                    </button>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-20 bg-slate-900/50 rounded-[2rem] border border-dashed border-slate-800">
+            <MessageSquare size={40} className="mx-auto text-slate-800 mb-4" />
+            <p className="text-slate-500 text-sm">Nenhuma análise gerada ainda.</p>
+            <p className="text-slate-600 text-xs mt-1">Clique em "Gerar Nova Análise" para começar.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Report Detail Modal */}
+      {selectedAnalysis && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in" onClick={handleCloseReport}>
+          <div className="bg-slate-900 w-full max-w-2xl max-h-[85vh] rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden animate-slide-up flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="p-8 border-b border-white/5 flex justify-between items-center bg-gradient-to-r from-blue-500/10 to-transparent shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-blue-500/20 flex items-center justify-center text-blue-400">
+                  <BrainCircuit size={24} />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-white tracking-tight">Relatório Savi</h3>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Análise Detalhada • {new Date(selectedAnalysis.date).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</p>
+                </div>
+              </div>
+              <button onClick={handleCloseReport} className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-all">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-8 overflow-y-auto custom-scrollbar">
+              <div className="prose prose-invert max-w-none">
+                <ReactMarkdown 
+                  components={{
+                    h1: ({node, ...props}) => <h1 className="text-2xl font-black text-white mb-4 mt-8 first:mt-0" {...props} />,
+                    h2: ({node, ...props}) => <h2 className="text-xl font-bold text-blue-400 mb-3 mt-6" {...props} />,
+                    h3: ({node, ...props}) => <h3 className="text-lg font-bold text-white mb-2 mt-4" {...props} />,
+                    p: ({node, ...props}) => <p className="text-slate-300 leading-relaxed mb-4" {...props} />,
+                    ul: ({node, ...props}) => <ul className="space-y-3 my-4 list-none" {...props} />,
+                    li: ({node, ...props}) => (
+                      <li className="flex gap-3 items-start">
+                        <div className="mt-2 w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+                        <span className="text-slate-300" {...props} />
+                      </li>
+                    ),
+                    strong: ({node, ...props}) => <strong className="text-white font-bold" {...props} />,
+                    blockquote: ({node, ...props}) => (
+                      <blockquote className="border-l-4 border-blue-500 bg-blue-500/5 p-4 rounded-r-xl italic text-slate-400 my-6" {...props} />
+                    )
+                  }}
+                >
+                  {selectedAnalysis.resultAnalysis}
+                </ReactMarkdown>
+              </div>
+            </div>
+            <div className="p-6 border-t border-white/5 bg-white/5 flex justify-end shrink-0">
+               <button 
+                onClick={handleCloseReport}
+                className="px-8 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold text-sm transition-all"
+               >
+                 Fechar Relatório
+               </button>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

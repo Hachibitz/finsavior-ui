@@ -88,19 +88,25 @@ export const MOCK_ASSETS: Asset[] = [
 export const MOCK_AI_ANALYSES: AiAnalysis[] = [
   { 
     id: '1', 
-    date: new Date(Date.now() - 86400000 * 2).toISOString(), 
-    period: '2025/04/04 - 2025/05/03', 
-    content: `### Análise Mensal
+    userId: 1,
+    analysisType: 1,
+    resultAnalysis: `### Análise Mensal
 1. **Renda Fixa Sólida**: Você possui uma renda mensal estável, o que é ótimo para planejamento.
 2. **Custos Fixos Altos**: Seus gastos com moradia e financiamento representam mais de 40% da renda. Atenção!
 3. **Pequenos Gastos**: Assinaturas de streaming somadas dão quase R$ 150,00. Vale a pena revisar?`,
-    creativityLevel: 0 
+    date: new Date(Date.now() - 86400000 * 2).toISOString(),
+    startDate: new Date(Date.now() - 86400000 * 30).toISOString(),
+    finishDate: new Date().toISOString(),
+    temperature: 0.7
   },
   { 
     id: '2', 
-    date: new Date(Date.now() - 86400000 * 10).toISOString(), 
-    period: '2025/03/04 - 2025/04/03', 
-    content: 'Análise anterior focada em redução de custos de energia.',
-    creativityLevel: 70 
+    userId: 1,
+    analysisType: 1,
+    resultAnalysis: 'Análise anterior focada em redução de custos de energia.',
+    date: new Date(Date.now() - 86400000 * 10).toISOString(),
+    startDate: new Date(Date.now() - 86400000 * 40).toISOString(),
+    finishDate: new Date(Date.now() - 86400000 * 10).toISOString(),
+    temperature: 0.7
   }
 ];

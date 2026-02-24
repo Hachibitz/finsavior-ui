@@ -34,7 +34,6 @@ const DebitsView: React.FC<DebitsViewProps> = ({ bills, onAdd, onDelete, onEdit,
     setUpdatingBillId(bill.id);
     try {
       await onEdit({ ...bill, isPaid: !bill.isPaid });
-      showToast('Conta atualizada!', 'success');
     } catch (e: any) {
       console.error('Error updating bill:', e);
       showToast(e?.message || 'Erro ao atualizar conta', 'error');

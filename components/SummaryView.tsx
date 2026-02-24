@@ -33,6 +33,8 @@ interface SummaryViewProps {
   loadingTip?: boolean;
   onRefreshInsight?: () => void;
   onAddNotification?: (notif: Omit<Notification, 'id' | 'timestamp' | 'read'>) => void;
+  initialInsightOpen?: boolean;
+  onCloseInsight?: () => void;
 }
 
 const SummaryView: React.FC<SummaryViewProps> = ({ 
@@ -45,10 +47,23 @@ const SummaryView: React.FC<SummaryViewProps> = ({
   aiTip,
   loadingTip,
   onRefreshInsight,
-  onAddNotification
+  onAddNotification,
+  initialInsightOpen,
+  onCloseInsight
 }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(initialInsightOpen || false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+
+  useEffect(() => {
+    if (initialInsightOpen) {
+      setIsModalOpen(true);
+    }
+  }, [initialInsightOpen]);
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    onCloseInsight?.();
+  };
 
   // Combine all expenses for analysis
   const allExpenses = useMemo(() => [
@@ -99,18 +114,39 @@ const SummaryView: React.FC<SummaryViewProps> = ({
 
   // AI Insight logic moved to App.tsx for caching
 
-  const handleGenerateReport = () => {
+  const handleGenerateReport = async () => {
     setIsGeneratingReport(true);
     
-    // Simulate background report generation
-    setTimeout(() => {
-      setIsGeneratingReport(false);
+    try {
+      const [year, month] = selectedMonth.split('-').map(Number);
+      const startDate = new Date(year, month - 1, 1).toISOString();
+      const finishDate = new Date(year, month, 0, 23, 59, 59).toISOString();
+
+      const response = await aiAdviceService.generateFullReport({
+        analysisTypeId: 1, // Full report
+        temperature: 0.7,
+        startDate,
+        finishDate,
+        isUsingCoins: false
+      });
+
       onAddNotification?.({
         title: 'Relatório Completo Pronto!',
         message: `O relatório financeiro detalhado de ${selectedMonth} foi gerado com sucesso.`,
-        type: 'success'
+        type: 'success',
+        actionUrl: 'ai',
+        actionData: { reportId: response.id.toString() }
       });
-    }, 3000);
+    } catch (error) {
+      console.error('Error generating report:', error);
+      onAddNotification?.({
+        title: 'Erro ao Gerar Relatório',
+        message: 'Não foi possível gerar seu relatório no momento. Tente novamente mais tarde.',
+        type: 'error'
+      });
+    } finally {
+      setIsGeneratingReport(false);
+    }
   };
 
   return (
@@ -190,7 +226,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({
 
       {/* Insight Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in" onClick={() => setIsModalOpen(false)}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in" onClick={handleCloseModal}>
           <div className="bg-slate-900 w-full max-w-lg rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden animate-slide-up" onClick={e => e.stopPropagation()}>
             <div className="p-8 border-b border-white/5 flex justify-between items-center bg-gradient-to-r from-primary/10 to-transparent">
               <div className="flex items-center gap-3">
@@ -202,7 +238,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Análise de Inteligência</p>
                 </div>
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-all">
+              <button onClick={handleCloseModal} className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-all">
                 <X size={24} />
               </button>
             </div>
@@ -220,7 +256,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({
                 <button 
                   onClick={() => {
                     onRefreshInsight?.();
-                    setIsModalOpen(false);
+                    handleCloseModal();
                   }}
                   className="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl text-xs font-bold transition-all"
                 >

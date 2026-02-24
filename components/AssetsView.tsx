@@ -5,9 +5,11 @@ import { Edit2, Trash2, Plus, Mic } from 'lucide-react';
 interface AssetsViewProps {
   assets: Asset[];
   onAdd: () => void;
+  onEdit: (asset: Asset) => void;
+  onDelete: (id: string) => void;
 }
 
-const AssetsView: React.FC<AssetsViewProps> = ({ assets, onAdd }) => {
+const AssetsView: React.FC<AssetsViewProps> = ({ assets, onAdd, onEdit, onDelete }) => {
   return (
     <div className="space-y-4 animate-fade-in pb-20">
       <div className="flex justify-between items-center mb-4">
@@ -36,8 +38,22 @@ const AssetsView: React.FC<AssetsViewProps> = ({ assets, onAdd }) => {
               </div>
 
               <div className="flex gap-2">
-                <button className="p-2 text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"><Edit2 size={16} /></button>
-                <button className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"><Trash2 size={16} /></button>
+                <button 
+                  onClick={() => onEdit(asset)}
+                  className="p-2 text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                >
+                  <Edit2 size={16} />
+                </button>
+                <button 
+                  onClick={() => {
+                    if (window.confirm('Excluir esta renda?')) {
+                      onDelete(asset.id);
+                    }
+                  }}
+                  className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                >
+                  <Trash2 size={16} />
+                </button>
               </div>
             </div>
           </div>

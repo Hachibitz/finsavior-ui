@@ -61,6 +61,10 @@ const App: React.FC = () => {
   const [lastAnalyzedBalance, setLastAnalyzedBalance] = useState<Record<string, number>>({});
   const [loadingInsight, setLoadingInsight] = useState(false);
   
+  // Navigation & Modal State from Notifications
+  const [insightModalOpen, setInsightModalOpen] = useState(false);
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+  
   // Notifications State
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -75,6 +79,9 @@ const App: React.FC = () => {
       read: false
     };
     setNotifications(prev => [newNotif, ...prev]);
+    
+    // Show toast for the notification
+    showToast(notif.message, notif.type === 'error' ? 'error' : 'success');
   };
 
   const markNotificationAsRead = (id: string) => {
@@ -83,6 +90,19 @@ const App: React.FC = () => {
 
   const clearNotifications = () => {
     setNotifications([]);
+  };
+
+  const handleNotificationAction = (notification: Notification) => {
+    markNotificationAsRead(notification.id);
+    if (notification.actionUrl === 'summary' && notification.actionData?.openInsight) {
+      setActiveTab('summary');
+      setInsightModalOpen(true);
+    } else if (notification.actionUrl === 'ai' && notification.actionData?.reportId) {
+      setActiveTab('ai');
+      setSelectedReportId(notification.actionData.reportId);
+    } else if (notification.actionUrl) {
+      setActiveTab(notification.actionUrl);
+    }
   };
 
   useEffect(() => {
@@ -222,7 +242,9 @@ const App: React.FC = () => {
       addNotification({
         title: 'Novo Savi Insight!',
         message: `Savi gerou uma nova análise para ${month}. Confira no seu dashboard.`,
-        type: 'ai'
+        type: 'ai',
+        actionUrl: 'summary',
+        actionData: { openInsight: true }
       });
     } catch (error) {
       console.error('Error fetching insight:', error);
@@ -269,14 +291,17 @@ const App: React.FC = () => {
   // Category Logic
   const handleAddCategory = (newCategory: Category) => {
     setCategories([...categories, newCategory]);
+    showToast('Categoria adicionada!', 'success');
   };
 
   const handleEditCategory = (updatedCategory: Category) => {
     setCategories(categories.map(c => c.id === updatedCategory.id ? updatedCategory : c));
+    showToast('Categoria atualizada!', 'success');
   };
 
   const handleDeleteCategory = (id: string) => {
     setCategories(categories.filter(c => c.id !== id));
+    showToast('Categoria excluída!', 'success');
   };
 
   // Debits Logic
@@ -284,9 +309,11 @@ const App: React.FC = () => {
     try {
       const saved = await billService.updateBill(updatedBill);
       setBills(prev => prev.map(b => b.id === saved.id ? saved : b));
+      showToast('Conta atualizada!', 'success');
       return saved;
     } catch (error: any) {
       console.error('Error updating bill:', error);
+      showToast(error?.message || 'Erro ao atualizar conta', 'error');
       throw error;
     }
   };
@@ -295,23 +322,38 @@ const App: React.FC = () => {
     try {
       await billService.deleteBill(id);
       setBills(bills.filter(b => b.id !== id));
+      showToast('Conta excluída!', 'success');
     } catch (error) {
       console.error('Error deleting bill:', error);
+      showToast('Erro ao excluir conta', 'error');
     }
   };
 
   // Cards Logic
   const handleAddCard = (newCard: CreditCard) => {
     setCards([...cards, newCard]);
+    showToast('Cartão adicionado!', 'success');
   };
 
   const handleAddCardTransaction = (newTransaction: CardTransaction) => {
     setCardTransactions([newTransaction, ...cardTransactions]);
+    showToast('Transação adicionada!', 'success');
+  };
+
+  // Assets Logic
+  const handleEditAsset = (updatedAsset: Asset) => {
+    setAssets(assets.map(a => a.id === updatedAsset.id ? updatedAsset : a));
+    showToast('Renda atualizada!', 'success');
+  };
+
+  const handleDeleteAsset = (id: string) => {
+    setAssets(assets.filter(a => a.id !== id));
+    showToast('Renda excluída!', 'success');
   };
 
   const handleImportInvoice = (file: File) => {
     // Mock import logic
-    alert(`Importando arquivo: ${file.name}. Processamento de IA iniciado...`);
+    showToast(`Importando arquivo: ${file.name}. Processamento de IA iniciado...`, 'success');
     // In a real app, this would send file to backend
   };
 
@@ -352,7 +394,14 @@ const App: React.FC = () => {
             />
         );
       case 'assets':
-        return <AssetsView assets={assets} onAdd={() => { setFormForcedType('income'); setIsFormOpen(true); }} />;
+        return (
+          <AssetsView 
+            assets={assets} 
+            onAdd={() => { setFormForcedType('income'); setIsFormOpen(true); }} 
+            onEdit={handleEditAsset}
+            onDelete={handleDeleteAsset}
+          />
+        );
       case 'summary':
         return (
           <SummaryView 
@@ -366,10 +415,20 @@ const App: React.FC = () => {
             loadingTip={loadingInsight}
             onRefreshInsight={() => fetchInsight(selectedMonth, true)}
             onAddNotification={addNotification}
+            initialInsightOpen={insightModalOpen}
+            onCloseInsight={() => setInsightModalOpen(false)}
           />
         );
       case 'ai':
-        return <AiAdvisorView bills={filteredBills} transactions={filteredCardTransactions} assets={filteredAssets} />;
+        return (
+          <AiAdvisorView 
+            bills={filteredBills} 
+            transactions={filteredCardTransactions} 
+            assets={filteredAssets}
+            initialReportId={selectedReportId}
+            onCloseReport={() => setSelectedReportId(null)}
+          />
+        );
       case 'plans':
         return <PlansView profile={profile} />;
       case 'categories':
@@ -426,6 +485,7 @@ const App: React.FC = () => {
           unreadCount={unreadCount}
           onMarkAsRead={markNotificationAsRead}
           onClearAll={clearNotifications}
+          onNotificationAction={handleNotificationAction}
         >
           {renderContent()}
         </Layout>

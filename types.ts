@@ -49,10 +49,28 @@ export interface Asset extends BaseRecord {
 // Corresponds to "IA" Analysis
 export interface AiAnalysis {
   id: string;
+  userId: number;
+  analysisType: number;
+  resultAnalysis: string;
   date: string;
-  period: string; // e.g., "Monthly"
-  content: string; // Markdown content
-  creativityLevel: number;
+  startDate: string;
+  finishDate: string;
+  temperature: number;
+}
+
+export interface AiAdviceDTO {
+  userId?: number | null;
+  prompt?: string | null;
+  planId?: string | null;
+  analysisTypeId: number;
+  temperature: number;
+  startDate: string;
+  finishDate: string;
+  isUsingCoins: boolean;
+}
+
+export interface AiAdviceResponseDTO {
+  id: number;
 }
 
 export interface Category {
