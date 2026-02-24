@@ -1,0 +1,111 @@
+export type TransactionType = 'income' | 'expense';
+
+export interface BaseRecord {
+  id: string;
+  amount: number;
+  description: string;
+  date: string; // ISO string
+}
+
+export interface Transaction extends BaseRecord {
+  category: string;
+  type: TransactionType;
+  isRecurrent?: boolean;
+  isInstallment?: boolean;
+  installmentCount?: number;
+  frequencyType?: 'SINGLE' | 'RECURRENT' | 'INSTALLMENT';
+}
+
+export interface CreditCard {
+  id: string;
+  name: string; // e.g., "Nubank", "XP Infinite"
+  last4Digits: string;
+  color: string; // Gradient or solid color class
+  limit: number;
+  dueDateStr: string; // e.g. "10"
+}
+
+// Corresponds to "Débitos" (Fixed/Recurring Expenses)
+export interface Bill extends BaseRecord {
+  isPaid: boolean;
+  category: string;
+}
+
+// Corresponds to "Cartão" (Credit Card)
+export interface CardTransaction extends BaseRecord {
+  category: string;
+  cardId: string; // Link to specific card
+  installments?: {
+    current: number;
+    total: number;
+  };
+}
+
+// Corresponds to "Ativos" (Ativos/Income)
+export interface Asset extends BaseRecord {
+  type: 'salary' | 'savings' | 'investment' | 'other';
+}
+
+// Corresponds to "IA" Analysis
+export interface AiAnalysis {
+  id: string;
+  date: string;
+  period: string; // e.g., "Monthly"
+  content: string; // Markdown content
+  creativityLevel: number;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+}
+
+export interface AiBillExtractionDTO {
+  billName?: string;
+  billValue?: number;
+  billDescription?: string;
+  billCategory?: string;
+  isInstallment?: boolean;
+  installmentCount?: number;
+  currentInstallment?: number;
+  isRecurrent?: boolean;
+  possibleDate?: string;
+  redirectAction?: string;
+}
+
+export type DocumentType = 'BANK_STATEMENT' | 'CREDIT_CARD';
+export type TableType = 'MAIN' | 'CARD';
+
+export interface SummaryData {
+  totalBalance: number;
+  totalIncome: number;
+  totalExpense: number;
+  forecastBalance: number;
+  status: 'green' | 'yellow' | 'red';
+}
+
+export interface Plan {
+  planId: string;
+  planDs: string;
+}
+
+export interface UserProfile {
+  id: number;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  name: string;
+  profilePicture?: string;
+  plan: Plan;
+  coins: number;
+}
+
+export interface CheckoutSessionDTO {
+  planType: string;
+  url: string;
+  email: string;
+  clientSecret: string;
+}
