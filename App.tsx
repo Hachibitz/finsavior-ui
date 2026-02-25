@@ -417,6 +417,7 @@ const App: React.FC = () => {
             onAddNotification={addNotification}
             initialInsightOpen={insightModalOpen}
             onCloseInsight={() => setInsightModalOpen(false)}
+            profile={profile}
           />
         );
       case 'ai':
@@ -427,6 +428,9 @@ const App: React.FC = () => {
             assets={filteredAssets}
             initialReportId={selectedReportId}
             onCloseReport={() => setSelectedReportId(null)}
+            profile={profile}
+            selectedMonth={selectedMonth}
+            onRefreshCoins={fetchProfile}
           />
         );
       case 'plans':
@@ -452,6 +456,7 @@ const App: React.FC = () => {
             aiTip={aiInsights[selectedMonth]}
             loadingTip={loadingInsight}
             onRefreshInsight={() => fetchInsight(selectedMonth, true)}
+            profile={profile}
           />
         );
     }

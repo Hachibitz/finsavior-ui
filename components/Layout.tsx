@@ -8,6 +8,7 @@ import { UserProfile } from '../types';
 import { Notification } from '../types/notifications';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import SearchModal from './SearchModal';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -36,6 +37,7 @@ const Layout: React.FC<LayoutProps> = ({
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   // Modern Floating Dock Icons
   const navItems = [
@@ -77,7 +79,10 @@ const Layout: React.FC<LayoutProps> = ({
               </div>
               <span className="text-sm font-black tracking-tight">{profile?.coins || 0}</span>
             </div>
-            <button className="w-10 h-10 rounded-full glass-card flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/10 transition-all">
+            <button 
+              onClick={() => setIsSearchOpen(true)}
+              className="w-10 h-10 rounded-full glass-card flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/10 transition-all"
+            >
               <Search size={20} />
             </button>
             <button className="w-10 h-10 rounded-full glass-card flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/10 transition-all relative" onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}>
@@ -229,6 +234,12 @@ const Layout: React.FC<LayoutProps> = ({
           ))}
         </div>
       </div>
+
+      <SearchModal 
+        isOpen={isSearchOpen} 
+        onClose={() => setIsSearchOpen(false)} 
+        setActiveTab={setActiveTab}
+      />
     </div>
   );
 };

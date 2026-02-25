@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { SummaryData, Bill, Asset, CardTransaction, Category } from '../types';
+import { SummaryData, Bill, Asset, CardTransaction, Category, UserProfile, AiAdviceDTO } from '../types';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { 
   TrendingUp, 
@@ -21,6 +21,7 @@ import { getCategoryIcon } from '../constants';
 import { aiAdviceService } from '../services/aiAdviceService';
 import { Notification } from '../types/notifications';
 import ReactMarkdown from 'react-markdown';
+import AiAnalysisModal from './AiAnalysisModal';
 
 interface SummaryViewProps {
   summary: SummaryData;
@@ -35,6 +36,7 @@ interface SummaryViewProps {
   onAddNotification?: (notif: Omit<Notification, 'id' | 'timestamp' | 'read'>) => void;
   initialInsightOpen?: boolean;
   onCloseInsight?: () => void;
+  profile: UserProfile | null;
 }
 
 const SummaryView: React.FC<SummaryViewProps> = ({ 
@@ -49,10 +51,12 @@ const SummaryView: React.FC<SummaryViewProps> = ({
   onRefreshInsight,
   onAddNotification,
   initialInsightOpen,
-  onCloseInsight
+  onCloseInsight,
+  profile
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(initialInsightOpen || false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
 
   useEffect(() => {
     if (initialInsightOpen) {
@@ -114,34 +118,28 @@ const SummaryView: React.FC<SummaryViewProps> = ({
 
   // AI Insight logic moved to App.tsx for caching
 
-  const handleGenerateReport = async () => {
+  const handleGenerateReport = () => {
+    setIsAnalysisModalOpen(true);
+  };
+
+  const handleConfirmAnalysis = async (data: AiAdviceDTO) => {
     setIsGeneratingReport(true);
     
     try {
-      const [year, month] = selectedMonth.split('-').map(Number);
-      const startDate = new Date(year, month - 1, 1).toISOString();
-      const finishDate = new Date(year, month, 0, 23, 59, 59).toISOString();
-
-      const response = await aiAdviceService.generateFullReport({
-        analysisTypeId: 1, // Full report
-        temperature: 0.7,
-        startDate,
-        finishDate,
-        isUsingCoins: false
-      });
+      const response = await aiAdviceService.generateFullReport(data);
 
       onAddNotification?.({
         title: 'Relatório Completo Pronto!',
-        message: `O relatório financeiro detalhado de ${selectedMonth} foi gerado com sucesso.`,
+        message: `O relatório financeiro detalhado foi gerado com sucesso.`,
         type: 'success',
         actionUrl: 'ai',
         actionData: { reportId: response.id.toString() }
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating report:', error);
       onAddNotification?.({
         title: 'Erro ao Gerar Relatório',
-        message: 'Não foi possível gerar seu relatório no momento. Tente novamente mais tarde.',
+        message: error?.message || 'Não foi possível gerar seu relatório no momento. Tente novamente mais tarde.',
         type: 'error'
       });
     } finally {
@@ -456,6 +454,13 @@ const SummaryView: React.FC<SummaryViewProps> = ({
         </div>
 
       </div>
+      <AiAnalysisModal 
+        isOpen={isAnalysisModalOpen}
+        onClose={() => setIsAnalysisModalOpen(false)}
+        onConfirm={handleConfirmAnalysis}
+        profile={profile}
+        initialDate={selectedMonth}
+      />
     </div>
   );
 };

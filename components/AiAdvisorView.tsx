@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { AiAnalysis, Bill, CardTransaction, Asset } from '../types';
+import { AiAnalysis, Bill, CardTransaction, Asset, UserProfile, AiAdviceDTO } from '../types';
 import { MOCK_AI_ANALYSES } from '../constants';
-import { BrainCircuit, Sparkles, MessageSquare, ChevronRight, Play, X, Trash2 } from 'lucide-react';
+import { BrainCircuit, Sparkles, MessageSquare, ChevronRight, Play, X, Trash2, Bot } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { aiAdviceService } from '../services/aiAdviceService';
 import { useToast } from '../contexts/ToastContext';
+import AiAnalysisModal from './AiAnalysisModal';
+import ChatView from './ChatView';
 
 interface AiAdvisorViewProps {
   bills: Bill[];
@@ -12,6 +14,9 @@ interface AiAdvisorViewProps {
   assets: Asset[];
   initialReportId?: string | null;
   onCloseReport?: () => void;
+  profile: UserProfile | null;
+  selectedMonth: string;
+  onRefreshCoins?: () => void;
 }
 
 const AiAdvisorView: React.FC<AiAdvisorViewProps> = ({ 
@@ -19,13 +24,18 @@ const AiAdvisorView: React.FC<AiAdvisorViewProps> = ({
   transactions, 
   assets,
   initialReportId,
-  onCloseReport
+  onCloseReport,
+  profile,
+  selectedMonth,
+  onRefreshCoins
 }) => {
   const [analyses, setAnalyses] = useState<AiAnalysis[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedAnalysis, setSelectedAnalysis] = useState<AiAnalysis | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeSubTab, setActiveSubTab] = useState<'reports' | 'chat'>('reports');
   const { showToast } = useToast();
 
   const fetchAnalyses = async () => {
@@ -75,29 +85,40 @@ const AiAdvisorView: React.FC<AiAdvisorViewProps> = ({
     }
   };
 
-  const handleNewAnalysis = async () => {
+  const handleNewAnalysis = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleConfirmAnalysis = async (data: AiAdviceDTO) => {
     setIsGenerating(true);
     try {
-      const now = new Date();
-      const startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      const finishDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
-
-      await aiAdviceService.generateFullReport({
-        analysisTypeId: 1,
-        temperature: 0.7,
-        startDate,
-        finishDate,
-        isUsingCoins: false
-      });
+      const result = await aiAdviceService.generateFullReport(data);
       
-      // Refresh from backend
+      // Fetch the new analysis details immediately to show it
+      const newAnalysis = await aiAdviceService.getAdviceById(result.id);
+      
+      showToast('Relatório gerado com sucesso!', 'success');
+      
+      // Refresh list and open the new one
       await fetchAnalyses();
-    } catch (error) {
+      setSelectedAnalysis(newAnalysis);
+    } catch (error: any) {
       console.error('Error generating new analysis:', error);
+      showToast(error?.message || 'Erro ao gerar análise', 'error');
     } finally {
       setIsGenerating(false);
     }
   };
+
+  if (activeSubTab === 'chat') {
+    return (
+      <ChatView 
+        profile={profile} 
+        onBack={() => setActiveSubTab('reports')} 
+        onRefreshCoins={onRefreshCoins}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in min-h-[80vh] flex flex-col">
@@ -114,17 +135,29 @@ const AiAdvisorView: React.FC<AiAdvisorViewProps> = ({
         <p className="text-slate-400 text-sm">Seu consultor financeiro pessoal</p>
       </div>
 
-      {/* Main Action */}
-      <div className="glass-card p-1 rounded-2xl mx-auto max-w-sm w-full bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-blue-500/20">
-         <button 
-            onClick={handleNewAnalysis}
-            disabled={isGenerating}
-            className="w-full bg-surface hover:bg-slate-800 text-white py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-3 group relative overflow-hidden"
-         >
-            {isGenerating && <div className="absolute inset-0 bg-blue-500/10 animate-pulse"></div>}
-            <Sparkles size={18} className={`text-blue-400 ${isGenerating ? 'animate-spin' : 'group-hover:animate-bounce'}`} />
-            {isGenerating ? 'Processando dados...' : 'Gerar Nova Análise'}
-         </button>
+      {/* Main Actions */}
+      <div className="flex flex-col sm:flex-row gap-3 mx-auto w-full max-w-lg">
+        <div className="glass-card p-1 rounded-2xl flex-1 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-blue-500/20">
+           <button 
+              onClick={handleNewAnalysis}
+              disabled={isGenerating}
+              className="w-full bg-surface hover:bg-slate-800 text-white py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-3 group relative overflow-hidden"
+           >
+              {isGenerating && <div className="absolute inset-0 bg-blue-500/10 animate-pulse"></div>}
+              <Sparkles size={18} className={`text-blue-400 ${isGenerating ? 'animate-spin' : 'group-hover:animate-bounce'}`} />
+              {isGenerating ? 'Processando dados...' : 'Gerar Nova Análise'}
+           </button>
+        </div>
+        
+        <div className="glass-card p-1 rounded-2xl flex-1 bg-gradient-to-r from-indigo-500/10 to-blue-500/10 border-indigo-500/20">
+           <button 
+              onClick={() => setActiveSubTab('chat')}
+              className="w-full bg-surface hover:bg-slate-800 text-white py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-3 group"
+           >
+              <Bot size={18} className="text-indigo-400 group-hover:scale-110 transition-transform" />
+              Chat com Savi
+           </button>
+        </div>
       </div>
 
       {/* Analysis Stream */}
@@ -256,6 +289,14 @@ const AiAdvisorView: React.FC<AiAdvisorViewProps> = ({
           </div>
         </div>
       )}
+
+      <AiAnalysisModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onConfirm={handleConfirmAnalysis}
+        profile={profile}
+        initialDate={selectedMonth}
+      />
     </div>
   );
 };
