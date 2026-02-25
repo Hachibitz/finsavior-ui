@@ -8,6 +8,7 @@ import AiAdvisorView from './components/AiAdvisorView';
 import PlansView from './components/PlansView';
 import CategoriesView from './components/CategoriesView';
 import AccountView from './components/AccountView';
+import SupportView from './components/SupportView';
 import Onboarding from './components/Onboarding';
 import Login from './components/Login';
 import TransactionForm from './components/TransactionForm';
@@ -28,6 +29,7 @@ const App: React.FC = () => {
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [showPublicSupport, setShowPublicSupport] = useState(false);
   const [activeTab, setActiveTab] = useState('summary');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formForcedType, setFormForcedType] = useState<'income' | 'expense' | undefined>(undefined);
@@ -453,6 +455,13 @@ const App: React.FC = () => {
             onNavigateToPlans={() => setActiveTab('plans')}
           />
         );
+      case 'support':
+        return (
+          <SupportView 
+            profile={profile}
+            onBack={() => setActiveTab('summary')}
+          />
+        );
       default:
         return (
           <SummaryView 
@@ -484,7 +493,17 @@ const App: React.FC = () => {
   }
 
   if (!isLoggedIn) {
-    return <Login onLoginSuccess={() => setIsLoggedIn(true)} />;
+    if (showPublicSupport) {
+      return (
+        <div className="min-h-screen bg-background p-4 pt-12">
+          <SupportView 
+            profile={null} 
+            onBack={() => setShowPublicSupport(false)} 
+          />
+        </div>
+      );
+    }
+    return <Login onLoginSuccess={() => setIsLoggedIn(true)} onOpenSupport={() => setShowPublicSupport(true)} />;
   }
 
   return (

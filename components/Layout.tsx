@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useMonth } from '../contexts/MonthContext';
 import { 
   LayoutDashboard, CreditCard, Wallet, Receipt, BrainCircuit, ShieldCheck, 
-  Menu, X, User, LogOut, Bell, Search, Tags, ArrowLeft
+  Menu, X, User, LogOut, Bell, Search, Tags, ArrowLeft, HelpCircle
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { Notification } from '../types/notifications';
@@ -197,13 +197,23 @@ const Layout: React.FC<LayoutProps> = ({
 
               <div className="h-px bg-white/10 my-6" />
 
-              <button 
-                onClick={() => { onLogout?.(); setIsMenuOpen(false); }}
-                className="flex items-center gap-4 text-danger/80 hover:text-danger w-full p-4 rounded-2xl hover:bg-danger/10 transition-all"
-              >
-                <LogOut size={20} /> 
-                <span className="font-medium">Sair</span>
-              </button>
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick={() => { setActiveTab('support'); setIsMenuOpen(false); }}
+                  className="flex items-center justify-center gap-3 text-slate-300 hover:text-white p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-all group"
+                >
+                  <HelpCircle size={20} className="text-primary group-hover:scale-110 transition-transform" /> 
+                  <span className="font-medium">Ajuda</span>
+                </button>
+
+                <button 
+                  onClick={() => { onLogout?.(); setIsMenuOpen(false); }}
+                  className="flex items-center justify-center gap-3 text-danger/80 hover:text-danger p-4 rounded-2xl bg-danger/5 hover:bg-danger/10 transition-all group"
+                >
+                  <LogOut size={20} className="group-hover:scale-110 transition-transform" /> 
+                  <span className="font-medium">Sair</span>
+                </button>
+              </div>
             </nav>
           </div>
         </>

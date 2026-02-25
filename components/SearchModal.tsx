@@ -14,7 +14,8 @@ import {
   Sparkles,
   Bot,
   PlusCircle,
-  ArrowRight
+  ArrowRight,
+  HelpCircle
 } from 'lucide-react';
 
 interface SearchItem {
@@ -46,6 +47,7 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, setActiveTab
     { id: 'plans', title: 'Planos Premium', description: 'Upgrade e benefícios', icon: ShieldCheck, category: 'Tela', action: () => setActiveTab('plans') },
     { id: 'categories', title: 'Categorias', description: 'Organize seus gastos', icon: Tags, category: 'Tela', action: () => setActiveTab('categories') },
     { id: 'account', title: 'Minha Conta', description: 'Perfil e configurações', icon: User, category: 'Tela', action: () => setActiveTab('account') },
+    { id: 'support', title: 'Ajuda e Suporte', description: 'Fale conosco e tire dúvidas', icon: HelpCircle, category: 'Tela', action: () => setActiveTab('support') },
     { id: 'new-analysis', title: 'Gerar Análise', description: 'Criar novo relatório de IA', icon: Sparkles, category: 'Funcionalidade', action: () => setActiveTab('ai') },
     { id: 'chat-savi', title: 'Chat com Savi', description: 'Tire dúvidas com a assistente', icon: Bot, category: 'Funcionalidade', action: () => setActiveTab('ai') },
     { id: 'add-bill', title: 'Adicionar Conta', description: 'Registrar novo débito', icon: PlusCircle, category: 'Funcionalidade', action: () => setActiveTab('debits') },

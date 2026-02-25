@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { authService } from '../services/authService';
 import { googleAuthService } from '../services/googleAuthService';
-import { LogIn, Lock, User, Loader2 } from 'lucide-react';
+import { LogIn, Lock, User, Loader2, HelpCircle } from 'lucide-react';
 
 interface LoginProps {
   onLoginSuccess: () => void;
+  onOpenSupport: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
+const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport }) => {
   const [username, setUsername] = useState('finsavior');
   const [password, setPassword] = useState('Fs.123@1');
   const [loading, setLoading] = useState(false);
@@ -152,6 +153,16 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         <p className="text-center mt-8 text-slate-500 text-sm">
           Não tem uma conta? <span className="text-primary font-bold cursor-pointer hover:underline">Cadastre-se</span>
         </p>
+
+        <div className="mt-6 flex justify-center">
+          <button 
+            onClick={onOpenSupport}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all text-xs font-bold uppercase tracking-widest"
+          >
+            <HelpCircle size={14} />
+            Precisa de Ajuda?
+          </button>
+        </div>
       </div>
     </div>
   );
