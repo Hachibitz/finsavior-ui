@@ -7,6 +7,7 @@ import SummaryView from './components/SummaryView';
 import AiAdvisorView from './components/AiAdvisorView';
 import PlansView from './components/PlansView';
 import CategoriesView from './components/CategoriesView';
+import AccountView from './components/AccountView';
 import Onboarding from './components/Onboarding';
 import Login from './components/Login';
 import TransactionForm from './components/TransactionForm';
@@ -442,6 +443,14 @@ const App: React.FC = () => {
             onAdd={handleAddCategory}
             onEdit={handleEditCategory}
             onDelete={handleDeleteCategory}
+          />
+        );
+      case 'account':
+        return (
+          <AccountView 
+            profile={profile}
+            onRefreshProfile={fetchProfile}
+            onNavigateToPlans={() => setActiveTab('plans')}
           />
         );
       default:

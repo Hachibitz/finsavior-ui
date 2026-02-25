@@ -14,5 +14,13 @@ export const paymentService = {
       planType,
       email
     });
+  },
+
+  createCustomerPortalSession: async (email: string): Promise<{ url: string }> => {
+    return await api.post<{ url: string }>('/payment/subscription/customer-portal', { email });
+  },
+
+  cancelSubscription: async (immediate: boolean): Promise<void> => {
+    await api.post('/payment/subscription/cancel', { immediate });
   }
 };

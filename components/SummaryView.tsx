@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { SummaryData, Bill, Asset, CardTransaction, Category, UserProfile, AiAdviceDTO } from '../types';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line, CartesianGrid } from 'recharts';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -15,10 +15,12 @@ import {
   Activity,
   BrainCircuit,
   RotateCcw,
-  X
+  X,
+  Loader2
 } from 'lucide-react';
 import { getCategoryIcon } from '../constants';
 import { aiAdviceService } from '../services/aiAdviceService';
+import { billService } from '../services/billService';
 import { Notification } from '../types/notifications';
 import ReactMarkdown from 'react-markdown';
 import AiAnalysisModal from './AiAnalysisModal';
@@ -57,6 +59,73 @@ const SummaryView: React.FC<SummaryViewProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(initialInsightOpen || false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
+  const [historicalData, setHistoricalData] = useState<any[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+
+  const getLastSixMonths = () => {
+    const months = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({
+        key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+        label: d.toLocaleString('pt-BR', { month: 'short' }).replace('.', '')
+      });
+    }
+    return months;
+  };
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      setIsLoadingHistory(true);
+      const months = getLastSixMonths();
+      
+      try {
+        const results = await Promise.all(months.map(async (m) => {
+          // Fetch data for each month
+          const [billsData, cardData, assetsData] = await Promise.all([
+            billService.getBills(m.key),
+            billService.getCardBills(m.key),
+            billService.getAssetsBills(m.key)
+          ]);
+          
+          // Calculate values
+          // Receitas: Assets that are not "Poupança"
+          const income = assetsData
+            .filter(a => (a as any).category !== 'Poupança')
+            .reduce((acc, a) => acc + a.amount, 0);
+          
+          // Despesas: Bills + Card Transactions
+          const cardExpense = cardData.reduce((acc, t) => acc + t.amount, 0);
+          const billsExpense = billsData.reduce((acc, b) => acc + b.amount, 0);
+          const totalExpense = billsExpense + cardExpense;
+          
+          // Poupança: Assets or Bills with category "Poupança"
+          const savings = [
+            ...assetsData,
+            ...billsData
+          ].filter(item => (item as any).category === 'Poupança')
+           .reduce((acc, item) => acc + item.amount, 0);
+
+          return {
+            name: m.label.charAt(0).toUpperCase() + m.label.slice(1),
+            income,
+            expense: totalExpense,
+            savings,
+            card: cardExpense
+          };
+        }));
+        
+        setHistoricalData(results);
+      } catch (error) {
+        console.error('Error fetching historical data:', error);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    fetchHistory();
+  }, []);
 
   useEffect(() => {
     if (initialInsightOpen) {
@@ -101,15 +170,6 @@ const SummaryView: React.FC<SummaryViewProps> = ({
       };
     }).sort((a, b) => b.value - a.value);
   }, [allExpenses, categories]);
-
-  const evolutionData = [
-    { name: 'Set', income: 4000, expense: 3200 },
-    { name: 'Out', income: 5500, expense: 4100 },
-    { name: 'Nov', income: 4800, expense: 4600 },
-    { name: 'Dez', income: 7200, expense: 5000 },
-    { name: 'Jan', income: 6100, expense: 4800 },
-    { name: 'Fev', income: summary.totalIncome, expense: summary.totalExpense },
-  ];
 
   const savingsRate = useMemo(() => {
     if (summary.totalIncome === 0) return 0;
@@ -280,36 +340,143 @@ const SummaryView: React.FC<SummaryViewProps> = ({
                 <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-400">
                   <Activity size={20} />
                 </div>
-                <h3 className="font-bold text-white">Fluxo de Caixa</h3>
+                <h3 className="font-bold text-white">Evolução Mensal</h3>
               </div>
               <div className="flex gap-2">
-                <button className="px-3 py-1 text-[10px] font-bold bg-slate-800 text-slate-400 rounded-lg hover:text-white transition-colors">6M</button>
-                <button className="px-3 py-1 text-[10px] font-bold bg-primary text-white rounded-lg">1Y</button>
+                <div className="flex items-center gap-4 px-3 py-1 bg-white/5 rounded-xl">
+                   <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Receitas</span>
+                   </div>
+                   <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-rose-500" />
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Despesas</span>
+                   </div>
+                </div>
               </div>
             </div>
-            <div className="h-[280px] w-full">
+            
+            <div className="h-[300px] w-full relative">
+              {isLoadingHistory ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-900/20 backdrop-blur-sm rounded-2xl z-10">
+                  <Loader2 size={32} className="animate-spin text-primary" />
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Calculando tendências...</p>
+                </div>
+              ) : null}
+              
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={evolutionData}>
+                <AreaChart data={historicalData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.15}/>
                       <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                     </linearGradient>
                     <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.2}/>
+                      <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.15}/>
                       <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
                     </linearGradient>
+                    <linearGradient id="colorSavings" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15}/>
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorCard" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.15}/>
+                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                    </linearGradient>
                   </defs>
-                  <XAxis dataKey="name" stroke="#475569" fontSize={10} tickLine={false} axisLine={false} dy={10} />
-                  <YAxis stroke="#475569" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `R$${v/1000}k`} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '16px', fontSize: '12px' }} 
-                    cursor={{ stroke: '#64748b', strokeWidth: 1, strokeDasharray: '4 4' }}
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff05" />
+                  <XAxis 
+                    dataKey="name" 
+                    stroke="#475569" 
+                    fontSize={10} 
+                    tickLine={false} 
+                    axisLine={false} 
+                    dy={10} 
                   />
-                  <Area type="monotone" dataKey="income" stroke="#10b981" fillOpacity={1} fill="url(#colorIncome)" strokeWidth={4} />
-                  <Area type="monotone" dataKey="expense" stroke="#f43f5e" fillOpacity={1} fill="url(#colorExpense)" strokeWidth={4} />
+                  <YAxis 
+                    stroke="#475569" 
+                    fontSize={10} 
+                    tickLine={false} 
+                    axisLine={false} 
+                    tickFormatter={(v) => `R$${v >= 1000 ? (v/1000).toFixed(1) + 'k' : v}`} 
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#0f172a', 
+                      border: '1px solid rgba(255,255,255,0.1)', 
+                      borderRadius: '16px', 
+                      fontSize: '12px',
+                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                    }} 
+                    itemStyle={{ padding: '2px 0' }}
+                    cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1 }}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="income" 
+                    name="Receitas"
+                    stroke="#10b981" 
+                    fillOpacity={1} 
+                    fill="url(#colorIncome)" 
+                    strokeWidth={3} 
+                    dot={{ r: 4, fill: '#10b981', strokeWidth: 2, stroke: '#0f172a' }}
+                    activeDot={{ r: 6, strokeWidth: 0 }}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="expense" 
+                    name="Despesas"
+                    stroke="#f43f5e" 
+                    fillOpacity={1} 
+                    fill="url(#colorExpense)" 
+                    strokeWidth={3} 
+                    dot={{ r: 4, fill: '#f43f5e', strokeWidth: 2, stroke: '#0f172a' }}
+                    activeDot={{ r: 6, strokeWidth: 0 }}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="savings" 
+                    name="Poupança"
+                    stroke="#3b82f6" 
+                    fillOpacity={1} 
+                    fill="url(#colorSavings)" 
+                    strokeWidth={3} 
+                    dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#0f172a' }}
+                    activeDot={{ r: 6, strokeWidth: 0 }}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="card" 
+                    name="Total de Cartão"
+                    stroke="#f59e0b" 
+                    fillOpacity={1} 
+                    fill="url(#colorCard)" 
+                    strokeWidth={3} 
+                    dot={{ r: 4, fill: '#f59e0b', strokeWidth: 2, stroke: '#0f172a' }}
+                    activeDot={{ r: 6, strokeWidth: 0 }}
+                  />
                 </AreaChart>
               </ResponsiveContainer>
+            </div>
+            
+            {/* Custom Legend */}
+            <div className="mt-6 flex flex-wrap justify-center gap-6">
+               <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full border-2 border-emerald-500 bg-emerald-500/20" />
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Receitas</span>
+               </div>
+               <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full border-2 border-rose-500 bg-rose-500/20" />
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Despesas</span>
+               </div>
+               <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full border-2 border-blue-500 bg-blue-500/20" />
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Poupança</span>
+               </div>
+               <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full border-2 border-amber-500 bg-amber-500/20" />
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total de Cartão</span>
+               </div>
             </div>
           </div>
 

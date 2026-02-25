@@ -185,7 +185,10 @@ const Layout: React.FC<LayoutProps> = ({
                 <span className="font-medium">Categorias</span>
               </button>
 
-              <button className="flex items-center gap-4 text-slate-300 hover:text-white w-full p-4 rounded-2xl hover:bg-white/5 transition-all group">
+              <button 
+                onClick={() => { setActiveTab('account'); setIsMenuOpen(false); }}
+                className="flex items-center gap-4 text-slate-300 hover:text-white w-full p-4 rounded-2xl hover:bg-white/5 transition-all group"
+              >
                 <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
                   <User size={20} />
                 </div>
