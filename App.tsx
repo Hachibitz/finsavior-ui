@@ -9,11 +9,13 @@ import PlansView from './components/PlansView';
 import CategoriesView from './components/CategoriesView';
 import AccountView from './components/AccountView';
 import SupportView from './components/SupportView';
+import CoinStoreModal from './components/CoinStoreModal';
+import UpsellModal from './components/UpsellModal';
 import Onboarding from './components/Onboarding';
 import Login from './components/Login';
 import TransactionForm from './components/TransactionForm';
 import { MOCK_BILLS, MOCK_CARD_TRANSACTIONS, MOCK_ASSETS, DEFAULT_CATEGORIES, MOCK_CARDS } from './constants';
-import { Bill, CardTransaction, Asset, SummaryData, Category, CreditCard, UserProfile } from './types';
+import { Bill, CardTransaction, Asset, SummaryData, Category, CreditCard, UserProfile, Transaction } from './types';
 import { authService } from './services/authService';
 import { googleAuthService } from './services/googleAuthService';
 import { billService } from './services/billService';
@@ -32,6 +34,8 @@ const App: React.FC = () => {
   const [showPublicSupport, setShowPublicSupport] = useState(false);
   const [activeTab, setActiveTab] = useState('summary');
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isCoinStoreOpen, setIsCoinStoreOpen] = useState(false);
+  const [isUpsellOpen, setIsUpsellOpen] = useState(false);
   const [formForcedType, setFormForcedType] = useState<'income' | 'expense' | undefined>(undefined);
   // Month selection (YYYY-MM)
   const pad = (n: number) => n.toString().padStart(2, '0');
@@ -136,8 +140,25 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
+    const handleNavigate = () => setActiveTab('plans');
+    window.addEventListener('navigate-to-plans', handleNavigate);
+    return () => window.removeEventListener('navigate-to-plans', handleNavigate);
+  }, []);
+
+  useEffect(() => {
     if (isLoggedIn) {
       fetchProfile();
+      // Show upsell modal after a short delay if logged in and not recently closed
+      const timer = setTimeout(() => {
+        const closedAt = sessionStorage.getItem('upsell_modal_closed_at');
+        const tenMinutes = 10 * 60 * 1000;
+        const shouldShow = !closedAt || (Date.now() - parseInt(closedAt, 10)) >= tenMinutes;
+        
+        if (shouldShow) {
+          setIsUpsellOpen(true);
+        }
+      }, 3000);
+      return () => clearTimeout(timer);
     }
   }, [isLoggedIn]);
 
@@ -338,9 +359,20 @@ const App: React.FC = () => {
     showToast('Cartão adicionado!', 'success');
   };
 
-  const handleAddCardTransaction = (newTransaction: CardTransaction) => {
-    setCardTransactions([newTransaction, ...cardTransactions]);
-    showToast('Transação adicionada!', 'success');
+  const handleAddCardTransaction = async (newTransaction: Omit<Transaction, 'id'>) => {
+    try {
+      const saved = await billService.createBill(newTransaction, (newTransaction.billTable as any) || 'CREDIT_CARD', (newTransaction.billType as any) || 'EXPENSE');
+      if (newTransaction.billTable === 'PAYMENT_CARD') {
+        fetchBills(); // Refresh bills if it's a payment
+        showToast('Pagamento registrado!', 'success');
+      } else {
+        setCardTransactions([saved as any, ...cardTransactions]);
+        showToast('Transação adicionada!', 'success');
+      }
+    } catch (error: any) {
+      console.error('Error adding card transaction:', error);
+      showToast(error?.message || 'Erro ao adicionar transação', 'error');
+    }
   };
 
   // Assets Logic
@@ -365,6 +397,8 @@ const App: React.FC = () => {
     setIsLoggedIn(false);
     setProfile(null);
     setBills([]);
+    sessionStorage.removeItem('summary_banner_closed');
+    sessionStorage.removeItem('cards_banner_closed');
   };
 
   const renderContent = () => {
@@ -391,9 +425,10 @@ const App: React.FC = () => {
                 onAddCard={handleAddCard}
                 onAddTransaction={handleAddCardTransaction}
                 onImportInvoice={handleImportInvoice}
-                onRefresh={fetchBills}
+                onRefresh={() => { fetchBills(); fetchCardTransactions(); }}
                 onRefreshCoins={fetchProfile}
                 onNavigateToPlans={() => setActiveTab('plans')}
+                profile={profile}
             />
         );
       case 'assets':
@@ -403,6 +438,9 @@ const App: React.FC = () => {
             onAdd={() => { setFormForcedType('income'); setIsFormOpen(true); }} 
             onEdit={handleEditAsset}
             onDelete={handleDeleteAsset}
+            onRefresh={fetchAssets}
+            onRefreshCoins={fetchProfile}
+            onNavigateToPlans={() => setActiveTab('plans')}
           />
         );
       case 'summary':
@@ -519,10 +557,28 @@ const App: React.FC = () => {
           onMarkAsRead={markNotificationAsRead}
           onClearAll={clearNotifications}
           onNotificationAction={handleNotificationAction}
+          onOpenCoinStore={() => setIsCoinStoreOpen(true)}
         >
           {renderContent()}
         </Layout>
       </MonthContext.Provider>
+
+      <CoinStoreModal 
+        isOpen={isCoinStoreOpen}
+        onClose={() => setIsCoinStoreOpen(false)}
+        currentCoins={profile?.coins || 0}
+        onRefreshCoins={fetchProfile}
+      />
+
+      <UpsellModal 
+        isOpen={isUpsellOpen}
+        onClose={() => {
+          setIsUpsellOpen(false);
+          sessionStorage.setItem('upsell_modal_closed_at', Date.now().toString());
+        }}
+        onNavigateToPlans={() => setActiveTab('plans')}
+        profile={profile}
+      />
 
       {/* Reusing the transaction form for now, customized for the active tab context in future iterations */}
       <TransactionForm 

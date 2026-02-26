@@ -12,13 +12,15 @@ import {
   User,
   Bot,
   Loader2,
-  ChevronDown
+  ChevronDown,
+  Mic
 } from 'lucide-react';
 import { aiChatService, ChatMessage } from '../services/aiChatService';
 import { coinService } from '../services/coinService';
 import { UserProfile } from '../types';
 import { useToast } from '../contexts/ToastContext';
 import ReactMarkdown from 'react-markdown';
+import VoiceFab from './VoiceFab';
 
 interface ChatViewProps {
   profile: UserProfile | null;
@@ -284,6 +286,12 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
         )}
 
         <div className="flex items-center gap-3">
+          <VoiceFab 
+            mode="CHAT" 
+            onTextTranscribed={(text) => setInput(text)}
+            onNavigateToPlans={() => onBack?.()}
+            onRefreshCoins={onRefreshCoins}
+          />
           <div className="flex-1 relative">
             <input 
               type="text" 

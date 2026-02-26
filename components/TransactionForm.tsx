@@ -8,16 +8,29 @@ interface TransactionFormProps {
   onSubmit: (t: Omit<Transaction, 'id'>) => void;
   categories: Category[];
   forcedType?: 'income' | 'expense';
+  mode?: 'DEFAULT' | 'PAYMENT_CARD';
+  initialTitle?: string;
 }
 
-const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClose, onSubmit, categories, forcedType }) => {
+const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClose, onSubmit, categories, forcedType, mode = 'DEFAULT', initialTitle }) => {
   const [type, setType] = useState<'income' | 'expense'>(forcedType || 'expense');
   const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState(initialTitle || '');
   const [category, setCategory] = useState(categories[0]?.id || '');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [frequencyType, setFrequencyType] = useState<'SINGLE' | 'RECURRENT' | 'INSTALLMENT'>('SINGLE');
   const [installmentCount, setInstallmentCount] = useState('2');
+  const [paymentType, setPaymentType] = useState<'Total' | 'Parcial' | 'Mínimo'>('Total');
+
+  // Update type if forcedType changes
+  React.useEffect(() => {
+    if (forcedType) setType(forcedType);
+  }, [forcedType, isOpen]);
+
+  // Update description if initialTitle changes
+  React.useEffect(() => {
+    if (initialTitle) setDescription(initialTitle);
+  }, [initialTitle, isOpen]);
 
   // Update type if forcedType changes
   React.useEffect(() => {
@@ -46,7 +59,11 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClose, onSu
       frequencyType,
       isRecurrent: frequencyType === 'RECURRENT',
       isInstallment: frequencyType === 'INSTALLMENT',
-      installmentCount: frequencyType === 'INSTALLMENT' ? parseInt(installmentCount) : undefined
+      installmentCount: frequencyType === 'INSTALLMENT' ? parseInt(installmentCount) : undefined,
+      billTable: mode === 'PAYMENT_CARD' ? 'PAYMENT_CARD' : undefined,
+      paymentType: mode === 'PAYMENT_CARD' ? paymentType : undefined,
+      billType: mode === 'PAYMENT_CARD' ? 'Payment' : undefined,
+      entryMethod: 'MANUAL'
     });
     
     // Reset form
@@ -63,7 +80,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClose, onSu
         
         <div className="p-6 border-b border-slate-700/50 flex justify-between items-center">
           <h3 className="text-xl font-bold text-white">
-            {forcedType === 'income' ? 'Adicionar Renda' : forcedType === 'expense' ? 'Adicionar Despesa' : 'Nova Transação'}
+            {mode === 'PAYMENT_CARD' ? 'Pagar Fatura' : forcedType === 'income' ? 'Adicionar Renda' : forcedType === 'expense' ? 'Adicionar Despesa' : 'Nova Transação'}
           </h3>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
             <X size={24} />
@@ -116,80 +133,106 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClose, onSu
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Descrição</label>
+            <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
+              {mode === 'PAYMENT_CARD' ? 'Título do Cartão' : 'Descrição'}
+            </label>
             <input 
               type="text" 
               required
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="ex: Salário, Aluguel, etc"
+              placeholder={mode === 'PAYMENT_CARD' ? "ex: Nubank" : "ex: Salário, Aluguel, etc"}
               className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-             <div>
-                <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Categoria</label>
-                <select 
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-4 py-3 appearance-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                >
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
-                </select>
-             </div>
-             <div>
-                <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Data</label>
-                <input 
-                  type="date" 
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary [color-scheme:dark]"
-                />
-             </div>
-          </div>
-
-          {/* Frequency Selection */}
-          <div className="space-y-3">
-            <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider">Frequência</label>
-            <div className="grid grid-cols-3 gap-2 bg-slate-900/50 p-1 rounded-xl">
-              <button
-                type="button"
-                onClick={() => setFrequencyType('SINGLE')}
-                className={`py-2 rounded-lg text-xs font-semibold transition-all ${
-                  frequencyType === 'SINGLE' 
-                    ? 'bg-slate-700 text-white shadow-lg' 
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Único
-              </button>
-              <button
-                type="button"
-                onClick={() => setFrequencyType('RECURRENT')}
-                className={`py-2 rounded-lg text-xs font-semibold transition-all ${
-                  frequencyType === 'RECURRENT' 
-                    ? 'bg-slate-700 text-white shadow-lg' 
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Fixo
-              </button>
-              <button
-                type="button"
-                onClick={() => setFrequencyType('INSTALLMENT')}
-                className={`py-2 rounded-lg text-xs font-semibold transition-all ${
-                  frequencyType === 'INSTALLMENT' 
-                    ? 'bg-slate-700 text-white shadow-lg' 
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Parcelado
-              </button>
+          {mode === 'PAYMENT_CARD' ? (
+            <div>
+              <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Tipo de Pagamento</label>
+              <div className="grid grid-cols-3 gap-2 bg-slate-900/50 p-1 rounded-xl">
+                {(['Total', 'Parcial', 'Mínimo'] as const).map((pType) => (
+                  <button
+                    key={pType}
+                    type="button"
+                    onClick={() => setPaymentType(pType)}
+                    className={`py-2 rounded-lg text-xs font-semibold transition-all ${
+                      paymentType === pType 
+                        ? 'bg-slate-700 text-white shadow-lg' 
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {pType}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+               <div>
+                  <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Categoria</label>
+                  <select 
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-4 py-3 appearance-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  >
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+               </div>
+               <div>
+                  <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Data</label>
+                  <input 
+                    type="date" 
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary [color-scheme:dark]"
+                  />
+               </div>
+            </div>
+          )}
+
+          {/* Frequency Selection - Only show if not payment */}
+          {mode !== 'PAYMENT_CARD' && (
+            <div className="space-y-3">
+              <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider">Frequência</label>
+              <div className="grid grid-cols-3 gap-2 bg-slate-900/50 p-1 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setFrequencyType('SINGLE')}
+                  className={`py-2 rounded-lg text-xs font-semibold transition-all ${
+                    frequencyType === 'SINGLE' 
+                      ? 'bg-slate-700 text-white shadow-lg' 
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Único
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFrequencyType('RECURRENT')}
+                  className={`py-2 rounded-lg text-xs font-semibold transition-all ${
+                    frequencyType === 'RECURRENT' 
+                      ? 'bg-slate-700 text-white shadow-lg' 
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Fixo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFrequencyType('INSTALLMENT')}
+                  className={`py-2 rounded-lg text-xs font-semibold transition-all ${
+                    frequencyType === 'INSTALLMENT' 
+                      ? 'bg-slate-700 text-white shadow-lg' 
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Parcelado
+                </button>
+              </div>
+            </div>
+          )}
 
           {frequencyType === 'INSTALLMENT' && (
             <div className="animate-fade-in">

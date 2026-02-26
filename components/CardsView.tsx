@@ -1,26 +1,43 @@
 import React, { useState } from 'react';
-import { CardTransaction, Category, CreditCard } from '../types';
-import { Plus, CreditCard as CardIcon, Calendar, ArrowRight, UploadCloud, ChevronRight, X, Check, FileText } from 'lucide-react';
+import { CardTransaction, Category, CreditCard, UserProfile, Transaction } from '../types';
+import { Plus, CreditCard as CardIcon, Calendar, ArrowRight, UploadCloud, ChevronRight, X, Check, FileText, Mic } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
 import ImportDocButton from './ImportDocButton';
+import VoiceFab from './VoiceFab';
+import { useToast } from '../contexts/ToastContext';
+import TransactionForm from './TransactionForm';
 
 interface CardsViewProps {
   transactions: CardTransaction[];
   cards: CreditCard[];
   categories: Category[];
-  onAddCard: (card: CreditCard) => void;
-  onAddTransaction: (transaction: CardTransaction) => void;
+  onAddCard: (card: Omit<CreditCard, 'id'>) => void;
+  onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
   onImportInvoice: (file: File) => void;
   onRefresh: () => void;
   onRefreshCoins: () => void;
   onNavigateToPlans: () => void;
+  profile: UserProfile | null;
 }
 
 const CardsView: React.FC<CardsViewProps> = ({ 
-  transactions, cards, categories, onAddCard, onAddTransaction, onImportInvoice, onRefresh, onRefreshCoins, onNavigateToPlans 
+  transactions, cards, categories, onAddCard, onAddTransaction, onImportInvoice, onRefresh, onRefreshCoins, onNavigateToPlans, profile 
 }) => {
+  const { showToast } = useToast();
   const [activeCardId, setActiveCardId] = useState<string>(cards[0]?.id || '');
   const [isAddCardOpen, setIsAddCardOpen] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isBannerClosed, setIsBannerClosed] = useState(() => {
+    const closedAt = sessionStorage.getItem('cards_banner_closed_at');
+    if (!closedAt) return false;
+    const tenMinutes = 10 * 60 * 1000;
+    return (Date.now() - parseInt(closedAt, 10)) < tenMinutes;
+  });
+
+  const handleCloseBanner = () => {
+    setIsBannerClosed(true);
+    sessionStorage.setItem('cards_banner_closed_at', Date.now().toString());
+  };
   
   // New Card State
   const [newCardName, setNewCardName] = useState('');
@@ -51,6 +68,32 @@ const CardsView: React.FC<CardsViewProps> = ({
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Upsell Banner for Free Users */}
+      {(!profile?.plan || profile.plan.planId === 'FREE' || profile.plan.planDs === 'FREE') && !isBannerClosed && (
+        <div className="bg-gradient-to-br from-indigo-600/20 to-primary/20 border border-indigo-500/30 p-6 rounded-3xl flex items-center justify-between gap-4 relative overflow-hidden group">
+          <button 
+            onClick={handleCloseBanner}
+            className="absolute top-3 right-3 p-1 rounded-full bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all z-20"
+          >
+            <X size={14} />
+          </button>
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/30 shrink-0">
+              <CardIcon size={24} />
+            </div>
+            <div>
+              <h4 className="font-bold text-white">Múltiplos Cartões?</h4>
+              <p className="text-slate-400 text-xs">Assine o Premium para cartões ilimitados, comandos de voz e WhatsApp.</p>
+            </div>
+          </div>
+          <button 
+            onClick={onNavigateToPlans}
+            className="px-4 py-2 bg-white text-slate-900 font-bold rounded-xl text-xs hover:scale-105 transition-all relative z-10 whitespace-nowrap"
+          >
+            Ver Planos
+          </button>
+        </div>
+      )}
       
       {/* Card Selector / Header */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
@@ -116,7 +159,13 @@ const CardsView: React.FC<CardsViewProps> = ({
       <div className="grid grid-cols-2 gap-4">
          <button 
             className="bg-surface border border-slate-700 hover:bg-slate-800 text-white py-4 rounded-2xl font-medium transition-all shadow-lg flex flex-col items-center justify-center gap-2 group"
-            onClick={() => {/* Open Payment Modal Logic */}}
+            onClick={() => {
+              if (!activeCard) {
+                showToast('Selecione um cartão para pagar a fatura', 'info');
+                return;
+              }
+              setIsPaymentModalOpen(true);
+            }}
          >
             <span className="text-emerald-400 group-hover:scale-110 transition-transform"><Check size={24} /></span>
             <span className="text-sm font-bold">Pagar Fatura</span>
@@ -176,6 +225,17 @@ const CardsView: React.FC<CardsViewProps> = ({
         </div>
       </div>
 
+      {/* Modals */}
+      <TransactionForm 
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        onSubmit={onAddTransaction}
+        categories={categories}
+        mode="PAYMENT_CARD"
+        initialTitle={activeCard?.name}
+        forcedType="expense"
+      />
+
       {/* Add Card Modal */}
       {isAddCardOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
@@ -215,6 +275,15 @@ const CardsView: React.FC<CardsViewProps> = ({
            </div>
         </div>
       )}
+      <VoiceFab 
+        mode="BILL" 
+        onBillDetected={(data) => {
+          showToast(`Gasto no cartão "${data.billName}" detectado e processada!`, 'success');
+          onRefresh();
+        }}
+        onNavigateToPlans={onNavigateToPlans}
+        onRefreshCoins={onRefreshCoins}
+      />
     </div>
   );
 };

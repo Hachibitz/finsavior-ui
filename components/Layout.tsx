@@ -21,6 +21,7 @@ interface LayoutProps {
   onMarkAsRead: (id: string) => void;
   onClearAll: () => void;
   onNotificationAction: (notification: Notification) => void;
+  onOpenCoinStore?: () => void;
 }
 
 const Layout: React.FC<LayoutProps> = ({ 
@@ -33,7 +34,8 @@ const Layout: React.FC<LayoutProps> = ({
   unreadCount,
   onMarkAsRead,
   onClearAll,
-  onNotificationAction
+  onNotificationAction,
+  onOpenCoinStore
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -73,7 +75,10 @@ const Layout: React.FC<LayoutProps> = ({
             {/* Month selector */}
             <MonthSelector />
 
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500">
+            <div 
+              onClick={onOpenCoinStore}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 cursor-pointer hover:bg-amber-500/20 transition-all active:scale-95"
+            >
               <div className="w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center text-[10px] font-black text-white shadow-[0_0_10px_rgba(245,158,11,0.5)]">
                 $
               </div>
@@ -162,6 +167,24 @@ const Layout: React.FC<LayoutProps> = ({
               <button onClick={() => setIsMenuOpen(false)} className="text-slate-400 hover:text-white">
                 <X />
               </button>
+            </div>
+
+            <div 
+              onClick={() => { onOpenCoinStore?.(); setIsMenuOpen(false); }}
+              className="mb-8 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between cursor-pointer hover:bg-amber-500/20 transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-[10px] font-black text-white">
+                  $
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Saldo FSCoins</span>
+                  <span className="text-lg font-black text-white leading-none">{profile?.coins || 0}</span>
+                </div>
+              </div>
+              <div className="text-[10px] font-black text-amber-500 uppercase tracking-widest bg-amber-500/20 px-2 py-1 rounded-md">
+                Loja
+              </div>
             </div>
             
             <nav className="space-y-2">

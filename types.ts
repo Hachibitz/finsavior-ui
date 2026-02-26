@@ -14,6 +14,10 @@ export interface Transaction extends BaseRecord {
   isInstallment?: boolean;
   installmentCount?: number;
   frequencyType?: 'SINGLE' | 'RECURRENT' | 'INSTALLMENT';
+  billTable?: string;
+  billType?: string;
+  paymentType?: 'Total' | 'Parcial' | 'Mínimo' | null;
+  entryMethod?: 'MANUAL' | 'AUDIO';
 }
 
 export interface CreditCard {

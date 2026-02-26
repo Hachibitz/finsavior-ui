@@ -31,7 +31,7 @@ const mapDTOToBill = (dto: BillDTO | undefined, fallback?: Partial<Bill>): Bill 
   category: dto?.billCategory ?? fallback?.category ?? 'Others',
 });
 
-const mapBillToDTO = (bill: any, existing?: BillDTO, table: 'MAIN' | 'CREDIT_CARD' | 'ASSETS' = 'MAIN', type: 'INCOME' | 'EXPENSE' = 'EXPENSE'): Partial<BillDTO> => {
+const mapBillToDTO = (bill: any, existing?: BillDTO, table: 'MAIN' | 'CREDIT_CARD' | 'ASSETS' | 'PAYMENT_CARD' = 'MAIN', type: 'INCOME' | 'EXPENSE' | 'Payment' = 'EXPENSE'): Partial<BillDTO> => {
   const formattedDate = bill.date ? bill.date.split('T')[0] : existing?.billDate || new Date().toISOString().split('T')[0];
   return {
     ...existing,
@@ -40,13 +40,14 @@ const mapBillToDTO = (bill: any, existing?: BillDTO, table: 'MAIN' | 'CREDIT_CAR
     billDate: formattedDate,
     billCategory: bill.category || existing?.billCategory || 'Others',
     paid: bill.isPaid !== undefined ? bill.isPaid : existing?.paid,
-    billTable: table as any,
-    billType: type,
-    entryMethod: 'MANUAL',
+    billTable: (bill.billTable || table) as any,
+    billType: (bill.billType || type) as any,
+    entryMethod: bill.entryMethod || 'MANUAL',
     isInstallment: bill.isInstallment ?? existing?.isInstallment ?? false,
     isRecurrent: bill.isRecurrent ?? existing?.isRecurrent ?? false,
     installmentCount: bill.installmentCount ?? existing?.installmentCount ?? 0,
     currentInstallment: 1,
+    paymentType: bill.paymentType || existing?.paymentType,
   };
 };
 
@@ -92,7 +93,7 @@ export const billService = {
     } as Asset));
   },
   
-  createBill: async (bill: any, table: 'MAIN' | 'CREDIT_CARD' | 'ASSETS' = 'MAIN', type: 'INCOME' | 'EXPENSE' = 'EXPENSE'): Promise<Bill> => {
+  createBill: async (bill: any, table: 'MAIN' | 'CREDIT_CARD' | 'ASSETS' | 'PAYMENT_CARD' = 'MAIN', type: 'INCOME' | 'EXPENSE' | 'Payment' = 'EXPENSE'): Promise<Bill> => {
     const dto = mapBillToDTO(bill, undefined, table, type) as BillDTO;
     const response = await api.post<BillDTO>('/bill/bill-register', { ...dto, id: 0, userId: 0 });
     if (!response || response.id === undefined || response.id === null || isNaN(Number(response.id))) {

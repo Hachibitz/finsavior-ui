@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Bill, Category } from '../types';
 import { getCategoryIcon } from '../constants';
-import { Plus, CheckCircle2, Circle, Edit2, Trash2, FileText, Loader2 } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, Edit2, Trash2, FileText, Loader2, Mic } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
 import ImportDocButton from './ImportDocButton';
+import VoiceFab from './VoiceFab';
 import { useToast } from '../contexts/ToastContext';
+import { AiBillExtractionDTO } from '../services/aiTranscriptionService';
 
 interface DebitsViewProps {
   bills: Bill[];
@@ -163,6 +165,16 @@ const DebitsView: React.FC<DebitsViewProps> = ({ bills, onAdd, onDelete, onEdit,
         onConfirm={() => billToDelete && onDelete(billToDelete)}
         title="Excluir Conta?"
         message="Tem certeza que deseja excluir esta conta? Essa ação não pode ser desfeita."
+      />
+
+      <VoiceFab 
+        mode="BILL" 
+        onBillDetected={(data) => {
+          showToast(`Conta "${data.billName}" detectada e processada!`, 'success');
+          onRefresh();
+        }}
+        onNavigateToPlans={onNavigateToPlans}
+        onRefreshCoins={onRefreshCoins}
       />
     </div>
   );

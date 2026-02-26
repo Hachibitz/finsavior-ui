@@ -9,8 +9,9 @@ interface LoginProps {
 }
 
 const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport }) => {
-  const [username, setUsername] = useState('finsavior');
-  const [password, setPassword] = useState('Fs.123@1');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +21,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport }) => {
     setLoading(true);
     setError(null);
     try {
-      await authService.login(username, password);
+      await authService.login(username, password, rememberMe);
       onLoginSuccess();
     } catch (err: any) {
       setError(err.message || 'Falha no login. Verifique suas credenciais.');
@@ -56,7 +57,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport }) => {
         <div className="glass-card p-8 rounded-3xl border border-white/10">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Usuário</label>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Usuário ou E-mail</label>
               <div className="relative">
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                 <input
@@ -64,7 +65,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport }) => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="w-full bg-slate-900/50 border border-slate-700 rounded-2xl py-4 pl-12 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                  placeholder="Seu usuário"
+                  placeholder="Seu usuário ou e-mail"
                   required
                 />
               </div>
@@ -83,6 +84,19 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport }) => {
                   required
                 />
               </div>
+            </div>
+
+            <div className="flex items-center gap-2 ml-1">
+              <input
+                type="checkbox"
+                id="rememberMe"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-700 bg-slate-900/50 text-primary focus:ring-primary/50"
+              />
+              <label htmlFor="rememberMe" className="text-sm text-slate-400 font-medium cursor-pointer select-none">
+                Permanecer logado
+              </label>
             </div>
 
             {error && (

@@ -1,15 +1,21 @@
 import React from 'react';
 import { Asset } from '../types';
 import { Edit2, Trash2, Plus, Mic } from 'lucide-react';
+import VoiceFab from './VoiceFab';
+import { useToast } from '../contexts/ToastContext';
 
 interface AssetsViewProps {
   assets: Asset[];
   onAdd: () => void;
   onEdit: (asset: Asset) => void;
   onDelete: (id: string) => void;
+  onRefresh: () => void;
+  onRefreshCoins: () => void;
+  onNavigateToPlans: () => void;
 }
 
-const AssetsView: React.FC<AssetsViewProps> = ({ assets, onAdd, onEdit, onDelete }) => {
+const AssetsView: React.FC<AssetsViewProps> = ({ assets, onAdd, onEdit, onDelete, onRefresh, onRefreshCoins, onNavigateToPlans }) => {
+  const { showToast } = useToast();
   return (
     <div className="space-y-4 animate-fade-in pb-20">
       <div className="flex justify-between items-center mb-4">
@@ -60,10 +66,16 @@ const AssetsView: React.FC<AssetsViewProps> = ({ assets, onAdd, onEdit, onDelete
         ))}
       </div>
 
-      {/* Floating Mic Button */}
-      <button className="fixed bottom-24 right-6 w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center shadow-xl shadow-blue-500/30 text-white hover:bg-blue-400 transition-transform hover:scale-105 active:scale-90 z-40">
-        <Mic size={24} />
-      </button>
+      {/* Floating Voice Button */}
+      <VoiceFab 
+        mode="BILL" 
+        onBillDetected={(data) => {
+          showToast(`Renda "${data.billName}" detectada e processada!`, 'success');
+          onRefresh();
+        }}
+        onNavigateToPlans={onNavigateToPlans}
+        onRefreshCoins={onRefreshCoins}
+      />
     </div>
   );
 };

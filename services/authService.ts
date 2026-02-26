@@ -1,12 +1,12 @@
 import { api, getAccessToken, setAccessToken, setRefreshToken, getRefreshToken, clearTokens } from './api';
 
 export const authService = {
-  login: async (username: string, password: string): Promise<void> => {
+  login: async (username: string, password: string, rememberMe: boolean = true): Promise<void> => {
     // Based on user's Angular code, it expects accessToken and refreshToken
     const response = await api.post<any>('/auth/login-auth', {
       username,
       password,
-      rememberMe: true
+      rememberMe
     });
     
     // The user's Angular code expects { accessToken: string; refreshToken: string }

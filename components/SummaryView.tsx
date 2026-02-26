@@ -16,7 +16,8 @@ import {
   BrainCircuit,
   RotateCcw,
   X,
-  Loader2
+  Loader2,
+  ShieldCheck
 } from 'lucide-react';
 import { getCategoryIcon } from '../constants';
 import { aiAdviceService } from '../services/aiAdviceService';
@@ -61,6 +62,17 @@ const SummaryView: React.FC<SummaryViewProps> = ({
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
   const [historicalData, setHistoricalData] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [isBannerClosed, setIsBannerClosed] = useState(() => {
+    const closedAt = sessionStorage.getItem('summary_banner_closed_at');
+    if (!closedAt) return false;
+    const tenMinutes = 10 * 60 * 1000;
+    return (Date.now() - parseInt(closedAt, 10)) < tenMinutes;
+  });
+
+  const handleCloseBanner = () => {
+    setIsBannerClosed(true);
+    sessionStorage.setItem('summary_banner_closed_at', Date.now().toString());
+  };
 
   const getLastSixMonths = () => {
     const months = [];
@@ -209,6 +221,39 @@ const SummaryView: React.FC<SummaryViewProps> = ({
 
   return (
     <div className="space-y-6 animate-slide-up pb-10">
+      {/* Upsell Banner for Free Users */}
+      {(!profile?.plan || profile.plan.planId === 'FREE' || profile.plan.planDs === 'FREE') && !isBannerClosed && (
+        <div className="bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 border border-primary/30 p-6 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden group">
+          <div className="absolute -top-12 -right-12 w-32 h-32 bg-primary/20 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000" />
+          
+          <button 
+            onClick={handleCloseBanner}
+            className="absolute top-4 right-4 p-1 rounded-full bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all z-20"
+          >
+            <X size={16} />
+          </button>
+
+          <div className="flex items-center gap-5 relative z-10">
+            <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/30 shrink-0">
+              <ShieldCheck size={32} />
+            </div>
+            <div>
+              <h3 className="text-xl font-black text-white tracking-tight">Evolua para o Premium</h3>
+              <p className="text-slate-400 text-sm">Análises ilimitadas, comandos de voz e integração com WhatsApp.</p>
+            </div>
+          </div>
+          
+          <button 
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('navigate-to-plans'));
+            }}
+            className="px-8 py-3 bg-white text-slate-900 font-black rounded-xl text-sm hover:scale-105 active:scale-95 transition-all shadow-xl relative z-10"
+          >
+            Ver Planos
+          </button>
+        </div>
+      )}
+
       {/* Hero Section - Modern Glassmorphism */}
       <div className="relative overflow-hidden rounded-[2.5rem] bg-slate-900 p-8 shadow-2xl border border-white/5">
         <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/20 rounded-full blur-[100px]" />

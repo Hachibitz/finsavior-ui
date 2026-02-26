@@ -14,7 +14,8 @@ export const PLANS = [
         features: [
             '1 análise para teste',
             '2 mensagens com a Savi por mês (assistente financeira de IA)',
-            'Até 4.000 tokens de IA por mês'
+            'Até 4.000 tokens de IA por mês',
+            'Inserção básica por voz'
         ],
         type: 'FREE',
     },
@@ -27,6 +28,7 @@ export const PLANS = [
             '15 mensagens com a Savi por mês (assistente financeira de IA)',
             'Até 30.000 tokens de IA por mês',
             'Controle do nível de criatividade/precisão',
+            'Inserção por voz e WhatsApp',
             'Sem anúncios forçados'
         ],
         trial: true,
@@ -42,6 +44,7 @@ export const PLANS = [
             'Até 100.000 tokens de IA por mês',
             'Suporte prioritário',
             'Controle do nível de criatividade/precisão',
+            'Inserção por voz e WhatsApp ilimitados',
             'Sem anúncios forçados'
         ],
         type: 'STRIPE_PLUS_MONTHLY',
@@ -57,6 +60,7 @@ export const PLANS = [
             'Tokens ilimitados de IA por mês',
             'Suporte personalizado e prioritário',
             'Controle do nível de criatividade/precisão',
+            'Inserção por voz e WhatsApp ilimitados',
             'Maior desconto no anual!',
             'Sem anúncios forçados'
         ],
@@ -72,6 +76,7 @@ export const PLANS = [
             '15 mensagens com a Savi por mês (assistente financeira de IA)',
             'Até 30.000 tokens de IA por mês',
             'Controle do nível de criatividade/precisão',
+            'Inserção por voz e WhatsApp',
             'Sem anúncios forçados'
         ],
         trial: true,
@@ -87,6 +92,7 @@ export const PLANS = [
             'Até 100.000 tokens de IA por mês',
             'Suporte prioritário',
             'Controle do nível de criatividade/precisão',
+            'Inserção por voz e WhatsApp ilimitados',
             'Sem anúncios forçados'
         ],
         type: 'STRIPE_PLUS_ANNUAL',
@@ -102,6 +108,7 @@ export const PLANS = [
             'Tokens ilimitados de IA por mês',
             'Suporte personalizado e prioritário',
             'Controle do nível de criatividade/precisão',
+            'Inserção por voz e WhatsApp ilimitados',
             'Maior desconto no anual!',
             'Sem anúncios forçados'
         ],
