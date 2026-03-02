@@ -24,15 +24,29 @@ const CoinStoreModal: React.FC<CoinStoreModalProps> = ({ isOpen, onClose, curren
   const { showToast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
   const [isAndroid, setIsAndroid] = useState(false);
+  const [prices, setPrices] = useState<{ beginner: number; popular: number; economic: number }>({
+    beginner: 2.45,
+    popular: 9.95,
+    economic: 24.95
+  });
 
   useEffect(() => {
     // Simple check for Android/Capacitor
     const userAgent = window.navigator.userAgent.toLowerCase();
-    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
-    // In a real Capacitor app, we'd use Capacitor.getPlatform()
-    // For this demo, we'll simulate the check
     setIsAndroid(userAgent.includes('android'));
-  }, []);
+
+    if (isOpen) {
+      const fetchPrices = async () => {
+        try {
+          const data = await coinService.getShoppingPrices();
+          setPrices(data);
+        } catch (error) {
+          console.error('Error fetching prices:', error);
+        }
+      };
+      fetchPrices();
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -46,7 +60,7 @@ const CoinStoreModal: React.FC<CoinStoreModalProps> = ({ isOpen, onClose, curren
     try {
       // Simulate ad watching delay
       await new Promise(resolve => setTimeout(resolve, 2000));
-      const newBalance = await coinService.earnCoins();
+      await coinService.earnCoins();
       onRefreshCoins();
       showToast('Parabéns! Você ganhou 10 FScoins.', 'success');
     } catch (error) {
@@ -73,10 +87,14 @@ const CoinStoreModal: React.FC<CoinStoreModalProps> = ({ isOpen, onClose, curren
     }
   };
 
+  const formatPrice = (price: number) => {
+    return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+
   const packages = [
-    { id: 'pack_10', amount: 10, price: 'R$ 2,45', label: 'Iniciante', icon: Coins, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-    { id: 'pack_50', amount: 50, price: 'R$ 9,95', label: 'Popular', icon: Zap, color: 'text-amber-400', bg: 'bg-amber-500/10', popular: true },
-    { id: 'pack_150', amount: 150, price: 'R$ 24,95', label: 'Econômico', icon: ShoppingBag, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+    { id: 'pack_10', amount: 10, price: formatPrice(prices.beginner), label: 'Iniciante', icon: Coins, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+    { id: 'pack_50', amount: 50, price: formatPrice(prices.popular), label: 'Popular', icon: Zap, color: 'text-amber-400', bg: 'bg-amber-500/10', popular: true },
+    { id: 'pack_150', amount: 150, price: formatPrice(prices.economic), label: 'Econômico', icon: ShoppingBag, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
   ];
 
   return (

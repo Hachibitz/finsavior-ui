@@ -70,5 +70,33 @@ export const authService = {
       console.error("Auth check error:", error);
       return false;
     }
+  },
+
+  signUp: async (data: any): Promise<any> => {
+    return await api.post('/auth/signup', data);
+  },
+
+  loginWithGoogle: async (idToken: string): Promise<any> => {
+    const response = await api.post<any>('/auth/login-google', idToken);
+    const accessToken = response.accessToken || response.token || Object.values(response)[0];
+    const refreshToken = response.refreshToken || response.token;
+
+    if (accessToken) {
+      setAccessToken(accessToken);
+      if (refreshToken) setRefreshToken(refreshToken);
+    }
+    return response;
+  },
+
+  registerWithGoogle: async (idToken: string): Promise<any> => {
+    const response = await api.post<any>('/auth/register-google', idToken);
+    const accessToken = response.accessToken || response.token || Object.values(response)[0];
+    const refreshToken = response.refreshToken || response.token;
+
+    if (accessToken) {
+      setAccessToken(accessToken);
+      if (refreshToken) setRefreshToken(refreshToken);
+    }
+    return response;
   }
 };

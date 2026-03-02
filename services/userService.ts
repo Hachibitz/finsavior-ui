@@ -38,6 +38,6 @@ export const userService = {
   },
 
   deleteAccount: async (data: DeleteAccountRequest): Promise<void> => {
-    await api.post('/user/delete-account-and-data', data);
+    await api.post('/user/delete-account', data);
   }
 };

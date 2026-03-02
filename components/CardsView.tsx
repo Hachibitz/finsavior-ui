@@ -1,32 +1,50 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CardTransaction, Category, CreditCard, UserProfile, Transaction } from '../types';
-import { Plus, CreditCard as CardIcon, Calendar, ArrowRight, UploadCloud, ChevronRight, X, Check, FileText, Mic } from 'lucide-react';
+import { Plus, CreditCard as CardIcon, Calendar, ArrowRight, UploadCloud, ChevronRight, X, Check, FileText, Mic, Settings, Edit2, Trash2, MoreVertical } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
 import ImportDocButton from './ImportDocButton';
 import VoiceFab from './VoiceFab';
 import { useToast } from '../contexts/ToastContext';
 import TransactionForm from './TransactionForm';
+import { billService } from '../services/billService';
 
 interface CardsViewProps {
   transactions: CardTransaction[];
   cards: CreditCard[];
   categories: Category[];
   onAddCard: (card: Omit<CreditCard, 'id'>) => void;
+  onEditCard: (card: CreditCard) => void;
+  onDeleteCard: (id: string) => void;
   onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
+  onEditTransaction: (transaction: Transaction) => void;
+  onDeleteTransaction: (id: string, deleteAll?: boolean) => void;
   onImportInvoice: (file: File) => void;
   onRefresh: () => void;
   onRefreshCoins: () => void;
   onNavigateToPlans: () => void;
   profile: UserProfile | null;
+  selectedMonth: string;
 }
 
 const CardsView: React.FC<CardsViewProps> = ({ 
-  transactions, cards, categories, onAddCard, onAddTransaction, onImportInvoice, onRefresh, onRefreshCoins, onNavigateToPlans, profile 
+  transactions: initialTransactions, cards, categories, 
+  onAddCard, onEditCard, onDeleteCard,
+  onAddTransaction, onEditTransaction, onDeleteTransaction,
+  onImportInvoice, onRefresh, onRefreshCoins, onNavigateToPlans, profile,
+  selectedMonth
 }) => {
   const { showToast } = useToast();
   const [activeCardId, setActiveCardId] = useState<string>(cards[0]?.id || '');
+  const [localTransactions, setLocalTransactions] = useState<CardTransaction[]>([]);
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const [isAddCardOpen, setIsAddCardOpen] = useState(false);
+  const [isEditCardOpen, setIsEditCardOpen] = useState(false);
+  const [isDeleteCardConfirmOpen, setIsDeleteCardConfirmOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [isEditExpenseModalOpen, setIsEditExpenseModalOpen] = useState(false);
+  const [isDeleteExpenseConfirmOpen, setIsDeleteExpenseConfirmOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<CardTransaction | null>(null);
   const [isBannerClosed, setIsBannerClosed] = useState(() => {
     const closedAt = sessionStorage.getItem('cards_banner_closed_at');
     if (!closedAt) return false;
@@ -41,29 +59,68 @@ const CardsView: React.FC<CardsViewProps> = ({
   
   // New Card State
   const [newCardName, setNewCardName] = useState('');
-  const [newCardLast4, setNewCardLast4] = useState('');
+  const [newCardColor, setNewCardColor] = useState('from-slate-800 to-slate-900');
 
   const activeCard = cards.find(c => c.id === activeCardId) || cards[0];
-  const activeTransactions = transactions.filter(t => !t.cardId || t.cardId === activeCard?.id);
+
+  useEffect(() => {
+    const fetchCardExpenses = async () => {
+      if (!activeCardId) return;
+      setIsLoadingTransactions(true);
+      try {
+        const data = await billService.getCardExpenses(selectedMonth, activeCardId);
+        setLocalTransactions(data);
+      } catch (error) {
+        console.error('Error fetching card expenses:', error);
+        // Fallback to filtered initial transactions if API fails
+        const filtered = initialTransactions.filter(t => 
+          t.cardId === activeCardId || 
+          (!t.cardId && t.paymentType === activeCardId)
+        );
+        setLocalTransactions(filtered);
+      } finally {
+        setIsLoadingTransactions(false);
+      }
+    };
+
+    fetchCardExpenses();
+  }, [activeCardId, selectedMonth, initialTransactions]);
+
+  const activeTransactions = localTransactions;
   const total = activeTransactions.reduce((acc, t) => acc + t.amount, 0);
 
   const handleAddCardSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCardName || !newCardLast4) return;
+    if (!newCardName) return;
     
-    const newCard: CreditCard = {
-        id: Math.random().toString(36).substr(2, 9),
+    onAddCard({
         name: newCardName,
-        last4Digits: newCardLast4,
-        color: 'from-slate-800 to-slate-900', // Default dark
+        color: newCardColor,
         limit: 0,
-        dueDateStr: '1'
-    };
-    onAddCard(newCard);
+        dueDateStr: '10'
+    });
     setIsAddCardOpen(false);
     setNewCardName('');
-    setNewCardLast4('');
-    setActiveCardId(newCard.id);
+  };
+
+  const handleEditCardSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeCard || !newCardName) return;
+    
+    onEditCard({
+        ...activeCard,
+        name: newCardName,
+        color: newCardColor
+    });
+    setIsEditCardOpen(false);
+  };
+
+  const handleDeleteCardConfirm = () => {
+    if (activeCard) {
+      onDeleteCard(activeCard.id);
+      setIsDeleteCardConfirmOpen(false);
+      setActiveCardId(cards.find(c => c.id !== activeCard.id)?.id || '');
+    }
   };
 
   return (
@@ -125,7 +182,20 @@ const CardsView: React.FC<CardsViewProps> = ({
             
             <div className="flex justify-between items-start z-10">
                 <CardIcon className="text-white/80" size={32} />
-                <span className="font-mono text-white/90 tracking-widest text-lg">**** {activeCard.last4Digits}</span>
+                <div className="flex items-center gap-3">
+                  <span className="font-mono text-white/90 tracking-widest text-lg">**** {activeCard.last4Digits || '0000'}</span>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNewCardName(activeCard.name);
+                      setNewCardColor(activeCard.color);
+                      setIsEditCardOpen(true);
+                    }}
+                    className="p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-all"
+                  >
+                    <Settings size={16} />
+                  </button>
+                </div>
             </div>
             
             <div className="z-10">
@@ -135,7 +205,7 @@ const CardsView: React.FC<CardsViewProps> = ({
 
             <div className="flex justify-between items-end z-10">
                 <div>
-                <p className="text-xs text-white/70 uppercase">Titular</p>
+                <p className="text-xs text-white/70 uppercase">Título</p>
                 <p className="text-sm font-medium text-white tracking-wide truncate max-w-[150px]">{activeCard.name}</p>
                 </div>
                 <div className="flex flex-col items-end">
@@ -156,7 +226,7 @@ const CardsView: React.FC<CardsViewProps> = ({
       )}
 
       {/* Actions */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-3">
          <button 
             className="bg-surface border border-slate-700 hover:bg-slate-800 text-white py-4 rounded-2xl font-medium transition-all shadow-lg flex flex-col items-center justify-center gap-2 group"
             onClick={() => {
@@ -168,7 +238,15 @@ const CardsView: React.FC<CardsViewProps> = ({
             }}
          >
             <span className="text-emerald-400 group-hover:scale-110 transition-transform"><Check size={24} /></span>
-            <span className="text-sm font-bold">Pagar Fatura</span>
+            <span className="text-xs font-bold">Pagar Fatura</span>
+         </button>
+
+         <button 
+            className="bg-surface border border-slate-700 hover:bg-slate-800 text-white py-4 rounded-2xl font-medium transition-all shadow-lg flex flex-col items-center justify-center gap-2 group"
+            onClick={() => setIsExpenseModalOpen(true)}
+         >
+            <span className="text-rose-400 group-hover:scale-110 transition-transform"><Plus size={24} /></span>
+            <span className="text-xs font-bold">Nova Despesa</span>
          </button>
 
          <ImportDocButton 
@@ -177,15 +255,25 @@ const CardsView: React.FC<CardsViewProps> = ({
             onSaved={onRefresh}
             onRefreshCoins={onRefreshCoins}
             onNavigateToPlans={onNavigateToPlans}
+            cardId={activeCard?.id}
+            targetDate={selectedMonth}
             className="bg-surface border border-slate-700 hover:bg-slate-800 text-white py-4 rounded-2xl font-medium transition-all shadow-lg flex flex-col items-center justify-center gap-2 group"
          >
             <span className="text-blue-400 group-hover:scale-110 transition-transform"><UploadCloud size={24} /></span>
-            <span className="text-sm font-bold">Importar Fatura</span>
+            <span className="text-xs font-bold">Importar</span>
          </ImportDocButton>
       </div>
 
       {/* Transaction Timeline */}
-      <div className="glass-card rounded-3xl p-6 min-h-[400px]">
+      <div className="glass-card rounded-3xl p-6 min-h-[400px] relative">
+        {isLoadingTransactions && (
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm z-10 flex items-center justify-center rounded-3xl">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+              <p className="text-xs font-bold text-white uppercase tracking-widest">Atualizando...</p>
+            </div>
+          </div>
+        )}
         <div className="flex items-center justify-between mb-6">
           <h3 className="font-bold text-white text-lg">Últimos Lançamentos</h3>
           <button className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-all">
@@ -202,7 +290,7 @@ const CardsView: React.FC<CardsViewProps> = ({
                 <div className="absolute -left-[5px] top-1 w-2.5 h-2.5 rounded-full bg-slate-600 border border-slate-900 group-hover:bg-primary group-hover:scale-125 transition-all"></div>
                 
                 <div className="flex justify-between items-start">
-                  <div>
+                  <div className="flex-1">
                     <h4 className="font-semibold text-slate-200 text-sm group-hover:text-primary transition-colors">{t.description}</h4>
                     <div className="flex items-center gap-2 mt-1">
                        <span className="text-[10px] text-slate-400 uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700">
@@ -215,7 +303,29 @@ const CardsView: React.FC<CardsViewProps> = ({
                        )}
                     </div>
                   </div>
-                  <span className="font-bold text-white text-sm">R$ {t.amount.toFixed(2)}</span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="font-bold text-white text-sm">R$ {t.amount.toFixed(2)}</span>
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={() => {
+                          setSelectedTransaction(t);
+                          setIsEditExpenseModalOpen(true);
+                        }}
+                        className="p-1 text-slate-400 hover:text-white transition-colors"
+                      >
+                        <Edit2 size={12} />
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setSelectedTransaction(t);
+                          setIsDeleteExpenseConfirmOpen(true);
+                        }}
+                        className="p-1 text-slate-400 hover:text-rose-400 transition-colors"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             );
@@ -233,7 +343,73 @@ const CardsView: React.FC<CardsViewProps> = ({
         categories={categories}
         mode="PAYMENT_CARD"
         initialTitle={activeCard?.name}
+        initialAmount={total}
         forcedType="expense"
+      />
+
+      <TransactionForm 
+        isOpen={isExpenseModalOpen}
+        onClose={() => setIsExpenseModalOpen(false)}
+        onSubmit={onAddTransaction}
+        categories={categories}
+        cards={cards}
+        mode="CREDIT_CARD"
+        forcedType="expense"
+        initialCardId={activeCardId}
+      />
+
+      <TransactionForm 
+        isOpen={isEditExpenseModalOpen}
+        onClose={() => {
+          setIsEditExpenseModalOpen(false);
+          setSelectedTransaction(null);
+        }}
+        onSubmit={(data) => {
+          if (selectedTransaction) {
+            onEditTransaction({ ...data, id: selectedTransaction.id } as Transaction);
+          }
+          setIsEditExpenseModalOpen(false);
+          setSelectedTransaction(null);
+        }}
+        categories={categories}
+        cards={cards}
+        mode="CREDIT_CARD"
+        initialData={selectedTransaction ? {
+          description: selectedTransaction.description,
+          amount: selectedTransaction.amount,
+          date: selectedTransaction.date,
+          category: selectedTransaction.category,
+          cardId: selectedTransaction.cardId,
+          isPaid: true,
+          type: 'expense'
+        } : undefined}
+      />
+
+      <ConfirmationModal 
+        isOpen={isDeleteExpenseConfirmOpen}
+        onClose={() => {
+          setIsDeleteExpenseConfirmOpen(false);
+          setSelectedTransaction(null);
+        }}
+        onConfirm={(deleteAll) => {
+          if (selectedTransaction) {
+            onDeleteTransaction(selectedTransaction.id, deleteAll);
+          }
+          setIsDeleteExpenseConfirmOpen(false);
+          setSelectedTransaction(null);
+        }}
+        title="Excluir Transação"
+        message={selectedTransaction?.installments && selectedTransaction.installments.total > 1 ? "Esta transação faz parte de um parcelamento. Deseja excluir apenas esta parcela ou todas as parcelas futuras?" : "Tem certeza que deseja excluir esta transação do cartão? Esta ação não pode ser desfeita."}
+        showCheckbox={!!selectedTransaction?.installments && selectedTransaction.installments.total > 1}
+        checkboxLabel="Excluir todas as parcelas"
+      />
+
+      <ConfirmationModal 
+        isOpen={isDeleteCardConfirmOpen}
+        onClose={() => setIsDeleteCardConfirmOpen(false)}
+        onConfirm={() => handleDeleteCardConfirm()}
+        title="Excluir Cartão"
+        message={`Tem certeza que deseja excluir o cartão "${activeCard?.name}"? Todas as transações vinculadas a ele serão afetadas.`}
       />
 
       {/* Add Card Modal */}
@@ -245,33 +421,104 @@ const CardsView: React.FC<CardsViewProps> = ({
                    <button onClick={() => setIsAddCardOpen(false)} className="text-slate-400 hover:text-white"><X /></button>
                </div>
                <form onSubmit={handleAddCardSubmit} className="space-y-4">
-                   <div>
-                       <label className="text-xs text-slate-400 uppercase font-bold">Nome do Cartão</label>
-                       <input 
-                          type="text" 
-                          placeholder="Ex: Nubank, Inter..." 
-                          className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white mt-1 focus:border-primary outline-none"
-                          value={newCardName}
-                          onChange={(e) => setNewCardName(e.target.value)}
-                          required
-                       />
-                   </div>
-                   <div>
-                       <label className="text-xs text-slate-400 uppercase font-bold">Últimos 4 dígitos</label>
-                       <input 
-                          type="text" 
-                          maxLength={4}
-                          placeholder="0000" 
-                          className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white mt-1 focus:border-primary outline-none"
-                          value={newCardLast4}
-                          onChange={(e) => setNewCardLast4(e.target.value.replace(/\D/g, ''))}
-                          required
-                       />
-                   </div>
-                   <button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-xl mt-4 transition-colors">
-                       Salvar Cartão
-                   </button>
-               </form>
+                    <div>
+                        <label className="text-xs text-slate-400 uppercase font-bold">Nome do Cartão</label>
+                        <input 
+                           type="text" 
+                           placeholder="Ex: Nubank, Inter..." 
+                           className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white mt-1 focus:border-primary outline-none"
+                           value={newCardName}
+                           onChange={(e) => setNewCardName(e.target.value)}
+                           required
+                        />
+                    </div>
+                    <div>
+                        <label className="text-xs text-slate-400 uppercase font-bold">Estilo / Cor</label>
+                        <div className="grid grid-cols-4 gap-2 mt-2">
+                            {[
+                                'from-slate-800 to-slate-900',
+                                'from-indigo-600 to-blue-700',
+                                'from-rose-600 to-pink-700',
+                                'from-emerald-600 to-teal-700',
+                                'from-amber-500 to-orange-600',
+                                'from-violet-600 to-purple-700',
+                                'from-cyan-500 to-blue-500'
+                            ].map((color) => (
+                                <button
+                                    key={color}
+                                    type="button"
+                                    onClick={() => setNewCardColor(color)}
+                                    className={`h-10 rounded-lg bg-gradient-to-br ${color} border-2 transition-all ${newCardColor === color ? 'border-white scale-110 shadow-lg' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                    <button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-xl mt-4 transition-colors">
+                        Salvar Cartão
+                    </button>
+                </form>
+           </div>
+        </div>
+      )}
+
+      {/* Edit Card Modal */}
+      {isEditCardOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
+           <div className="bg-surface w-full max-w-sm rounded-3xl border border-slate-700 shadow-2xl p-6 animate-scale-in">
+               <div className="flex justify-between items-center mb-6">
+                   <h3 className="text-xl font-bold text-white">Editar Cartão</h3>
+                   <button onClick={() => setIsEditCardOpen(false)} className="text-slate-400 hover:text-white"><X /></button>
+               </div>
+               <form onSubmit={handleEditCardSubmit} className="space-y-4">
+                    <div>
+                        <label className="text-xs text-slate-400 uppercase font-bold">Nome do Cartão</label>
+                        <input 
+                           type="text" 
+                           placeholder="Ex: Nubank, Inter..." 
+                           className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white mt-1 focus:border-primary outline-none"
+                           value={newCardName}
+                           onChange={(e) => setNewCardName(e.target.value)}
+                           required
+                        />
+                    </div>
+                    <div>
+                        <label className="text-xs text-slate-400 uppercase font-bold">Estilo / Cor</label>
+                        <div className="grid grid-cols-4 gap-2 mt-2">
+                            {[
+                                'from-slate-800 to-slate-900',
+                                'from-indigo-600 to-blue-700',
+                                'from-rose-600 to-pink-700',
+                                'from-emerald-600 to-teal-700',
+                                'from-amber-500 to-orange-600',
+                                'from-violet-600 to-purple-700',
+                                'from-cyan-500 to-blue-500'
+                            ].map((color) => (
+                                <button
+                                    key={color}
+                                    type="button"
+                                    onClick={() => setNewCardColor(color)}
+                                    className={`h-10 rounded-lg bg-gradient-to-br ${color} border-2 transition-all ${newCardColor === color ? 'border-white scale-110 shadow-lg' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 mt-4">
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          setIsEditCardOpen(false);
+                          setIsDeleteCardConfirmOpen(true);
+                        }}
+                        className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Trash2 size={18} />
+                        Excluir
+                      </button>
+                      <button type="submit" className="bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-xl transition-colors">
+                          Salvar
+                      </button>
+                    </div>
+                </form>
            </div>
         </div>
       )}

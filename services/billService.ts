@@ -18,6 +18,7 @@ export interface BillDTO {
   entryMethod: 'MANUAL' | 'AUDIO' | 'AI_DOCUMENT';
   isRecurrent: boolean;
   paymentType?: string;
+  cardId?: string;
 }
 
 const mapDTOToBill = (dto: BillDTO | undefined, fallback?: Partial<Bill>): Bill => ({
@@ -29,6 +30,9 @@ const mapDTOToBill = (dto: BillDTO | undefined, fallback?: Partial<Bill>): Bill 
   date: dto?.billDate ?? fallback?.date ?? new Date().toISOString().split('T')[0],
   isPaid: dto?.paid ?? fallback?.isPaid ?? false,
   category: dto?.billCategory ?? fallback?.category ?? 'Others',
+  paymentType: dto?.paymentType as any,
+  cardId: dto?.cardId ?? fallback?.cardId,
+  installments: dto?.currentInstallment !== undefined && dto?.installmentCount !== undefined ? { current: dto.currentInstallment, total: dto.installmentCount } : fallback?.installments,
 });
 
 const mapBillToDTO = (bill: any, existing?: BillDTO, table: 'MAIN' | 'CREDIT_CARD' | 'ASSETS' | 'PAYMENT_CARD' = 'MAIN', type: 'INCOME' | 'EXPENSE' | 'Payment' = 'EXPENSE'): Partial<BillDTO> => {
@@ -48,6 +52,7 @@ const mapBillToDTO = (bill: any, existing?: BillDTO, table: 'MAIN' | 'CREDIT_CAR
     installmentCount: bill.installmentCount ?? existing?.installmentCount ?? 0,
     currentInstallment: 1,
     paymentType: bill.paymentType || existing?.paymentType,
+    cardId: bill.cardId || existing?.cardId,
   };
 };
 
@@ -73,7 +78,26 @@ export const billService = {
       description: d.billName ?? '',
       date: d.billDate ?? formattedDate,
       category: d.billCategory ?? 'others',
-      cardId: d.paymentType ? String(d.paymentType) : '',
+      cardId: d.cardId || '',
+      paymentType: d.paymentType,
+      installments: d.currentInstallment !== undefined && d.installmentCount !== undefined ? { current: d.currentInstallment ?? 0, total: d.installmentCount ?? 0 } : undefined
+    } as CardTransaction));
+  },
+
+  getCardExpenses: async (date: string, cardId: string): Promise<CardTransaction[]> => {
+    const [year, month] = date.split('-');
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const formattedDate = `${months[parseInt(month, 10) - 1]}${year}`;
+
+    const dtos = await api.get<BillDTO[]>(`/bill/load-card-expenses?billDate=${formattedDate}&cardId=${cardId}`);
+    return dtos.map(d => ({
+      id: d.id?.toString() ?? Math.random().toString(36).slice(2,9),
+      amount: Number(d.billValue ?? 0),
+      description: d.billName ?? '',
+      date: d.billDate ?? formattedDate,
+      category: d.billCategory ?? 'others',
+      cardId: d.cardId || cardId,
+      paymentType: d.paymentType,
       installments: d.currentInstallment !== undefined && d.installmentCount !== undefined ? { current: d.currentInstallment ?? 0, total: d.installmentCount ?? 0 } : undefined
     } as CardTransaction));
   },
@@ -122,8 +146,8 @@ export const billService = {
     return mapDTOToBill(response);
   },
   
-  deleteBill: async (id: string): Promise<void> => {
-    await api.delete(`/bill/delete?itemId=${id}`);
+  deleteBill: async (id: string, deleteAll: boolean = false): Promise<void> => {
+    await api.delete(`/bill/delete?itemId=${id}&deleteAll=${deleteAll}`);
   },
 
   batchRegister: async (bills: Partial<BillDTO>[]): Promise<void> => {

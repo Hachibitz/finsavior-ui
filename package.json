@@ -31,7 +31,6 @@
   },
   "overrides": {
     "minimatch": "^10.2.1",
-    "glob": "^11.0.0",
-    "@babel/runtime": "^7.26.10"
+    "glob": "^11.0.0"
   }
 }

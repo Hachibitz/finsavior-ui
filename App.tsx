@@ -13,12 +13,14 @@ import CoinStoreModal from './components/CoinStoreModal';
 import UpsellModal from './components/UpsellModal';
 import Onboarding from './components/Onboarding';
 import Login from './components/Login';
+import RegisterView from './components/RegisterView';
 import TransactionForm from './components/TransactionForm';
 import { MOCK_BILLS, MOCK_CARD_TRANSACTIONS, MOCK_ASSETS, DEFAULT_CATEGORIES, MOCK_CARDS } from './constants';
 import { Bill, CardTransaction, Asset, SummaryData, Category, CreditCard, UserProfile, Transaction } from './types';
 import { authService } from './services/authService';
 import { googleAuthService } from './services/googleAuthService';
 import { billService } from './services/billService';
+import { cardService } from './services/cardService';
 import { aiAdviceService } from './services/aiAdviceService';
 import { coinService } from './services/coinService';
 import { api } from './services/api';
@@ -30,6 +32,7 @@ const App: React.FC = () => {
   // Simple state persistence for onboarding (in a real app, use localStorage or user db)
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [showPublicSupport, setShowPublicSupport] = useState(false);
   const [activeTab, setActiveTab] = useState('summary');
@@ -59,9 +62,9 @@ const App: React.FC = () => {
   
   // Data State
   const [bills, setBills] = useState<Bill[]>([]);
-  const [cardTransactions, setCardTransactions] = useState<CardTransaction[]>(MOCK_CARD_TRANSACTIONS);
-  const [cards, setCards] = useState<CreditCard[]>(MOCK_CARDS);
-  const [assets, setAssets] = useState<Asset[]>(MOCK_ASSETS);
+  const [cardTransactions, setCardTransactions] = useState<CardTransaction[]>([]);
+  const [cards, setCards] = useState<CreditCard[]>([]);
+  const [assets, setAssets] = useState<Asset[]>([]);
   const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [aiInsights, setAiInsights] = useState<Record<string, string>>({});
@@ -148,6 +151,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (isLoggedIn) {
       fetchProfile();
+      fetchCards();
       // Show upsell modal after a short delay if logged in and not recently closed
       const timer = setTimeout(() => {
         const closedAt = sessionStorage.getItem('upsell_modal_closed_at');
@@ -189,6 +193,26 @@ const App: React.FC = () => {
       setAssets(data);
     } catch (error) {
       console.error('Error fetching assets:', error);
+    }
+  };
+
+  const fetchCards = async () => {
+    try {
+      const data = await cardService.getCards();
+      if (data.length === 0) {
+        // Create default card if none exist
+        const defaultCard = await cardService.createCard({
+          name: 'Principal',
+          color: 'from-slate-800 to-slate-900',
+          limit: 0,
+          dueDateStr: '10'
+        });
+        setCards([defaultCard]);
+      } else {
+        setCards(data);
+      }
+    } catch (error) {
+      console.error('Error fetching cards:', error);
     }
   };
 
@@ -258,6 +282,13 @@ const App: React.FC = () => {
     
     setLoadingInsight(true);
     try {
+      // Check if user has any data before calling AI
+      if (filteredBills.length === 0 && filteredCardTransactions.length === 0 && filteredAssets.length === 0) {
+        setAiInsights(prev => ({ ...prev, [month]: 'Adicione suas primeiras contas ou rendas para que a Savi possa analisar seu perfil financeiro e dar dicas personalizadas!' }));
+        setLoadingInsight(false);
+        return;
+      }
+
       const insight = await aiAdviceService.getQuickInsight(month);
       setAiInsights(prev => ({ ...prev, [month]: insight }));
       setLastAnalyzedBalance(prev => ({ ...prev, [month]: currentForecast }));
@@ -342,11 +373,15 @@ const App: React.FC = () => {
     }
   };
 
-  const handleDeleteBill = async (id: string) => {
+  const handleDeleteBill = async (id: string, deleteAll: boolean = false) => {
     try {
-      await billService.deleteBill(id);
-      setBills(bills.filter(b => b.id !== id));
-      showToast('Conta excluída!', 'success');
+      await billService.deleteBill(id, deleteAll);
+      if (deleteAll) {
+        fetchBills();
+      } else {
+        setBills(bills.filter(b => b.id !== id));
+      }
+      showToast(deleteAll ? 'Todas as parcelas foram excluídas!' : 'Conta excluída!', 'success');
     } catch (error) {
       console.error('Error deleting bill:', error);
       showToast('Erro ao excluir conta', 'error');
@@ -354,9 +389,37 @@ const App: React.FC = () => {
   };
 
   // Cards Logic
-  const handleAddCard = (newCard: CreditCard) => {
-    setCards([...cards, newCard]);
-    showToast('Cartão adicionado!', 'success');
+  const handleAddCard = async (newCard: Omit<CreditCard, 'id'>) => {
+    try {
+      const saved = await cardService.createCard(newCard);
+      setCards(prev => [...prev, saved]);
+      showToast('Cartão adicionado!', 'success');
+    } catch (error) {
+      console.error('Error adding card:', error);
+      showToast('Erro ao adicionar cartão', 'error');
+    }
+  };
+
+  const handleEditCard = async (updatedCard: CreditCard) => {
+    try {
+      const saved = await cardService.updateCard(updatedCard);
+      setCards(prev => prev.map(c => c.id === saved.id ? saved : c));
+      showToast('Cartão atualizado!', 'success');
+    } catch (error) {
+      console.error('Error updating card:', error);
+      showToast('Erro ao atualizar cartão', 'error');
+    }
+  };
+
+  const handleDeleteCard = async (id: string) => {
+    try {
+      await cardService.deleteCard(id);
+      setCards(prev => prev.filter(c => c.id !== id));
+      showToast('Cartão excluído!', 'success');
+    } catch (error) {
+      console.error('Error deleting card:', error);
+      showToast('Erro ao excluir cartão', 'error');
+    }
   };
 
   const handleAddCardTransaction = async (newTransaction: Omit<Transaction, 'id'>) => {
@@ -372,6 +435,36 @@ const App: React.FC = () => {
     } catch (error: any) {
       console.error('Error adding card transaction:', error);
       showToast(error?.message || 'Erro ao adicionar transação', 'error');
+    }
+  };
+
+  const handleEditCardTransaction = async (updatedTransaction: Transaction) => {
+    try {
+      const saved = await billService.updateBill({
+        ...updatedTransaction,
+        billTable: 'CREDIT_CARD',
+        billType: 'EXPENSE'
+      } as any);
+      setCardTransactions(prev => prev.map(t => t.id === saved.id ? saved as any : t));
+      showToast('Transação atualizada!', 'success');
+    } catch (error: any) {
+      console.error('Error updating card transaction:', error);
+      showToast(error?.message || 'Erro ao atualizar transação', 'error');
+    }
+  };
+
+  const handleDeleteCardTransaction = async (id: string, deleteAll: boolean = false) => {
+    try {
+      await billService.deleteBill(id, deleteAll);
+      if (deleteAll) {
+        fetchCardTransactions();
+      } else {
+        setCardTransactions(prev => prev.filter(t => t.id !== id));
+      }
+      showToast(deleteAll ? 'Todas as parcelas foram excluídas!' : 'Transação excluída!', 'success');
+    } catch (error) {
+      console.error('Error deleting card transaction:', error);
+      showToast('Erro ao excluir transação', 'error');
     }
   };
 
@@ -423,12 +516,17 @@ const App: React.FC = () => {
                 cards={cards}
                 categories={categories} 
                 onAddCard={handleAddCard}
+                onEditCard={handleEditCard}
+                onDeleteCard={handleDeleteCard}
                 onAddTransaction={handleAddCardTransaction}
+                onEditTransaction={handleEditCardTransaction}
+                onDeleteTransaction={handleDeleteCardTransaction}
                 onImportInvoice={handleImportInvoice}
                 onRefresh={() => { fetchBills(); fetchCardTransactions(); }}
                 onRefreshCoins={fetchProfile}
                 onNavigateToPlans={() => setActiveTab('plans')}
                 profile={profile}
+                selectedMonth={selectedMonth}
             />
         );
       case 'assets':
@@ -459,6 +557,7 @@ const App: React.FC = () => {
             initialInsightOpen={insightModalOpen}
             onCloseInsight={() => setInsightModalOpen(false)}
             profile={profile}
+            onNavigate={(tab) => setActiveTab(tab)}
           />
         );
       case 'ai':
@@ -531,6 +630,14 @@ const App: React.FC = () => {
   }
 
   if (!isLoggedIn) {
+    if (showRegister) {
+      return (
+        <RegisterView 
+          onBackToLogin={() => setShowRegister(false)} 
+          onRegisterSuccess={() => setShowRegister(false)} 
+        />
+      );
+    }
     if (showPublicSupport) {
       return (
         <div className="min-h-screen bg-background p-4 pt-12">
@@ -541,7 +648,13 @@ const App: React.FC = () => {
         </div>
       );
     }
-    return <Login onLoginSuccess={() => setIsLoggedIn(true)} onOpenSupport={() => setShowPublicSupport(true)} />;
+    return (
+      <Login 
+        onLoginSuccess={() => setIsLoggedIn(true)} 
+        onOpenSupport={() => setShowPublicSupport(true)} 
+        onNavigateToRegister={() => setShowRegister(true)}
+      />
+    );
   }
 
   return (

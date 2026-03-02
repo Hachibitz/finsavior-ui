@@ -10,6 +10,7 @@ export interface BaseRecord {
 export interface Transaction extends BaseRecord {
   category: string;
   type: TransactionType;
+  isPaid?: boolean;
   isRecurrent?: boolean;
   isInstallment?: boolean;
   installmentCount?: number;
@@ -17,13 +18,14 @@ export interface Transaction extends BaseRecord {
   billTable?: string;
   billType?: string;
   paymentType?: 'Total' | 'Parcial' | 'Mínimo' | null;
+  cardId?: string;
   entryMethod?: 'MANUAL' | 'AUDIO';
 }
 
 export interface CreditCard {
   id: string;
   name: string; // e.g., "Nubank", "XP Infinite"
-  last4Digits: string;
+  last4Digits?: string;
   color: string; // Gradient or solid color class
   limit: number;
   dueDateStr: string; // e.g. "10"
@@ -33,16 +35,25 @@ export interface CreditCard {
 export interface Bill extends BaseRecord {
   isPaid: boolean;
   category: string;
+  paymentType?: 'Total' | 'Parcial' | 'Mínimo' | null;
+  cardId?: string;
+  installments?: {
+    current: number;
+    total: number;
+  };
 }
 
 // Corresponds to "Cartão" (Credit Card)
 export interface CardTransaction extends BaseRecord {
   category: string;
   cardId: string; // Link to specific card
+  paymentType?: string;
   installments?: {
     current: number;
     total: number;
   };
+  billTable?: string;
+  billType?: string;
 }
 
 // Corresponds to "Ativos" (Ativos/Income)

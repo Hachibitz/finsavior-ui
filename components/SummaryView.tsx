@@ -40,6 +40,7 @@ interface SummaryViewProps {
   initialInsightOpen?: boolean;
   onCloseInsight?: () => void;
   profile: UserProfile | null;
+  onNavigate?: (tab: string) => void;
 }
 
 const SummaryView: React.FC<SummaryViewProps> = ({ 
@@ -55,7 +56,8 @@ const SummaryView: React.FC<SummaryViewProps> = ({
   onAddNotification,
   initialInsightOpen,
   onCloseInsight,
-  profile
+  profile,
+  onNavigate
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(initialInsightOpen || false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
@@ -611,7 +613,12 @@ const SummaryView: React.FC<SummaryViewProps> = ({
            <div className="glass-card p-6 rounded-[2rem] border border-white/5 h-full">
               <div className="flex items-center justify-between mb-8">
                 <h3 className="font-bold text-white">Atividade Recente</h3>
-                <button className="text-[10px] font-black text-primary uppercase tracking-widest hover:text-white transition-colors">Ver Tudo</button>
+                <button 
+                  onClick={() => onNavigate?.('debits')}
+                  className="text-[10px] font-black text-primary uppercase tracking-widest hover:text-white transition-colors"
+                >
+                  Ver Tudo
+                </button>
               </div>
 
               <div className="space-y-6">

@@ -1,20 +1,27 @@
 import React, { useState } from 'react';
 import { authService } from '../services/authService';
 import { googleAuthService } from '../services/googleAuthService';
-import { LogIn, Lock, User, Loader2, HelpCircle } from 'lucide-react';
+import { LogIn, Lock, User, Loader2, HelpCircle, ShieldCheck, ArrowRight, X } from 'lucide-react';
+import TermsModal from './TermsModal';
 
 interface LoginProps {
   onLoginSuccess: () => void;
   onOpenSupport: () => void;
+  onNavigateToRegister: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport }) => {
+const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigateToRegister }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showGoogleRegisterModal, setShowGoogleRegisterModal] = useState(false);
+  const [googleUserData, setGoogleUserData] = useState<any>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [termsType, setTermsType] = useState<'terms' | 'privacy'>('terms');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,10 +41,41 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport }) => {
     setGoogleLoading(true);
     setError(null);
     try {
-      await googleAuthService.signIn();
-      onLoginSuccess();
+      const result = await googleAuthService.signIn();
+      if (result && (result as any).userNotFound) {
+        setGoogleUserData((result as any).firebaseUser);
+        setShowGoogleRegisterModal(true);
+      } else {
+        onLoginSuccess();
+      }
     } catch (err: any) {
       setError(err.message || 'Falha no login com Google.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleRegister = async () => {
+    if (!acceptedTerms || !googleUserData) return;
+    
+    setGoogleLoading(true);
+    try {
+      // Get the ID token from Firebase again or use the one from the previous step
+      // The googleAuthService.signIn() already returned the result which includes the token
+      // but we need to pass it to register-google.
+      
+      // Re-run sign-in to get a fresh token if needed, or we could have stored it.
+      // Let's assume we can just call registerWithGoogle with the token.
+      // We need to modify googleAuthService to return the token or use it directly.
+      
+      const idToken = await googleAuthService.getCurrentIdToken();
+      if (!idToken) throw new Error('Token do Google não encontrado.');
+
+      await authService.registerWithGoogle(idToken);
+      onLoginSuccess();
+    } catch (err: any) {
+      setError(err.message || 'Erro ao realizar cadastro via Google.');
+      setShowGoogleRegisterModal(false);
     } finally {
       setGoogleLoading(false);
     }
@@ -165,7 +203,12 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport }) => {
         </div>
         
         <p className="text-center mt-8 text-slate-500 text-sm">
-          Não tem uma conta? <span className="text-primary font-bold cursor-pointer hover:underline">Cadastre-se</span>
+          Não tem uma conta? <span 
+            onClick={onNavigateToRegister}
+            className="text-primary font-bold cursor-pointer hover:underline"
+          >
+            Cadastre-se
+          </span>
         </p>
 
         <div className="mt-6 flex justify-center">
@@ -178,6 +221,99 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport }) => {
           </button>
         </div>
       </div>
+
+      {/* Google Auto-Register Modal */}
+      {showGoogleRegisterModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-surface w-full max-w-md rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col animate-scale-in">
+            <div className="p-8 text-center">
+              <div className="w-20 h-20 bg-primary/20 rounded-3xl flex items-center justify-center text-primary mx-auto mb-6 shadow-xl shadow-primary/20">
+                <ShieldCheck size={40} />
+              </div>
+              <h3 className="text-2xl font-black text-white tracking-tight mb-2">Quase lá!</h3>
+              <p className="text-slate-400 text-sm">
+                Identificamos que você ainda não possui uma conta. Deseja criar uma agora usando seus dados do Google?
+              </p>
+              
+              <div className="mt-6 p-4 bg-white/5 rounded-2xl flex items-center gap-4 text-left border border-white/5">
+                {googleUserData?.photoURL ? (
+                  <img src={googleUserData.photoURL} alt="Google Profile" className="w-12 h-12 rounded-full border border-white/10" referrerPolicy="no-referrer" />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+                    {googleUserData?.displayName?.charAt(0) || 'G'}
+                  </div>
+                )}
+                <div>
+                  <p className="text-white font-bold">{googleUserData?.displayName}</p>
+                  <p className="text-slate-500 text-xs">{googleUserData?.email}</p>
+                </div>
+              </div>
+
+              <div className="mt-8 space-y-4">
+                <div className="flex items-start gap-3 text-left">
+                  <input 
+                    type="checkbox"
+                    id="google-agreement"
+                    checked={acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                    className="mt-1 w-4 h-4 rounded border-white/10 bg-slate-900 text-primary focus:ring-primary focus:ring-offset-slate-950"
+                  />
+                  <label htmlFor="google-agreement" className="text-xs text-slate-400 leading-relaxed">
+                    Declaro que li e aceito os{' '}
+                    <button 
+                      type="button" 
+                      onClick={() => { setTermsType('terms'); setShowTermsModal(true); }}
+                      className="text-primary hover:underline font-bold"
+                    >
+                      Termos e Condições
+                    </button>
+                    {' '}e{' '}
+                    <button 
+                      type="button" 
+                      onClick={() => { setTermsType('privacy'); setShowTermsModal(true); }}
+                      className="text-primary hover:underline font-bold"
+                    >
+                      Política de Privacidade
+                    </button>.
+                  </label>
+                </div>
+
+                <button 
+                  onClick={handleGoogleRegister}
+                  disabled={!acceptedTerms || googleLoading}
+                  className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-xl ${
+                    !acceptedTerms || googleLoading 
+                      ? 'bg-slate-800 text-slate-500 cursor-not-allowed' 
+                      : 'bg-primary text-white hover:bg-primary/90 shadow-primary/20'
+                  }`}
+                >
+                  {googleLoading ? (
+                    <Loader2 className="animate-spin" size={18} />
+                  ) : (
+                    <>
+                      <span>Criar Minha Conta</span>
+                      <ArrowRight size={18} />
+                    </>
+                  )}
+                </button>
+                
+                <button 
+                  onClick={() => setShowGoogleRegisterModal(false)}
+                  className="w-full py-2 text-slate-500 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <TermsModal 
+        isOpen={showTermsModal} 
+        onClose={() => setShowTermsModal(false)} 
+        type={termsType} 
+      />
     </div>
   );
 };

@@ -1,48 +1,55 @@
 import React, { useState } from 'react';
 import { X, Check } from 'lucide-react';
-import { Category, Transaction } from '../types';
+import { Category, Transaction, CreditCard } from '../types';
 
 interface TransactionFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (t: Omit<Transaction, 'id'>) => void;
   categories: Category[];
+  cards?: CreditCard[];
   forcedType?: 'income' | 'expense';
-  mode?: 'DEFAULT' | 'PAYMENT_CARD';
+  mode?: 'DEFAULT' | 'PAYMENT_CARD' | 'CREDIT_CARD';
   initialTitle?: string;
+  initialAmount?: number;
+  initialData?: Partial<Transaction>;
+  initialCardId?: string;
 }
 
-const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClose, onSubmit, categories, forcedType, mode = 'DEFAULT', initialTitle }) => {
+const TransactionForm: React.FC<TransactionFormProps> = ({ 
+  isOpen, onClose, onSubmit, categories, cards = [], forcedType, mode = 'DEFAULT', initialTitle, initialAmount, initialData, initialCardId 
+}) => {
   const [type, setType] = useState<'income' | 'expense'>(forcedType || 'expense');
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount] = useState(initialAmount?.toString() || '');
   const [description, setDescription] = useState(initialTitle || '');
   const [category, setCategory] = useState(categories[0]?.id || '');
+  const [cardId, setCardId] = useState(initialCardId || cards[0]?.id || '');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [frequencyType, setFrequencyType] = useState<'SINGLE' | 'RECURRENT' | 'INSTALLMENT'>('SINGLE');
   const [installmentCount, setInstallmentCount] = useState('2');
   const [paymentType, setPaymentType] = useState<'Total' | 'Parcial' | 'Mínimo'>('Total');
 
-  // Update type if forcedType changes
+  // Sync with initialData or props
   React.useEffect(() => {
-    if (forcedType) setType(forcedType);
-  }, [forcedType, isOpen]);
-
-  // Update description if initialTitle changes
-  React.useEffect(() => {
-    if (initialTitle) setDescription(initialTitle);
-  }, [initialTitle, isOpen]);
-
-  // Update type if forcedType changes
-  React.useEffect(() => {
-    if (forcedType) setType(forcedType);
-  }, [forcedType, isOpen]);
-
-  // Update category when categories prop changes
-  React.useEffect(() => {
-    if (categories.length > 0 && !categories.find(c => c.id === category)) {
-      setCategory(categories[0].id);
+    if (isOpen) {
+      if (initialData) {
+        setType(initialData.type || 'expense');
+        setAmount(initialData.amount?.toString() || '');
+        setDescription(initialData.description || '');
+        setCategory(initialData.category || categories[0]?.id || '');
+        setCardId(initialData.cardId || cards[0]?.id || '');
+        setDate(initialData.date ? initialData.date.split('T')[0] : new Date().toISOString().split('T')[0]);
+        setFrequencyType(initialData.isInstallment ? 'INSTALLMENT' : initialData.isRecurrent ? 'RECURRENT' : 'SINGLE');
+        setInstallmentCount(initialData.installmentCount?.toString() || '2');
+        setPaymentType(initialData.paymentType as any || 'Total');
+      } else {
+        if (forcedType) setType(forcedType);
+        if (initialTitle) setDescription(initialTitle);
+        if (initialAmount !== undefined) setAmount(initialAmount.toString());
+        if (initialCardId) setCardId(initialCardId);
+      }
     }
-  }, [categories, category]);
+  }, [isOpen, initialData, initialTitle, initialAmount, forcedType, categories, cards, initialCardId]);
 
   if (!isOpen) return null;
 
@@ -60,9 +67,10 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClose, onSu
       isRecurrent: frequencyType === 'RECURRENT',
       isInstallment: frequencyType === 'INSTALLMENT',
       installmentCount: frequencyType === 'INSTALLMENT' ? parseInt(installmentCount) : undefined,
-      billTable: mode === 'PAYMENT_CARD' ? 'PAYMENT_CARD' : undefined,
+      billTable: mode === 'PAYMENT_CARD' ? 'PAYMENT_CARD' : mode === 'CREDIT_CARD' ? 'CREDIT_CARD' : undefined,
       paymentType: mode === 'PAYMENT_CARD' ? paymentType : undefined,
-      billType: mode === 'PAYMENT_CARD' ? 'Payment' : undefined,
+      cardId: mode === 'CREDIT_CARD' ? cardId : undefined,
+      billType: mode === 'PAYMENT_CARD' ? 'Payment' : mode === 'CREDIT_CARD' ? 'Passivo' : undefined,
       entryMethod: 'MANUAL'
     });
     
@@ -167,28 +175,44 @@ const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClose, onSu
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4">
-               <div>
-                  <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Categoria</label>
+            <div className="space-y-5">
+              {mode === 'CREDIT_CARD' && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Cartão</label>
                   <select 
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
+                    value={cardId}
+                    onChange={(e) => setCardId(e.target.value)}
                     className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-4 py-3 appearance-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                   >
-                    {categories.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    {cards.map(card => (
+                      <option key={card.id} value={card.id}>{card.name}</option>
                     ))}
                   </select>
-               </div>
-               <div>
-                  <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Data</label>
-                  <input 
-                    type="date" 
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary [color-scheme:dark]"
-                  />
-               </div>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-4">
+                 <div>
+                    <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Categoria</label>
+                    <select 
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-4 py-3 appearance-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    >
+                      {categories.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
+                 </div>
+                 <div>
+                    <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Data</label>
+                    <input 
+                      type="date" 
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary [color-scheme:dark]"
+                    />
+                 </div>
+              </div>
             </div>
           )}
 

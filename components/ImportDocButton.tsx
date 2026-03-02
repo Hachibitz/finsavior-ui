@@ -11,6 +11,8 @@ interface ImportDocButtonProps {
   onSaved: () => void;
   onRefreshCoins: () => void;
   onNavigateToPlans?: () => void;
+  cardId?: string;
+  targetDate?: string;
   children?: React.ReactNode;
   className?: string;
 }
@@ -21,6 +23,8 @@ const ImportDocButton: React.FC<ImportDocButtonProps> = ({
   onSaved, 
   onRefreshCoins,
   onNavigateToPlans,
+  cardId,
+  targetDate,
   children,
   className
 }) => {
@@ -68,7 +72,7 @@ const ImportDocButton: React.FC<ImportDocButtonProps> = ({
     setLoadingMessage(filePassword ? 'Desbloqueando e lendo documento...' : 'Lendo documento com IA...');
     
     try {
-      const bills = await aiService.uploadDocument(file, docType, isUsingCoins, filePassword);
+      const bills = await aiService.uploadDocument(file, docType, isUsingCoins, filePassword, cardId, targetDate);
       setExtractedBills(bills);
       setShowReview(true);
       setShowPasswordPrompt(false);
@@ -282,6 +286,8 @@ const ImportDocButton: React.FC<ImportDocButtonProps> = ({
           extractedBills={extractedBills}
           docType={docType}
           defaultTableType={tableType}
+          cardId={cardId}
+          targetDate={targetDate}
           onClose={() => setShowReview(false)}
           onSaved={() => {
             onSaved();

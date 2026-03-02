@@ -7,6 +7,8 @@ interface DocReviewModalProps {
   extractedBills: AiBillExtractionDTO[];
   defaultTableType: TableType;
   docType: DocumentType;
+  cardId?: string;
+  targetDate?: string;
   onClose: () => void;
   onSaved: () => void;
 }
@@ -15,6 +17,8 @@ const DocReviewModal: React.FC<DocReviewModalProps> = ({
   extractedBills: initialBills, 
   defaultTableType, 
   docType, 
+  cardId,
+  targetDate,
   onClose, 
   onSaved 
 }) => {
@@ -29,11 +33,13 @@ const DocReviewModal: React.FC<DocReviewModalProps> = ({
       editing: false,
       billType: docType === 'CREDIT_CARD' ? 'EXPENSE' : (b.billValue && b.billValue < 0 ? 'EXPENSE' : 'INCOME'),
       billTable: defaultTableType === 'CARD' ? 'CREDIT_CARD' : 'MAIN',
+      cardId: docType === 'CREDIT_CARD' ? cardId : undefined,
       billValue: Math.abs(b.billValue || 0),
       billName: b.billName || 'Sem nome',
-      billCategory: b.billCategory || 'Others'
+      billCategory: b.billCategory || 'Others',
+      possibleDate: b.possibleDate || (targetDate ? `${targetDate}-01` : new Date().toISOString().split('T')[0])
     })));
-  }, [initialBills, docType, defaultTableType]);
+  }, [initialBills, docType, defaultTableType, cardId, targetDate]);
 
   const handleToggleSelect = (id: string) => {
     setBills(bills.map(b => b.id === id ? { ...b, selected: !b.selected } : b));
@@ -53,19 +59,39 @@ const DocReviewModal: React.FC<DocReviewModalProps> = ({
 
     setLoading(true);
     try {
-      const payload = selected.map(item => ({
-        billName: item.billName,
-        billValue: item.billValue,
-        billDescription: item.billDescription || 'Importado via PDF',
-        billDate: item.possibleDate || new Date().toISOString().split('T')[0],
-        billType: item.billType,
-        billTable: item.billTable,
-        isRecurrent: item.isRecurrent || false,
-        billCategory: item.billCategory,
-        isInstallment: item.isInstallment || false,
-        installmentCount: item.installmentCount || 1,
-        entryMethod: 'AI_DOCUMENT' as const
-      }));
+      const payload = selected.map(item => {
+        // Use targetDate if available (format YYYY-MM), otherwise use possibleDate or today
+        let finalDate = item.possibleDate;
+        if (item.targetDate) {
+          // If we have a targetDate (YYYY-MM) and a possibleDate (DD/MM/YYYY), 
+          // we should probably keep the day from possibleDate but use the month/year from targetDate
+          // However, the backend formatBillDate usually expects a standard format or specific month string.
+          // To be safe and follow the user's request that it should be saved for the target month:
+          const [targetYear, targetMonth] = item.targetDate.split('-');
+          if (item.possibleDate && item.possibleDate.includes('/')) {
+            const [day] = item.possibleDate.split('/');
+            finalDate = `${targetYear}-${targetMonth}-${day.padStart(2, '0')}`;
+          } else {
+            finalDate = `${item.targetDate}-01`;
+          }
+        }
+
+        return {
+          billName: item.billName,
+          billValue: item.billValue,
+          billDescription: item.billDescription || 'Importado via PDF',
+          billDate: finalDate || new Date().toISOString().split('T')[0],
+          billType: item.billType,
+          billTable: item.billTable,
+          paymentType: item.paymentType,
+          cardId: item.cardId,
+          isRecurrent: item.isRecurrent || false,
+          billCategory: item.billCategory,
+          isInstallment: item.isInstallment || false,
+          installmentCount: item.installmentCount || 1,
+          entryMethod: 'AI_DOCUMENT' as const
+        };
+      });
 
       await billService.batchRegister(payload as any);
       onSaved();

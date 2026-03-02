@@ -11,7 +11,7 @@ import { AiBillExtractionDTO } from '../services/aiTranscriptionService';
 interface DebitsViewProps {
   bills: Bill[];
   onAdd: () => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string, deleteAll?: boolean) => void;
   onEdit: (bill: Bill) => Promise<Bill>;
   categories: Category[];
   onRefresh: () => void;
@@ -20,7 +20,7 @@ interface DebitsViewProps {
 }
 
 const DebitsView: React.FC<DebitsViewProps> = ({ bills, onAdd, onDelete, onEdit, categories, onRefresh, onRefreshCoins, onNavigateToPlans }) => {
-  const [billToDelete, setBillToDelete] = useState<string | null>(null);
+  const [billToDelete, setBillToDelete] = useState<Bill | null>(null);
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [updatingBillId, setUpdatingBillId] = useState<string | null>(null);
   const { showToast } = useToast();
@@ -135,7 +135,7 @@ const DebitsView: React.FC<DebitsViewProps> = ({ bills, onAdd, onDelete, onEdit,
                         <Edit2 size={16} />
                     </button>
                     <button 
-                        onClick={() => setBillToDelete(bill.id)}
+                        onClick={() => setBillToDelete(bill)}
                         className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-lg transition-colors"
                         title="Excluir"
                     >
@@ -162,9 +162,11 @@ const DebitsView: React.FC<DebitsViewProps> = ({ bills, onAdd, onDelete, onEdit,
       <ConfirmationModal 
         isOpen={!!billToDelete}
         onClose={() => setBillToDelete(null)}
-        onConfirm={() => billToDelete && onDelete(billToDelete)}
+        onConfirm={(deleteAll) => billToDelete && onDelete(billToDelete.id, deleteAll)}
         title="Excluir Conta?"
-        message="Tem certeza que deseja excluir esta conta? Essa ação não pode ser desfeita."
+        message={billToDelete?.installments && billToDelete.installments.total > 1 ? "Esta conta faz parte de um parcelamento. Deseja excluir apenas esta parcela ou todas as parcelas futuras?" : "Tem certeza que deseja excluir esta conta? Essa ação não pode ser desfeita."}
+        showCheckbox={!!billToDelete?.installments && billToDelete.installments.total > 1}
+        checkboxLabel="Excluir todas as parcelas"
       />
 
       <VoiceFab 

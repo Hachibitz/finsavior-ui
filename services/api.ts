@@ -1,4 +1,4 @@
-const BASE_URL = 'https://4a65-179-190-143-111.ngrok-free.app/api';
+const BASE_URL = 'https://a4eb-179-190-143-111.ngrok-free.app/api';
 
 export const getAccessToken = () => localStorage.getItem('accessToken');
 export const setAccessToken = (token: string) => localStorage.setItem('accessToken', token);
@@ -78,7 +78,12 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   }
 
   const text = await response.text();
-  return text ? JSON.parse(text) : {} as T;
+  try {
+    return text ? JSON.parse(text) : {} as T;
+  } catch (e) {
+    // If it's not JSON, return as is (useful for raw string responses like terms)
+    return text as unknown as T;
+  }
 }
 
 export const api = {
