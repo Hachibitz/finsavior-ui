@@ -3,6 +3,7 @@ import { authService } from '../services/authService';
 import { googleAuthService } from '../services/googleAuthService';
 import { LogIn, Lock, User, Loader2, HelpCircle, ShieldCheck, ArrowRight, X } from 'lucide-react';
 import TermsModal from './TermsModal';
+import PasswordRecoveryModal from './PasswordRecoveryModal';
 
 interface LoginProps {
   onLoginSuccess: () => void;
@@ -22,6 +23,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [termsType, setTermsType] = useState<'terms' | 'privacy'>('terms');
+  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,17 +126,26 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
               </div>
             </div>
 
-            <div className="flex items-center gap-2 ml-1">
-              <input
-                type="checkbox"
-                id="rememberMe"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded border-slate-700 bg-slate-900/50 text-primary focus:ring-primary/50"
-              />
-              <label htmlFor="rememberMe" className="text-sm text-slate-400 font-medium cursor-pointer select-none">
-                Permanecer logado
-              </label>
+            <div className="flex items-center justify-between ml-1">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-700 bg-slate-900/50 text-primary focus:ring-primary/50"
+                />
+                <label htmlFor="rememberMe" className="text-sm text-slate-400 font-medium cursor-pointer select-none">
+                  Permanecer logado
+                </label>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setShowRecoveryModal(true)}
+                className="text-xs font-bold text-primary hover:underline uppercase tracking-widest"
+              >
+                Esqueci minha senha
+              </button>
             </div>
 
             {error && (
@@ -313,6 +324,11 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
         isOpen={showTermsModal} 
         onClose={() => setShowTermsModal(false)} 
         type={termsType} 
+      />
+
+      <PasswordRecoveryModal 
+        isOpen={showRecoveryModal}
+        onClose={() => setShowRecoveryModal(false)}
       />
     </div>
   );

@@ -98,5 +98,13 @@ export const authService = {
       if (refreshToken) setRefreshToken(refreshToken);
     }
     return response;
+  },
+
+  passwordRecovery: async (email: string): Promise<void> => {
+    await api.post('/auth/password-recovery', { email });
+  },
+
+  resetPassword: async (token: string, newPassword: string): Promise<void> => {
+    await api.post('/auth/reset-password', { token, newPassword });
   }
 };

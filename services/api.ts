@@ -1,4 +1,4 @@
-const BASE_URL = 'https://a4eb-179-190-143-111.ngrok-free.app/api';
+const BASE_URL = 'https://cc65-179-190-143-111.ngrok-free.app/api';
 
 export const getAccessToken = () => localStorage.getItem('accessToken');
 export const setAccessToken = (token: string) => localStorage.setItem('accessToken', token);
