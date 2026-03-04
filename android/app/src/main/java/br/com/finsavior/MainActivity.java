@@ -1,4 +1,4 @@
-package com.finsavior.app;
+package br.com.finsavior;
 
 import com.getcapacitor.BridgeActivity;
 

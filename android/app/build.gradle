@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "com.finsavior.app"
+    namespace = "br.com.finsavior"
     compileSdk = rootProject.ext.compileSdkVersion
 
     signingConfigs {
@@ -16,7 +16,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.finsavior.app"
+        applicationId "br.com.finsavior"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
