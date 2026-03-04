@@ -1,6 +1,6 @@
 const BASE_URL = import.meta.env.PROD 
   ? 'https://www.finsavior.com.br/api' 
-  : 'https://829b-179-190-143-111.ngrok-free.app/api';
+  : 'https://4dc3-179-190-143-111.ngrok-free.app/api';
 
 export const getAccessToken = () => localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
 export const setAccessToken = (token: string) => {

@@ -17,7 +17,8 @@ import {
   RotateCcw,
   X,
   Loader2,
-  ShieldCheck
+  ShieldCheck,
+  Info
 } from 'lucide-react';
 import { getCategoryIcon } from '../constants';
 import { aiAdviceService } from '../services/aiAdviceService';
@@ -285,7 +286,17 @@ const SummaryView: React.FC<SummaryViewProps> = ({
 
           <div className="flex flex-col items-end gap-2">
              <div className="text-right">
-                <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-1">Taxa de Poupança</p>
+                <div className="flex items-center justify-end gap-1.5 mb-1">
+                  <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Taxa de Poupança</p>
+                  <div className="relative group">
+                    <Info size={12} className="text-slate-600 cursor-help hover:text-primary transition-colors" />
+                    <div className="absolute bottom-full right-0 mb-2 w-48 p-3 bg-slate-800 border border-white/10 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 pointer-events-none">
+                      <p className="text-[10px] text-slate-300 leading-relaxed normal-case font-medium">
+                        A taxa de poupança mostra qual porcentagem da sua renda total sobrou após o pagamento de todas as despesas. É um indicador vital da sua saúde financeira.
+                      </p>
+                    </div>
+                  </div>
+                </div>
                 <div className="flex items-center gap-2">
                    <div className="h-2 w-32 bg-slate-800 rounded-full overflow-hidden">
                       <div 
