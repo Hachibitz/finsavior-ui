@@ -1,16 +1,28 @@
 apply plugin: 'com.android.application'
 
+// Função para ler propriedades do local.properties
+def getLocalProperty(String key) {
+    Properties properties = new Properties()
+    File localPropertiesFile = project.rootProject.file('local.properties')
+    if (localPropertiesFile.exists()) {
+        properties.load(localPropertiesFile.newDataInputStream())
+        return properties.getProperty(key)
+    }
+    return null
+}
+
 android {
     namespace = "br.com.finsavior"
     compileSdk = rootProject.ext.compileSdkVersion
 
     signingConfigs {
         release {
-            if (project.hasProperty('RELEASE_STORE_FILE')) {
-                storeFile file(RELEASE_STORE_FILE)
-                storePassword RELEASE_STORE_PASSWORD
-                keyAlias RELEASE_KEY_ALIAS
-                keyPassword RELEASE_KEY_PASSWORD
+            def storeFilePath = getLocalProperty('RELEASE_STORE_FILE')
+            if (storeFilePath != null) {
+                storeFile file(storeFilePath)
+                storePassword getLocalProperty('RELEASE_STORE_PASSWORD')
+                keyAlias getLocalProperty('RELEASE_KEY_ALIAS')
+                keyPassword getLocalProperty('RELEASE_KEY_PASSWORD')
             }
         }
     }
@@ -59,7 +71,7 @@ apply from: 'capacitor.build.gradle'
 
 try {
     def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
+    if (servicesJSON.exists()) {
         apply plugin: 'com.google.gms.google-services'
     }
 } catch(Exception e) {

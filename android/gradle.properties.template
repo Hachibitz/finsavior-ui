@@ -1,0 +1,8 @@
+# Configurações de Assinatura de Release (Preencha no seu gradle.properties local)
+RELEASE_STORE_FILE=
+RELEASE_STORE_PASSWORD=
+RELEASE_KEY_ALIAS=
+RELEASE_KEY_PASSWORD=
+
+# Google API Key (Preencha no seu gradle.properties local)
+GOOGLE_API_KEY=
