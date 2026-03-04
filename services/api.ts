@@ -1,16 +1,48 @@
-const BASE_URL = 'https://cc65-179-190-143-111.ngrok-free.app/api';
+const BASE_URL = import.meta.env.PROD 
+  ? 'https://www.finsavior.com.br/api' 
+  : 'https://829b-179-190-143-111.ngrok-free.app/api';
 
-export const getAccessToken = () => localStorage.getItem('accessToken');
-export const setAccessToken = (token: string) => localStorage.setItem('accessToken', token);
-export const getRefreshToken = () => localStorage.getItem('refreshToken');
-export const setRefreshToken = (token: string) => localStorage.setItem('refreshToken', token);
+export const getAccessToken = () => localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+export const setAccessToken = (token: string) => {
+  if (localStorage.getItem('rememberMe') === 'true') {
+    localStorage.setItem('accessToken', token);
+  } else {
+    sessionStorage.setItem('accessToken', token);
+  }
+};
+
+export const getRefreshToken = () => localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken');
+export const setRefreshToken = (token: string) => {
+  if (localStorage.getItem('rememberMe') === 'true') {
+    localStorage.setItem('refreshToken', token);
+  } else {
+    sessionStorage.setItem('refreshToken', token);
+  }
+};
+
+export const setRememberMe = (remember: boolean) => {
+  localStorage.setItem('rememberMe', remember.toString());
+};
 
 export const clearTokens = () => {
   localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
+  localStorage.removeItem('rememberMe');
+  sessionStorage.removeItem('accessToken');
+  sessionStorage.removeItem('refreshToken');
 };
 
 let isRefreshing = false;
+let refreshSubscribers: ((token: string) => void)[] = [];
+
+function onRefreshed(token: string) {
+  refreshSubscribers.map(cb => cb(token));
+  refreshSubscribers = [];
+}
+
+function addRefreshSubscriber(cb: (token: string) => void) {
+  refreshSubscribers.push(cb);
+}
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = getAccessToken();
@@ -20,7 +52,6 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers.set('Authorization', `Bearer ${token}`);
   }
   
-  // Bypass ngrok browser warning with the specific value requested
   headers.set('ngrok-skip-browser-warning', '69420');
   
   if (!(options.body instanceof FormData)) {
@@ -32,41 +63,50 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers,
   });
 
-  // Handle 401/403 with refresh logic
-  if ((response.status === 401 || response.status === 403) && !isRefreshing && !endpoint.includes('/auth/')) {
-    isRefreshing = true;
-    try {
-      const refreshToken = getRefreshToken();
-      if (refreshToken) {
-        // Call refresh token endpoint directly to avoid recursion
-        const refreshResponse = await fetch(`${BASE_URL}/auth/refresh-token`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'ngrok-skip-browser-warning': '69420'
-          },
-          body: JSON.stringify(refreshToken)
-        });
+  if ((response.status === 401 || response.status === 403) && !endpoint.includes('/auth/')) {
+    if (!isRefreshing) {
+      isRefreshing = true;
+      try {
+        const refreshToken = getRefreshToken();
+        if (refreshToken) {
+          const refreshResponse = await fetch(`${BASE_URL}/auth/refresh-token`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'ngrok-skip-browser-warning': '69420'
+            },
+            body: refreshToken // Send as raw string, not JSON.stringify
+          });
 
-        if (refreshResponse.ok) {
-          const newToken = await refreshResponse.text();
-          setAccessToken(newToken);
-          isRefreshing = false;
-          
-          // Retry the original request with the new token
-          return request<T>(endpoint, options);
+          if (refreshResponse.ok) {
+            const newToken = await refreshResponse.text();
+            setAccessToken(newToken);
+            isRefreshing = false;
+            onRefreshed(newToken);
+            return request<T>(endpoint, options);
+          }
         }
+      } catch (error) {
+        console.error('Token refresh failed:', error);
+      } finally {
+        isRefreshing = false;
       }
-    } catch (error) {
-      console.error('Token refresh failed:', error);
-    } finally {
-      isRefreshing = false;
-    }
 
-    // If refresh failed or no refresh token, logout
-    clearTokens();
-    window.location.href = '/login'; // Or handle via state in App.tsx
-    throw new Error('Unauthorized');
+      clearTokens();
+      window.location.href = '/login';
+      throw new Error('Unauthorized');
+    } else {
+      // Wait for refresh to complete
+      return new Promise((resolve) => {
+        addRefreshSubscriber((newToken) => {
+          const newOptions = { ...options };
+          const newHeaders = new Headers(newOptions.headers);
+          newHeaders.set('Authorization', `Bearer ${newToken}`);
+          newOptions.headers = newHeaders;
+          resolve(request<T>(endpoint, newOptions));
+        });
+      });
+    }
   }
 
   if (!response.ok) {

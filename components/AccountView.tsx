@@ -163,7 +163,7 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
             <div className="w-32 h-32 rounded-full bg-gradient-to-tr from-primary to-accent p-1 shadow-2xl">
               <div className="w-full h-full rounded-full bg-slate-800 overflow-hidden border-4 border-slate-900">
                 {profile?.profilePicture ? (
-                  <img src={profile.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                  <img src={profile.profilePicture} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-slate-500">
                     <User size={48} />

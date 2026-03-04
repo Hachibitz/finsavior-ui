@@ -4,7 +4,9 @@ import { loadStripe } from '@stripe/stripe-js';
 import { paymentService } from '../services/paymentService';
 import { UserProfile } from '../types';
 
-const STRIPE_PUBLIC_KEY = import.meta.env.VITE_STRIPE_PUBLIC_KEY || 'pk_test_51QZ8bFAn2p8p8p8p8p8p8p8p8p8p8p8p8p8p8p8p8p8p8p8p8p8p8p8p8p8p8p8p';
+const STRIPE_PUBLIC_KEY = import.meta.env.PROD 
+  ? 'pk_live_51RAXKGP48Sfjk7zmg09SbDC5o0ZEThNvRfXQ0CcxbLaM9Y89n3rzPDeKr8uy2FQxvJfLPfRciM9FwvxlvXVDBQ8p00Ikf069O6' 
+  : 'pk_test_51RAXKQP3WXaQ8eNCSd62SrLxgo6vXm9v0iPZHLkZY7nKKlJcALGyybHh7JynrX4icimDQlRAxtktx9qAcQV4VAgz00ATgXomAT';
 
 export const PLANS = [
     {

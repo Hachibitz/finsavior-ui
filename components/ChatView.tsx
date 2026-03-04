@@ -21,6 +21,7 @@ import { UserProfile } from '../types';
 import { useToast } from '../contexts/ToastContext';
 import ReactMarkdown from 'react-markdown';
 import VoiceFab from './VoiceFab';
+import { SaviIcon } from './Logo';
 
 interface ChatViewProps {
   profile: UserProfile | null;
@@ -187,8 +188,8 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center max-w-sm mx-auto space-y-6">
-            <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center text-primary animate-bounce">
-              <Sparkles size={40} />
+            <div className="w-32 h-32 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden animate-bounce shadow-2xl">
+              <SaviIcon className="w-full h-full" />
             </div>
             <div>
               <h3 className="text-xl font-black text-white mb-2">Olá! Eu sou a Savi.</h3>
@@ -214,10 +215,10 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
               key={idx} 
               className={`flex items-start gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''} animate-slide-up`}
             >
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                msg.role === 'user' ? 'bg-indigo-500 text-white' : 'bg-primary text-white'
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 overflow-hidden ${
+                msg.role === 'user' ? 'bg-indigo-500 text-white' : 'bg-slate-800 border border-white/10'
               }`}>
-                {msg.role === 'user' ? <User size={16} /> : <Bot size={16} />}
+                {msg.role === 'user' ? <User size={20} /> : <SaviIcon className="w-full h-full" />}
               </div>
               <div className={`max-w-[85%] md:max-w-[70%] p-4 rounded-2xl text-sm leading-relaxed ${
                 msg.role === 'user' 
@@ -233,8 +234,8 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
         )}
         {isTyping && (
           <div className="flex items-start gap-3 animate-pulse">
-            <div className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center">
-              <Bot size={16} />
+            <div className="w-10 h-10 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden">
+              <SaviIcon className="w-full h-full" />
             </div>
             <div className="bg-slate-800 p-4 rounded-2xl rounded-tl-none border border-white/5 flex gap-1">
               <div className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />

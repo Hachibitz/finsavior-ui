@@ -1,8 +1,8 @@
-import { api, getAccessToken, setAccessToken, setRefreshToken, getRefreshToken, clearTokens } from './api';
+import { api, getAccessToken, setAccessToken, setRefreshToken, getRefreshToken, clearTokens, setRememberMe } from './api';
 
 export const authService = {
   login: async (username: string, password: string, rememberMe: boolean = true): Promise<void> => {
-    // Based on user's Angular code, it expects accessToken and refreshToken
+    setRememberMe(rememberMe);
     const response = await api.post<any>('/auth/login-auth', {
       username,
       password,
@@ -77,6 +77,7 @@ export const authService = {
   },
 
   loginWithGoogle: async (idToken: string): Promise<any> => {
+    setRememberMe(true);
     const response = await api.post<any>('/auth/login-google', idToken);
     const accessToken = response.accessToken || response.token || Object.values(response)[0];
     const refreshToken = response.refreshToken || response.token;
@@ -89,6 +90,7 @@ export const authService = {
   },
 
   registerWithGoogle: async (idToken: string): Promise<any> => {
+    setRememberMe(true);
     const response = await api.post<any>('/auth/register-google', idToken);
     const accessToken = response.accessToken || response.token || Object.values(response)[0];
     const refreshToken = response.refreshToken || response.token;

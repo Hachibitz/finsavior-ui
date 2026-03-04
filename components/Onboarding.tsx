@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ArrowRight, Wallet, BrainCircuit, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Wallet, ShieldCheck } from 'lucide-react';
+import { SaviIcon } from './Logo';
 
 interface OnboardingProps {
   onComplete: () => void;
@@ -17,8 +18,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     },
     {
       title: "Inteligência Artificial",
-      description: "Receba análises financeiras personalizadas com o poder do Gemini AI.",
-      icon: <BrainCircuit size={64} className="text-emerald-400" />,
+      description: "Receba análises financeiras personalizadas com o poder da Savi AI.",
+      icon: <SaviIcon className="w-32 h-32" />,
       color: "from-emerald-500/20 to-teal-600/20"
     },
     {

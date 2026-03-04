@@ -25,6 +25,7 @@ import { billService } from '../services/billService';
 import { Notification } from '../types/notifications';
 import ReactMarkdown from 'react-markdown';
 import AiAnalysisModal from './AiAnalysisModal';
+import { SaviIcon } from './Logo';
 
 interface SummaryViewProps {
   summary: SummaryData;
@@ -304,8 +305,8 @@ const SummaryView: React.FC<SummaryViewProps> = ({
         className="bg-gradient-to-r from-indigo-500/5 to-purple-500/5 border border-white/5 p-5 rounded-3xl flex items-center gap-4 group hover:border-primary/20 transition-all cursor-pointer"
         onClick={() => setIsModalOpen(true)}
       >
-        <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 group-hover:scale-110 transition-transform">
-          <BrainCircuit size={24} />
+        <div className="w-16 h-16 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+          <SaviIcon className="w-16 h-16" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
@@ -335,9 +336,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({
           <div className="bg-slate-900 w-full max-w-lg rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden animate-slide-up" onClick={e => e.stopPropagation()}>
             <div className="p-8 border-b border-white/5 flex justify-between items-center bg-gradient-to-r from-primary/10 to-transparent">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
-                  <BrainCircuit size={20} />
-                </div>
+                <SaviIcon className="w-16 h-16" />
                 <div>
                   <h3 className="text-xl font-black text-white tracking-tight">Savi Insight</h3>
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Análise de Inteligência</p>

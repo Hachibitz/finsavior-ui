@@ -29,8 +29,15 @@ import { useToast } from './contexts/ToastContext';
 import { Notification } from './types/notifications';
 
 const App: React.FC = () => {
-  // Simple state persistence for onboarding (in a real app, use localStorage or user db)
-  const [showOnboarding, setShowOnboarding] = useState(true);
+  // Onboarding logic: show only once per session
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    return !sessionStorage.getItem('onboarding_shown');
+  });
+
+  const handleOnboardingComplete = () => {
+    sessionStorage.setItem('onboarding_shown', 'true');
+    setShowOnboarding(false);
+  };
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
@@ -492,6 +499,7 @@ const App: React.FC = () => {
     setBills([]);
     sessionStorage.removeItem('summary_banner_closed');
     sessionStorage.removeItem('cards_banner_closed');
+    sessionStorage.removeItem('onboarding_shown');
   };
 
   const renderContent = () => {
@@ -618,7 +626,7 @@ const App: React.FC = () => {
   };
 
   if (showOnboarding) {
-    return <Onboarding onComplete={() => setShowOnboarding(false)} />;
+    return <Onboarding onComplete={handleOnboardingComplete} />;
   }
 
   if (isCheckingAuth) {

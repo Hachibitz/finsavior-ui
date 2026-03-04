@@ -122,7 +122,13 @@ const CoinStoreModal: React.FC<CoinStoreModalProps> = ({ isOpen, onClose, curren
             </button>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-6 opacity-60 pointer-events-none relative">
+            <div className="absolute inset-0 z-50 flex items-center justify-center">
+              <div className="bg-primary/90 text-white px-6 py-3 rounded-2xl font-black uppercase tracking-widest shadow-2xl animate-bounce">
+                Disponível em breve
+              </div>
+            </div>
+
             {/* Earn Section */}
             <div className="space-y-3">
               <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Ganhar Moedas</h3>

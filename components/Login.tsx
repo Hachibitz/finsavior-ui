@@ -4,6 +4,7 @@ import { googleAuthService } from '../services/googleAuthService';
 import { LogIn, Lock, User, Loader2, HelpCircle, ShieldCheck, ArrowRight, X } from 'lucide-react';
 import TermsModal from './TermsModal';
 import PasswordRecoveryModal from './PasswordRecoveryModal';
+import { FinSaviorLogo } from './Logo';
 
 interface LoginProps {
   onLoginSuccess: () => void;
@@ -87,11 +88,8 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
       <div className="w-full max-w-md animate-scale-in">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-primary to-accent mb-4 shadow-xl shadow-primary/20">
-            <LogIn className="text-white" size={40} />
-          </div>
-          <h1 className="text-4xl font-black text-white tracking-tight">FinSavior</h1>
-          <p className="text-slate-400 mt-2">Entre na sua conta premium</p>
+          <h1 className="text-5xl font-black text-white tracking-tight bg-gradient-to-br from-white to-slate-400 bg-clip-text text-transparent">FinSavior</h1>
+          <p className="text-slate-400 mt-2">Sua liberdade financeira começa aqui</p>
         </div>
 
         <div className="glass-card p-8 rounded-3xl border border-white/10">

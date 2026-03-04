@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { AiAnalysis, Bill, CardTransaction, Asset, UserProfile, AiAdviceDTO } from '../types';
 import { MOCK_AI_ANALYSES } from '../constants';
-import { BrainCircuit, Sparkles, MessageSquare, ChevronRight, Play, X, Trash2, Bot } from 'lucide-react';
+import { BrainCircuit, Sparkles, MessageSquare, ChevronRight, Play, X, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { aiAdviceService } from '../services/aiAdviceService';
 import { useToast } from '../contexts/ToastContext';
 import AiAnalysisModal from './AiAnalysisModal';
 import ChatView from './ChatView';
+import { SaviIcon } from './Logo';
 
 interface AiAdvisorViewProps {
   bills: Bill[];
@@ -124,14 +125,14 @@ const AiAdvisorView: React.FC<AiAdvisorViewProps> = ({
     <div className="space-y-6 animate-fade-in min-h-[80vh] flex flex-col">
       {/* Header AI Identity */}
       <div className="text-center py-6">
-        <div className="relative w-20 h-20 mx-auto mb-4">
+        <div className="relative w-32 h-32 mx-auto mb-4">
            <div className="absolute inset-0 bg-blue-500 rounded-full blur-xl opacity-20 animate-pulse"></div>
-           <div className="relative w-full h-full bg-gradient-to-tr from-slate-800 to-slate-900 rounded-full border border-slate-700 flex items-center justify-center shadow-2xl">
-              <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Savi&backgroundColor=transparent" alt="Savi" className="w-14 h-14" />
+           <div className="relative w-full h-full bg-gradient-to-tr from-slate-800 to-slate-900 rounded-full border border-slate-700 flex items-center justify-center shadow-2xl overflow-hidden">
+              <SaviIcon className="w-full h-full" />
            </div>
-           <div className="absolute bottom-0 right-0 w-6 h-6 bg-emerald-500 border-4 border-background rounded-full"></div>
+           <div className="absolute bottom-2 right-2 w-6 h-6 bg-emerald-500 border-4 border-background rounded-full"></div>
         </div>
-        <h1 className="text-2xl font-bold text-white">Savi AI</h1>
+        <h1 className="text-4xl font-black text-white tracking-tight">Savi AI</h1>
         <p className="text-slate-400 text-sm">Seu consultor financeiro pessoal</p>
       </div>
 
@@ -154,7 +155,7 @@ const AiAdvisorView: React.FC<AiAdvisorViewProps> = ({
               onClick={() => setActiveSubTab('chat')}
               className="w-full bg-surface hover:bg-slate-800 text-white py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-3 group"
            >
-              <Bot size={18} className="text-indigo-400 group-hover:scale-110 transition-transform" />
+              <SaviIcon className="w-8 h-8" />
               Chat com Savi
            </button>
         </div>

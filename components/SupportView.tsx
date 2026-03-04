@@ -216,7 +216,12 @@ const SupportView: React.FC<SupportViewProps> = ({ profile, onBack }) => {
           </form>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 opacity-60 pointer-events-none relative">
+          <div className="absolute inset-0 z-50 flex items-center justify-center">
+            <div className="bg-primary/90 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-2xl animate-bounce">
+              Disponível em breve
+            </div>
+          </div>
           {[
             { label: 'Dúvidas Frequentes', icon: HelpCircle, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
             { label: 'Central de Ajuda', icon: Info, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },

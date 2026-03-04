@@ -9,6 +9,7 @@ import { Notification } from '../types/notifications';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import SearchModal from './SearchModal';
+import { FinSaviorLogo } from './Logo';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -59,9 +60,9 @@ const Layout: React.FC<LayoutProps> = ({
              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-accent p-[2px] cursor-pointer" onClick={() => setIsMenuOpen(true)}>
                <div className="w-full h-full rounded-full bg-surface border-2 border-transparent overflow-hidden">
                  {profile?.profilePicture ? (
-                   <img src={profile.profilePicture} alt="User" className="w-full h-full object-cover" />
+                   <img src={profile.profilePicture} alt="User" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                  ) : (
-                   <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.firstName || 'User'}`} alt="User" className="w-full h-full object-cover" />
+                   <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.firstName || 'User'}`} alt="User" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                  )}
                </div>
              </div>
@@ -163,9 +164,12 @@ const Layout: React.FC<LayoutProps> = ({
           />
           <div className="fixed top-0 left-0 bottom-0 w-3/4 max-w-xs bg-[#0b1121] z-50 p-6 shadow-2xl animate-slide-up border-r border-white/10">
             <div className="flex justify-between items-center mb-10">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">FinSavior</h2>
-              <button onClick={() => setIsMenuOpen(false)} className="text-slate-400 hover:text-white">
-                <X />
+              <div className="flex items-center gap-2">
+                <FinSaviorLogo className="w-12 h-12" />
+                <h2 className="text-2xl font-black bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent tracking-tighter">FinSavior</h2>
+              </div>
+              <button onClick={() => setIsMenuOpen(false)} className="p-2 rounded-full bg-white/5 text-slate-400 hover:text-white transition-all">
+                <X size={20} />
               </button>
             </div>
 
