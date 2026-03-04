@@ -29,6 +29,8 @@ import { useToast } from './contexts/ToastContext';
 import { Notification } from './types/notifications';
 
 const App: React.FC = () => {
+  const INSUFFICIENT_DATA_MESSAGE = 'Adicione pelo menos uma receita e uma despesa para que a Savi possa analisar seu perfil financeiro e dar dicas personalizadas!';
+
   // Onboarding logic: show only once per session
   const [showOnboarding, setShowOnboarding] = useState(() => {
     return !sessionStorage.getItem('onboarding_shown');
@@ -77,6 +79,7 @@ const App: React.FC = () => {
   const [aiInsights, setAiInsights] = useState<Record<string, string>>({});
   const [lastAnalyzedBalance, setLastAnalyzedBalance] = useState<Record<string, number>>({});
   const [loadingInsight, setLoadingInsight] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
   
   // Navigation & Modal State from Notifications
   const [insightModalOpen, setInsightModalOpen] = useState(false);
@@ -289,9 +292,12 @@ const App: React.FC = () => {
     
     setLoadingInsight(true);
     try {
-      // Check if user has any data before calling AI
-      if (filteredBills.length === 0 && filteredCardTransactions.length === 0 && filteredAssets.length === 0) {
-        setAiInsights(prev => ({ ...prev, [month]: 'Adicione suas primeiras contas ou rendas para que a Savi possa analisar seu perfil financeiro e dar dicas personalizadas!' }));
+      // Check if user has sufficient data before calling AI
+      const hasIncome = filteredAssets.length > 0;
+      const hasExpense = filteredBills.length > 0 || filteredCardTransactions.length > 0;
+
+      if (!hasIncome || !hasExpense) {
+        setAiInsights(prev => ({ ...prev, [month]: INSUFFICIENT_DATA_MESSAGE }));
         setLoadingInsight(false);
         return;
       }
@@ -321,14 +327,21 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!isLoggedIn) return;
 
-    fetchBills();
-    fetchCardTransactions();
-    fetchAssets();
+    const loadAll = async () => {
+      setDataLoaded(false);
+      await Promise.all([
+        fetchBills(),
+        fetchCardTransactions(),
+        fetchAssets()
+      ]);
+      setDataLoaded(true);
+    };
+    loadAll();
   }, [isLoggedIn, selectedMonth]);
 
   // Handle automatic insight fetching/updating
   useEffect(() => {
-    if (!isLoggedIn || activeTab !== 'summary') return;
+    if (!isLoggedIn || activeTab !== 'summary' || !dataLoaded) return;
 
     const currentIncome = filteredAssets.reduce((acc, a) => acc + a.amount, 0);
     const currentExpense = filteredBills.reduce((acc, b) => acc + b.amount, 0) + 
@@ -336,18 +349,27 @@ const App: React.FC = () => {
     const currentForecast = currentIncome - currentExpense;
 
     const lastBalance = lastAnalyzedBalance[selectedMonth];
+    const currentInsight = aiInsights[selectedMonth];
+    const isInsufficient = currentInsight === INSUFFICIENT_DATA_MESSAGE;
     
-    if (!aiInsights[selectedMonth]) {
-      fetchInsight(selectedMonth);
-    } else if (lastBalance !== undefined) {
+    const hasIncome = currentIncome > 0;
+    const hasExpense = currentExpense > 0;
+    const hasSufficientData = hasIncome && hasExpense;
+
+    if (!currentInsight || isInsufficient) {
+      if (hasSufficientData) {
+        fetchInsight(selectedMonth);
+      } else if (!isInsufficient) {
+        setAiInsights(prev => ({ ...prev, [selectedMonth]: INSUFFICIENT_DATA_MESSAGE }));
+      }
+    } else if (lastBalance !== undefined && hasSufficientData) {
       const change = Math.abs(currentForecast - lastBalance) / (Math.abs(lastBalance) || 1);
       
       if (change >= 0.1) {
         fetchInsight(selectedMonth, true);
       }
     }
-  }, [activeTab, isLoggedIn, selectedMonth, filteredBills.length, filteredAssets.length, filteredCardTransactions.length, 
-      // Also watch the actual totals to catch value changes
+  }, [activeTab, isLoggedIn, selectedMonth, dataLoaded, filteredBills.length, filteredAssets.length, filteredCardTransactions.length, 
       summary.totalIncome, summary.totalExpense, summary.forecastBalance]);
 
   // Category Logic
