@@ -10,6 +10,19 @@ export default defineConfig(({ mode }) => {
         host: '0.0.0.0',
       },
       plugins: [react()],
+      build: {
+        rollupOptions: {
+          output: {
+            manualChunks: {
+              'vendor-react': ['react', 'react-dom'],
+              'vendor-charts': ['recharts'],
+              'vendor-icons': ['lucide-react'],
+              'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+            }
+          }
+        },
+        chunkSizeWarningLimit: 1000,
+      },
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)

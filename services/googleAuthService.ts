@@ -1,5 +1,7 @@
 import { 
   signInWithPopup, 
+  signInWithCredential,
+  GoogleAuthProvider,
   UserCredential, 
   onAuthStateChanged,
   signOut,
@@ -8,11 +10,27 @@ import {
 import { auth, googleProvider } from './firebase-config';
 import { api } from './api';
 import { authService } from './authService';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { Capacitor } from '@capacitor/core';
+
+// Initialize Google Auth for native platforms
+if (Capacitor.isNativePlatform()) {
+  GoogleAuth.initialize();
+}
 
 export const googleAuthService = {
   signIn: async (): Promise<{ accessToken: string; refreshToken: string }> => {
     try {
-      const result: UserCredential = await signInWithPopup(auth, googleProvider);
+      let result: UserCredential;
+
+      if (Capacitor.isNativePlatform()) {
+        const googleUser = await GoogleAuth.signIn();
+        const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+        result = await signInWithCredential(auth, credential);
+      } else {
+        result = await signInWithPopup(auth, googleProvider);
+      }
+
       if (result && result.user) {
         const idToken = await result.user.getIdToken();
         // Call backend to exchange Firebase token for backend tokens
@@ -60,6 +78,9 @@ export const googleAuthService = {
 
   logout: async (): Promise<void> => {
     try {
+      if (Capacitor.isNativePlatform()) {
+        await GoogleAuth.signOut();
+      }
       await signOut(auth);
       authService.logout();
     } catch (error) {

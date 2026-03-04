@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">FinSavior</string>
+    <string name="title_activity_main">FinSavior</string>
+    <string name="package_name">com.finsavior.app</string>
+    <string name="custom_url_scheme">com.finsavior.app</string>
+    <string name="server_client_id">770396493441-m20ptqar465dckq4ur9hg597t6tq7v3o.apps.googleusercontent.com</string>
+</resources>

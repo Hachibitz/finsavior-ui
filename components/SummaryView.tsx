@@ -18,7 +18,9 @@ import {
   X,
   Loader2,
   ShieldCheck,
-  Info
+  Info,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { getCategoryIcon } from '../constants';
 import { aiAdviceService } from '../services/aiAdviceService';
@@ -64,6 +66,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(initialInsightOpen || false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
+  const [isBalanceVisible, setIsBalanceVisible] = useState(true);
   const [historicalData, setHistoricalData] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [isBannerClosed, setIsBannerClosed] = useState(() => {
@@ -268,18 +271,27 @@ const SummaryView: React.FC<SummaryViewProps> = ({
             <div className="flex items-center gap-2 text-indigo-300/80 mb-2">
               <Wallet size={16} />
               <span className="text-xs font-bold uppercase tracking-widest">Patrimônio Líquido</span>
+              <button 
+                onClick={() => setIsBalanceVisible(!isBalanceVisible)}
+                className="p-1 hover:bg-white/5 rounded-full transition-colors"
+                title={isBalanceVisible ? "Ocultar Saldo" : "Mostrar Saldo"}
+              >
+                {isBalanceVisible ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
             </div>
             <h1 className="text-5xl md:text-6xl font-black text-white tracking-tighter mb-4">
-              R$ {summary.totalBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              {isBalanceVisible 
+                ? `R$ ${summary.totalBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                : 'R$ ••••••••'}
             </h1>
             <div className="flex flex-wrap gap-3">
               <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-2xl text-emerald-400 font-bold text-sm">
                 <TrendingUp size={16} />
-                <span>+R$ {summary.totalIncome.toLocaleString()}</span>
+                <span>{isBalanceVisible ? `+R$ ${summary.totalIncome.toLocaleString()}` : 'R$ •••'}</span>
               </div>
               <div className="flex items-center gap-2 bg-rose-500/10 border border-rose-500/20 px-4 py-2 rounded-2xl text-rose-400 font-bold text-sm">
                 <TrendingDown size={16} />
-                <span>-R$ {summary.totalExpense.toLocaleString()}</span>
+                <span>{isBalanceVisible ? `-R$ ${summary.totalExpense.toLocaleString()}` : 'R$ •••'}</span>
               </div>
             </div>
           </div>
@@ -591,7 +603,9 @@ const SummaryView: React.FC<SummaryViewProps> = ({
                     <h3 className="font-bold text-white">Previsão de Fechamento</h3>
                   </div>
                   <p className="text-4xl font-black text-white tracking-tight">
-                    R$ {summary.forecastBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    {isBalanceVisible 
+                    ? `R$ ${summary.forecastBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                    : 'R$ ••••••••'}
                   </p>
                   <p className="text-xs text-slate-500 mt-2">Baseado na média dos últimos 3 meses e gastos fixos pendentes.</p>
                 </div>

@@ -54,7 +54,7 @@ const Layout: React.FC<LayoutProps> = ({
   return (
     <div className="min-h-screen flex flex-col font-sans">
       {/* Dynamic Header */}
-      <header className="fixed top-0 left-0 right-0 z-40 glass-panel border-b-0">
+      <header className="fixed top-0 left-0 right-0 z-40 glass-panel border-b-0" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-accent p-[2px] cursor-pointer" onClick={() => setIsMenuOpen(true)}>
@@ -162,7 +162,15 @@ const Layout: React.FC<LayoutProps> = ({
             className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 animate-fade-in"
             onClick={() => setIsMenuOpen(false)}
           />
-          <div className="fixed top-0 left-0 bottom-0 w-3/4 max-w-xs bg-[#0b1121] z-50 p-6 shadow-2xl animate-slide-up border-r border-white/10">
+          <div 
+            className="fixed top-0 left-0 bottom-0 w-3/4 max-w-xs bg-[#0b1121] z-50 p-6 shadow-2xl animate-slide-up border-r border-white/10"
+            style={{ 
+              paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1.5rem)',
+              paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)',
+              paddingLeft: 'calc(env(safe-area-inset-left, 0px) + 1.5rem)',
+              paddingRight: 'calc(env(safe-area-inset-right, 0px) + 1.5rem)'
+            }}
+          >
             <div className="flex justify-between items-center mb-10">
               <div className="flex items-center gap-2">
                 <FinSaviorLogo className="w-12 h-12" />
@@ -252,7 +260,7 @@ const Layout: React.FC<LayoutProps> = ({
       </main>
 
       {/* Floating Dock Navigation */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[90%] max-w-md">
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[90%] max-w-md" style={{ marginBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="glass-panel rounded-full p-2 flex justify-between items-center shadow-2xl shadow-primary/10 border border-white/10 backdrop-blur-2xl">
           {navItems.map((item) => (
             <button

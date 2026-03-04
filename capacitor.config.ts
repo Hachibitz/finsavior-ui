@@ -1,0 +1,19 @@
+import { CapacitorConfig } from '@capacitor/cli';
+
+const config: CapacitorConfig = {
+  appId: 'com.finsavior.app',
+  appName: 'FinSavior',
+  webDir: 'dist',
+  server: {
+    androidScheme: 'https'
+  },
+  plugins: {
+    GoogleAuth: {
+      scopes: ['profile', 'email'],
+      serverClientId: '770396493441-m20ptqar465dckq4ur9hg597t6tq7v3o.apps.googleusercontent.com',
+      forceCodeForRefreshToken: true,
+    },
+  },
+};
+
+export default config;

@@ -1,7 +1,26 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { ToastProvider } from './contexts/ToastContext';
+import { StatusBar, Style } from '@capacitor/status-bar';
+import { Capacitor } from '@capacitor/core';
+
+const Root = () => {
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      StatusBar.setOverlaysWebView({ overlay: true });
+      StatusBar.setStyle({ style: Style.Dark });
+    }
+  }, []);
+
+  return (
+    <React.StrictMode>
+      <ToastProvider>
+        <App />
+      </ToastProvider>
+    </React.StrictMode>
+  );
+};
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -9,10 +28,4 @@ if (!rootElement) {
 }
 
 const root = ReactDOM.createRoot(rootElement);
-root.render(
-  <React.StrictMode>
-    <ToastProvider>
-      <App />
-    </ToastProvider>
-  </React.StrictMode>
-);
+root.render(<Root />);
