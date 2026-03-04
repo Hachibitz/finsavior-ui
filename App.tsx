@@ -27,6 +27,7 @@ import { api } from './services/api';
 import MonthContext from './contexts/MonthContext';
 import { useToast } from './contexts/ToastContext';
 import { Notification } from './types/notifications';
+import { admobService } from './services/admobService';
 
 const App: React.FC = () => {
   const INSUFFICIENT_DATA_MESSAGE = 'Adicione pelo menos uma receita e uma despesa para que a Savi possa analisar seu perfil financeiro e dar dicas personalizadas!';
@@ -49,6 +50,36 @@ const App: React.FC = () => {
   const [isCoinStoreOpen, setIsCoinStoreOpen] = useState(false);
   const [isUpsellOpen, setIsUpsellOpen] = useState(false);
   const [formForcedType, setFormForcedType] = useState<'income' | 'expense' | undefined>(undefined);
+  
+  // Data State
+  const [bills, setBills] = useState<Bill[]>([]);
+  const [cardTransactions, setCardTransactions] = useState<CardTransaction[]>([]);
+  const [cards, setCards] = useState<CreditCard[]>([]);
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [aiInsights, setAiInsights] = useState<Record<string, string>>({});
+  const [lastAnalyzedBalance, setLastAnalyzedBalance] = useState<Record<string, number>>({});
+  const [loadingInsight, setLoadingInsight] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
+
+  const [lastInterstitialTime, setLastInterstitialTime] = useState<number>(Date.now());
+
+  // Interstitial logic: show every 5 minutes on tab change for FREE users
+  useEffect(() => {
+    if (!isLoggedIn || !profile || profile.plan?.planId !== 'FREE') return;
+
+    const now = Date.now();
+    const fiveMinutes = 5 * 60 * 1000;
+
+    if (now - lastInterstitialTime >= fiveMinutes) {
+      admobService.showSimpleInterstitial().then(() => {
+        setLastInterstitialTime(Date.now());
+      }).catch(err => {
+        console.error('Failed to show interstitial:', err);
+      });
+    }
+  }, [activeTab, isLoggedIn, profile]);
   // Month selection (YYYY-MM)
   const pad = (n: number) => n.toString().padStart(2, '0');
   const now = new Date();
@@ -68,18 +99,6 @@ const App: React.FC = () => {
     const d = new Date(y, m - 1, 1);
     return d.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
   })();
-  
-  // Data State
-  const [bills, setBills] = useState<Bill[]>([]);
-  const [cardTransactions, setCardTransactions] = useState<CardTransaction[]>([]);
-  const [cards, setCards] = useState<CreditCard[]>([]);
-  const [assets, setAssets] = useState<Asset[]>([]);
-  const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [aiInsights, setAiInsights] = useState<Record<string, string>>({});
-  const [lastAnalyzedBalance, setLastAnalyzedBalance] = useState<Record<string, number>>({});
-  const [loadingInsight, setLoadingInsight] = useState(false);
-  const [dataLoaded, setDataLoaded] = useState(false);
   
   // Navigation & Modal State from Notifications
   const [insightModalOpen, setInsightModalOpen] = useState(false);

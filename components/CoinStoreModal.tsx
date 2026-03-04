@@ -11,7 +11,9 @@ import {
   Smartphone
 } from 'lucide-react';
 import { coinService } from '../services/coinService';
+import { admobService } from '../services/admobService';
 import { useToast } from '../contexts/ToastContext';
+import { Capacitor } from '@capacitor/core';
 
 interface CoinStoreModalProps {
   isOpen: boolean;
@@ -32,8 +34,7 @@ const CoinStoreModal: React.FC<CoinStoreModalProps> = ({ isOpen, onClose, curren
 
   useEffect(() => {
     // Simple check for Android/Capacitor
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    setIsAndroid(userAgent.includes('android'));
+    setIsAndroid(Capacitor.getPlatform() === 'android');
 
     if (isOpen) {
       const fetchPrices = async () => {
@@ -58,13 +59,18 @@ const CoinStoreModal: React.FC<CoinStoreModalProps> = ({ isOpen, onClose, curren
 
     setLoading('ad');
     try {
-      // Simulate ad watching delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      await coinService.earnCoins();
-      onRefreshCoins();
-      showToast('Parabéns! Você ganhou 10 FScoins.', 'success');
+      const reward = await admobService.showRewardedAd();
+      
+      if (reward && reward.amount) {
+        await coinService.earnCoins();
+        onRefreshCoins();
+        showToast(`Parabéns! Você ganhou ${reward.amount} FScoins.`, 'success');
+      } else {
+        showToast('Anúncio fechado sem recompensa.', 'error');
+      }
     } catch (error) {
-      showToast('Erro ao processar anúncio.', 'error');
+      console.error('AdMob Error:', error);
+      showToast('Erro ao carregar anúncio. Tente novamente mais tarde.', 'error');
     } finally {
       setLoading(null);
     }
@@ -122,13 +128,7 @@ const CoinStoreModal: React.FC<CoinStoreModalProps> = ({ isOpen, onClose, curren
             </button>
           </div>
 
-          <div className="space-y-6 opacity-60 pointer-events-none relative">
-            <div className="absolute inset-0 z-50 flex items-center justify-center">
-              <div className="bg-primary/90 text-white px-6 py-3 rounded-2xl font-black uppercase tracking-widest shadow-2xl animate-bounce">
-                Disponível em breve
-              </div>
-            </div>
-
+          <div className="space-y-6 relative">
             {/* Earn Section */}
             <div className="space-y-3">
               <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Ganhar Moedas</h3>

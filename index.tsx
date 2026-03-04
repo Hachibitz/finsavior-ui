@@ -4,12 +4,14 @@ import App from './App';
 import { ToastProvider } from './contexts/ToastContext';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
+import { admobService } from './services/admobService';
 
 const Root = () => {
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
       StatusBar.setOverlaysWebView({ overlay: true });
       StatusBar.setStyle({ style: Style.Dark });
+      admobService.initialize();
     }
   }, []);
 
