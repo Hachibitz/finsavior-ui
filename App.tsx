@@ -653,6 +653,7 @@ const App: React.FC = () => {
         return (
             <CardsView 
                 transactions={filteredCardTransactions} 
+                bills={filteredBills}
                 cards={cards}
                 categories={categories} 
                 onAddCard={handleAddCard}
@@ -847,7 +848,7 @@ const App: React.FC = () => {
           try {
             const isIncome = data.type === 'income';
             const table = (data.billTable as any) || (isIncome ? 'ASSETS' : 'MAIN');
-            const type = isIncome ? 'INCOME' : (table === 'PAYMENT_CARD' ? 'Payment' : 'EXPENSE');
+            const type = isIncome ? 'INCOME' : (table === 'PAYMENT_CARD' ? 'PAYMENT' : 'EXPENSE');
 
             const newRecord = await billService.createBill({
               ...data,

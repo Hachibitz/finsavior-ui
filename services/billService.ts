@@ -35,7 +35,7 @@ const mapDTOToBill = (dto: BillDTO | undefined, fallback?: Partial<Bill>): Bill 
   installments: dto?.currentInstallment !== undefined && dto?.installmentCount !== undefined ? { current: dto.currentInstallment, total: dto.installmentCount } : fallback?.installments,
 });
 
-const mapBillToDTO = (bill: any, existing?: BillDTO, table: 'MAIN' | 'CREDIT_CARD' | 'ASSETS' | 'PAYMENT_CARD' = 'MAIN', type: 'INCOME' | 'EXPENSE' | 'Payment' = 'EXPENSE'): Partial<BillDTO> => {
+const mapBillToDTO = (bill: any, existing?: BillDTO, table: 'MAIN' | 'CREDIT_CARD' | 'ASSETS' | 'PAYMENT_CARD' = 'MAIN', type: 'INCOME' | 'EXPENSE' | 'PAYMENT' = 'EXPENSE'): Partial<BillDTO> => {
   const formattedDate = bill.date ? bill.date.split('T')[0] : existing?.billDate || new Date().toISOString().split('T')[0];
   return {
     ...existing,
@@ -102,6 +102,24 @@ export const billService = {
     } as CardTransaction));
   },
 
+  getPaymentCardBills: async (date: string): Promise<CardTransaction[]> => {
+    const [year, month] = date.split('-');
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const formattedDate = `${months[parseInt(month, 10) - 1]} ${year}`;
+
+    const dtos = await api.get<BillDTO[]>(`/bill/load-payment-card-table-data?billDate=${formattedDate}`);
+    return dtos.map(d => ({
+      id: d.id?.toString() ?? Math.random().toString(36).slice(2,9),
+      amount: Number(d.billValue ?? 0),
+      description: d.billName ?? '',
+      date: d.billDate ?? formattedDate,
+      category: d.billCategory ?? 'others',
+      cardId: d.cardId || '',
+      paymentType: d.paymentType,
+      billType: 'PAYMENT'
+    } as CardTransaction));
+  },
+
   getAssetsBills: async (date: string): Promise<Asset[]> => {
     const [year, month] = date.split('-');
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -141,7 +159,7 @@ export const billService = {
     });
   },
   
-  createBill: async (bill: any, table: 'MAIN' | 'CREDIT_CARD' | 'ASSETS' | 'PAYMENT_CARD' = 'MAIN', type: 'INCOME' | 'EXPENSE' | 'Payment' = 'EXPENSE'): Promise<Bill> => {
+  createBill: async (bill: any, table: 'MAIN' | 'CREDIT_CARD' | 'ASSETS' | 'PAYMENT_CARD' = 'MAIN', type: 'INCOME' | 'EXPENSE' | 'PAYMENT' = 'EXPENSE'): Promise<Bill> => {
     const dto = mapBillToDTO(bill, undefined, table, type) as BillDTO;
     const response = await api.post<BillDTO>('/bill/bill-register', { ...dto, id: 0, userId: 0 });
     if (!response || response.id === undefined || response.id === null || isNaN(Number(response.id))) {

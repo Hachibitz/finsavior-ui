@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CardTransaction, Category, CreditCard, UserProfile, Transaction } from '../types';
+import { CardTransaction, Category, CreditCard, UserProfile, Transaction, Bill } from '../types';
 import { Plus, CreditCard as CardIcon, Calendar, ArrowRight, UploadCloud, ChevronRight, X, Check, FileText, Mic, Settings, Edit2, Trash2, MoreVertical } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
 import ImportDocButton from './ImportDocButton';
@@ -9,6 +9,7 @@ import { billService } from '../services/billService';
 
 interface CardsViewProps {
   transactions: CardTransaction[];
+  bills?: Bill[];
   cards: CreditCard[];
   categories: Category[];
   onAddCard: (card: Omit<CreditCard, 'id'>) => void;
@@ -26,7 +27,10 @@ interface CardsViewProps {
 }
 
 const CardsView: React.FC<CardsViewProps> = ({ 
-  transactions: initialTransactions, cards, categories, 
+  transactions: initialTransactions, 
+  bills = [],
+  cards, 
+  categories, 
   onAddCard, onEditCard, onDeleteCard,
   onAddTransaction, onEditTransaction, onDeleteTransaction,
   onImportInvoice, onRefresh, onRefreshCoins, onNavigateToPlans, profile,
@@ -67,8 +71,21 @@ const CardsView: React.FC<CardsViewProps> = ({
       if (!activeCardId) return;
       setIsLoadingTransactions(true);
       try {
-        const data = await billService.getCardExpenses(selectedMonth, activeCardId);
-        setLocalTransactions(data);
+        const expenses = await billService.getCardExpenses(selectedMonth, activeCardId);
+        const allPayments = await billService.getPaymentCardBills(selectedMonth);
+        
+        // Filter payments for this specific card
+        const cardPayments = allPayments.filter(p => 
+          p.cardId === activeCardId || 
+          (activeCard && p.description.toLowerCase().includes(activeCard.name.toLowerCase()))
+        );
+
+        // Combine and sort by date descending
+        const combined = [...expenses, ...cardPayments].sort((a, b) => 
+          new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+
+        setLocalTransactions(combined);
       } catch (error) {
         console.error('Error fetching card expenses:', error);
         // Fallback to filtered initial transactions if API fails
@@ -83,10 +100,16 @@ const CardsView: React.FC<CardsViewProps> = ({
     };
 
     fetchCardExpenses();
-  }, [activeCardId, selectedMonth, initialTransactions]);
+  }, [activeCardId, selectedMonth, initialTransactions, bills]);
 
   const activeTransactions = localTransactions;
-  const total = activeTransactions.reduce((acc, t) => acc + t.amount, 0);
+  const total = activeTransactions
+    .filter(t => t.billType !== 'PAYMENT')
+    .reduce((acc, t) => acc + t.amount, 0);
+  const totalPaid = activeTransactions
+    .filter(t => t.billType === 'PAYMENT')
+    .reduce((acc, t) => acc + t.amount, 0);
+  const remainingBalance = total - totalPaid;
 
   const handleAddCardSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -199,7 +222,14 @@ const CardsView: React.FC<CardsViewProps> = ({
             
             <div className="z-10">
                 <p className="text-white/70 text-xs font-medium uppercase tracking-wider mb-1">Fatura Atual</p>
-                <h2 className="text-3xl font-bold text-white tracking-tight">R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h2>
+                <div className="flex flex-col">
+                    <h2 className="text-3xl font-bold text-white tracking-tight">R$ {remainingBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h2>
+                    {totalPaid > 0 && (
+                        <p className="text-emerald-300 text-[10px] font-bold uppercase mt-1">
+                            PAGO: R$ {totalPaid.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                    )}
+                </div>
             </div>
 
             <div className="flex justify-between items-end z-10">
@@ -293,8 +323,13 @@ const CardsView: React.FC<CardsViewProps> = ({
                     <h4 className="font-semibold text-slate-200 text-sm group-hover:text-primary transition-colors">{t.description}</h4>
                     <div className="flex items-center gap-2 mt-1">
                        <span className="text-[10px] text-slate-400 uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700">
-                          {category?.name || t.category}
+                          {t.billType === 'PAYMENT' ? 'Pagamento' : (category?.name || t.category || 'Outros')}
                        </span>
+                       {t.billType === 'PAYMENT' && (
+                         <span className="text-[10px] text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">
+                           Pagamento Efetuado
+                         </span>
+                       )}
                        {t.installments && (
                          <span className="text-[10px] text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full">
                            {t.installments.current}/{t.installments.total}
@@ -303,7 +338,9 @@ const CardsView: React.FC<CardsViewProps> = ({
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1">
-                    <span className="font-bold text-white text-sm">R$ {t.amount.toFixed(2)}</span>
+                    <span className={`font-bold text-sm ${t.billType === 'PAYMENT' ? 'text-emerald-400' : 'text-white'}`}>
+                      {t.billType === 'PAYMENT' ? '-' : ''}R$ {t.amount.toFixed(2)}
+                    </span>
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button 
                         onClick={() => {
@@ -342,8 +379,9 @@ const CardsView: React.FC<CardsViewProps> = ({
         categories={categories}
         mode="PAYMENT_CARD"
         initialTitle={activeCard?.name}
-        initialAmount={total}
+        initialAmount={remainingBalance}
         forcedType="expense"
+        initialCardId={activeCardId}
       />
 
       <TransactionForm 

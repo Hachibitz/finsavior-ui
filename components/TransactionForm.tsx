@@ -100,7 +100,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
     onSubmit({
       amount: parseFloat(amount),
       description,
-      category,
+      category: currentMode === 'PAYMENT_CARD' ? 'payment' : category,
       date: new Date(date).toISOString(),
       type,
       frequencyType,
@@ -110,8 +110,8 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
       currentInstallment: frequencyType === 'INSTALLMENT' ? parseInt(currentInstallment) : undefined,
       billTable: currentMode,
       paymentType: currentMode === 'PAYMENT_CARD' ? paymentType : undefined,
-      cardId: currentMode === 'CREDIT_CARD' ? cardId : undefined,
-      billType: currentMode === 'PAYMENT_CARD' ? 'Payment' : currentMode === 'CREDIT_CARD' ? 'Passivo' : undefined,
+      cardId: (currentMode === 'CREDIT_CARD' || currentMode === 'PAYMENT_CARD') ? cardId : undefined,
+      billType: currentMode === 'PAYMENT_CARD' ? 'PAYMENT' : currentMode === 'CREDIT_CARD' ? 'EXPENSE' : undefined,
       entryMethod: 'MANUAL'
     });
     
@@ -162,7 +162,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                   setType('expense');
                 }}
                 className={`py-2 rounded-lg text-xs font-semibold transition-all ${
-                  currentMode === 'CREDIT_CARD'
+                  (currentMode === 'CREDIT_CARD' || currentMode === 'PAYMENT_CARD')
                     ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' 
                     : 'text-slate-400 hover:text-white'
                 }`}

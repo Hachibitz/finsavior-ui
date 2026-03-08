@@ -53,8 +53,6 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   }
   
   headers.set('ngrok-skip-browser-warning', '69420');
-  headers.set('bypass-tunnel-reminder', 'true');
-  headers.set('X-Pinggy-No-Screen', 'true');
   
   if (!(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
@@ -76,8 +74,6 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
             headers: {
               'Content-Type': 'application/json',
               'ngrok-skip-browser-warning': '69420',
-              'bypass-tunnel-reminder': 'true',
-              'X-Pinggy-No-Screen': 'true',
             },
             body: refreshToken // Send as raw string, not JSON.stringify
           });
