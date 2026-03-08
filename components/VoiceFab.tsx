@@ -58,22 +58,62 @@ const VoiceFab: React.FC<VoiceFabProps> = ({
 
   const startRecording = async () => {
     try {
-      const hasPermission = await VoiceRecorder.hasAudioRecordingPermission();
-      if (!hasPermission.value) {
-        const permission = await VoiceRecorder.requestAudioRecordingPermission();
-        if (!permission.value) {
-          showToast('Precisamos de permissão para ouvir suas contas!', 'error');
+      console.log('Iniciando processo de gravação...');
+      
+      // On Web, ensure we trigger the browser prompt if Capacitor doesn't
+      if (Capacitor.getPlatform() === 'web') {
+        try {
+          console.log('Solicitando permissão via MediaDevices (Web)...');
+          if (navigator.permissions) {
+            const status = await navigator.permissions.query({ name: 'microphone' as any });
+            console.log('Microphone permission status:', status.state);
+            if (status.state === 'denied') {
+              showToast('Permissão de microfone negada no navegador. Ative nas configurações.', 'error');
+              return;
+            }
+          }
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          stream.getTracks().forEach(track => track.stop()); // Just to trigger prompt
+        } catch (e) {
+          console.error('Web permission request failed', e);
+          showToast('Precisamos de permissão do microfone no seu navegador!', 'error');
           return;
         }
       }
+
+      console.log('Verificando permissão via Capacitor...');
+      let hasPermission = await VoiceRecorder.hasAudioRecordingPermission();
       
-      const result = await VoiceRecorder.startRecording();
-      if (result.value) {
-        setIsRecording(true);
+      if (!hasPermission.value) {
+        console.log('Permissão não encontrada, solicitando...');
+        const permission = await VoiceRecorder.requestAudioRecordingPermission();
+        if (!permission.value) {
+          console.warn('Permissão negada pelo usuário ou sistema.');
+          showToast('Precisamos de permissão para ouvir suas contas!', 'error');
+          return;
+        }
+        // Re-check after request
+        hasPermission = await VoiceRecorder.hasAudioRecordingPermission();
+      }
+      
+      if (hasPermission.value) {
+        console.log('Permissão concedida. Iniciando gravação...');
+        // Small delay to ensure OS is ready
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        const result = await VoiceRecorder.startRecording();
+        if (result.value) {
+          setIsRecording(true);
+          console.log('Gravação iniciada com sucesso.');
+        } else {
+          throw new Error('Falha ao iniciar gravação (retorno falso)');
+        }
+      } else {
+        showToast('Não foi possível obter permissão de áudio.', 'error');
       }
     } catch (error) {
-      console.error('Erro ao iniciar gravação', error);
-      showToast('Erro ao iniciar gravação', 'error');
+      console.error('Erro detalhado ao iniciar gravação:', error);
+      showToast('Erro ao iniciar gravação. Verifique as permissões do app.', 'error');
     }
   };
 
@@ -92,16 +132,29 @@ const VoiceFab: React.FC<VoiceFabProps> = ({
       setIsRecording(false);
       setLoading(true);
       
+      console.log('Finalizando gravação...');
       const result = await VoiceRecorder.stopRecording();
+      
       if (result.value && result.value.recordDataBase64) {
-        const blob = base64ToBlob(result.value.recordDataBase64, result.value.mimeType);
+        const base64Data = result.value.recordDataBase64;
+        console.log(`Áudio capturado. Tamanho base64: ${base64Data.length} caracteres.`);
+        
+        if (base64Data.length < 100) {
+          console.warn('Áudio capturado parece estar vazio ou muito curto.');
+        }
+
+        // Force audio/aac to match legacy behavior and backend expectations
+        const blob = base64ToBlob(base64Data, 'audio/aac');
+        console.log(`Blob criado. Tamanho: ${blob.size} bytes, Tipo: ${blob.type}`);
+        
         setLastRecordedBlob(blob);
         await processAudioRequest(blob, false);
       } else {
+        console.warn('Nenhum dado de áudio retornado pelo gravador.');
         setLoading(false);
       }
     } catch (error) {
-      console.error(error);
+      console.error('Erro ao finalizar gravação:', error);
       setIsRecording(false);
       setLoading(false);
       showToast('Erro ao finalizar gravação', 'error');
@@ -109,13 +162,17 @@ const VoiceFab: React.FC<VoiceFabProps> = ({
   };
 
   const base64ToBlob = (base64: string, type: string) => {
-    const byteCharacters = atob(base64);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    try {
+      const byteCharacters = atob(base64);
+      const byteNumbers = new Uint8Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      return new Blob([byteNumbers], { type: type });
+    } catch (e) {
+      console.error('Erro ao converter base64 para Blob:', e);
+      throw e;
     }
-    const byteArray = new Uint8Array(byteNumbers);
-    return new Blob([byteArray], { type: type });
   };
 
   const processAudioRequest = async (blob: Blob, useCoins: boolean) => {
@@ -126,12 +183,12 @@ const VoiceFab: React.FC<VoiceFabProps> = ({
           onTextTranscribed?.(res.text);
         }
       } else {
-        const res = await aiTranscriptionService.processAudioToBill(blob, useCoins);
+        const res = await aiTranscriptionService.processAudioToBill(blob, useCoins, tableType);
         if (res.redirectAction === 'CHAT_SAVI') {
            window.dispatchEvent(new CustomEvent('navigate-to-chat'));
            return;
         }
-        onBillDetected?.(res);
+        onBillDetected?.({ ...res, billTable: tableType });
       }
       
       if (useCoins) {
@@ -224,7 +281,10 @@ const VoiceFab: React.FC<VoiceFabProps> = ({
 
   return (
     <>
-      <div className="fixed bottom-24 right-6 z-40 flex flex-col items-center gap-3">
+      <div 
+        className="fixed right-4 z-[999] flex flex-col items-center gap-3"
+        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 8rem)' }}
+      >
         {isRecording && (
           <button 
             onClick={cancelRecording}

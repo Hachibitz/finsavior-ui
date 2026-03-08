@@ -28,32 +28,32 @@ index 4bb66ea..f675216 100644
      mavenCentral()
  }
  
-diff --git a/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/b4d5665fc0690be2bc391b65c0089728/results.bin b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/b4d5665fc0690be2bc391b65c0089728/results.bin
+diff --git a/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/a227bc402a3368c4432ca9a749147579/results.bin b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/a227bc402a3368c4432ca9a749147579/results.bin
 new file mode 100644
 index 0000000..0d259dd
 --- /dev/null
-+++ b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/b4d5665fc0690be2bc391b65c0089728/results.bin
++++ b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/a227bc402a3368c4432ca9a749147579/results.bin
 @@ -0,0 +1 @@
 +o/classes
-diff --git a/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/b4d5665fc0690be2bc391b65c0089728/transformed/classes/classes_dex/classes.dex b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/b4d5665fc0690be2bc391b65c0089728/transformed/classes/classes_dex/classes.dex
+diff --git a/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/a227bc402a3368c4432ca9a749147579/transformed/classes/classes_dex/classes.dex b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/a227bc402a3368c4432ca9a749147579/transformed/classes/classes_dex/classes.dex
 new file mode 100644
 index 0000000..6e39242
-Binary files /dev/null and b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/b4d5665fc0690be2bc391b65c0089728/transformed/classes/classes_dex/classes.dex differ
-diff --git a/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/b4d5665fc0690be2bc391b65c0089728/transformed/classes/classes_global-synthetics/global.globals b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/b4d5665fc0690be2bc391b65c0089728/transformed/classes/classes_global-synthetics/global.globals
+Binary files /dev/null and b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/a227bc402a3368c4432ca9a749147579/transformed/classes/classes_dex/classes.dex differ
+diff --git a/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/a227bc402a3368c4432ca9a749147579/transformed/classes/classes_global-synthetics/global.globals b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/a227bc402a3368c4432ca9a749147579/transformed/classes/classes_global-synthetics/global.globals
 new file mode 100644
 index 0000000..e87b511
-Binary files /dev/null and b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/b4d5665fc0690be2bc391b65c0089728/transformed/classes/classes_global-synthetics/global.globals differ
-diff --git a/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/b9d8a2f0ebdd129adeea7c34cd107b27/results.bin b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/b9d8a2f0ebdd129adeea7c34cd107b27/results.bin
+Binary files /dev/null and b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/a227bc402a3368c4432ca9a749147579/transformed/classes/classes_global-synthetics/global.globals differ
+diff --git a/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/aa5dbd6f31cf714f595ff58d9e955797/results.bin b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/aa5dbd6f31cf714f595ff58d9e955797/results.bin
 new file mode 100644
 index 0000000..7ed749e
 --- /dev/null
-+++ b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/b9d8a2f0ebdd129adeea7c34cd107b27/results.bin
++++ b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/aa5dbd6f31cf714f595ff58d9e955797/results.bin
 @@ -0,0 +1 @@
 +o/bundleLibRuntimeToDirDebug
-diff --git a/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/b9d8a2f0ebdd129adeea7c34cd107b27/transformed/bundleLibRuntimeToDirDebug/desugar_graph.bin b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/b9d8a2f0ebdd129adeea7c34cd107b27/transformed/bundleLibRuntimeToDirDebug/desugar_graph.bin
+diff --git a/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/aa5dbd6f31cf714f595ff58d9e955797/transformed/bundleLibRuntimeToDirDebug/desugar_graph.bin b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/aa5dbd6f31cf714f595ff58d9e955797/transformed/bundleLibRuntimeToDirDebug/desugar_graph.bin
 new file mode 100644
 index 0000000..e799ae1
-Binary files /dev/null and b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/b9d8a2f0ebdd129adeea7c34cd107b27/transformed/bundleLibRuntimeToDirDebug/desugar_graph.bin differ
+Binary files /dev/null and b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/.transforms/aa5dbd6f31cf714f595ff58d9e955797/transformed/bundleLibRuntimeToDirDebug/desugar_graph.bin differ
 diff --git a/node_modules/@codetrix-studio/capacitor-google-auth/android/build/intermediates/aapt_friendly_merged_manifests/debug/processDebugManifest/aapt/AndroidManifest.xml b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/intermediates/aapt_friendly_merged_manifests/debug/processDebugManifest/aapt/AndroidManifest.xml
 new file mode 100644
 index 0000000..8f92706
@@ -154,11 +154,11 @@ index 0000000..451c476
 Binary files /dev/null and b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/intermediates/compiled_local_resources/debug/compileDebugLibraryResources/out/layout_bridge_layout_main.xml.flat differ
 diff --git a/node_modules/@codetrix-studio/capacitor-google-auth/android/build/intermediates/incremental/debug/packageDebugResources/compile-file-map.properties b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/intermediates/incremental/debug/packageDebugResources/compile-file-map.properties
 new file mode 100644
-index 0000000..0000f32
+index 0000000..0c4579a
 --- /dev/null
 +++ b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/intermediates/incremental/debug/packageDebugResources/compile-file-map.properties
 @@ -0,0 +1,2 @@
-+#Wed Mar 04 15:08:53 BRT 2026
++#Wed Mar 04 20:13:26 BRT 2026
 +com.codetrixstudio.capacitor.GoogleAuth.capacitorgoogleauth.codetrix-studio-capacitor-google-auth-main-6\:/layout/bridge_layout_main.xml=F\:\\Felipe\\Projeto FinSavior\\FinSavior\\finsavior-ui\\node_modules\\@codetrix-studio\\capacitor-google-auth\\android\\build\\intermediates\\packaged_res\\debug\\packageDebugResources\\layout\\bridge_layout_main.xml
 diff --git a/node_modules/@codetrix-studio/capacitor-google-auth/android/build/intermediates/incremental/debug/packageDebugResources/merged.dir/values/values.xml b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/intermediates/incremental/debug/packageDebugResources/merged.dir/values/values.xml
 new file mode 100644
@@ -366,5 +366,5 @@ index 0000000..4b41f8c
 +		INJECTED from F:\Felipe\Projeto FinSavior\FinSavior\finsavior-ui\node_modules\@codetrix-studio\capacitor-google-auth\android\src\main\AndroidManifest.xml
 diff --git a/node_modules/@codetrix-studio/capacitor-google-auth/android/build/tmp/compileDebugJavaWithJavac/previous-compilation-data.bin b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/tmp/compileDebugJavaWithJavac/previous-compilation-data.bin
 new file mode 100644
-index 0000000..32efad9
+index 0000000..12409a7
 Binary files /dev/null and b/node_modules/@codetrix-studio/capacitor-google-auth/android/build/tmp/compileDebugJavaWithJavac/previous-compilation-data.bin differ

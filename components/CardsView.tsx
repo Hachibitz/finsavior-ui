@@ -3,7 +3,6 @@ import { CardTransaction, Category, CreditCard, UserProfile, Transaction } from 
 import { Plus, CreditCard as CardIcon, Calendar, ArrowRight, UploadCloud, ChevronRight, X, Check, FileText, Mic, Settings, Edit2, Trash2, MoreVertical } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
 import ImportDocButton from './ImportDocButton';
-import VoiceFab from './VoiceFab';
 import { useToast } from '../contexts/ToastContext';
 import TransactionForm from './TransactionForm';
 import { billService } from '../services/billService';
@@ -374,6 +373,7 @@ const CardsView: React.FC<CardsViewProps> = ({
         categories={categories}
         cards={cards}
         mode="CREDIT_CARD"
+        forcedType="expense"
         initialData={selectedTransaction ? {
           description: selectedTransaction.description,
           amount: selectedTransaction.amount,
@@ -522,15 +522,7 @@ const CardsView: React.FC<CardsViewProps> = ({
            </div>
         </div>
       )}
-      <VoiceFab 
-        mode="BILL" 
-        onBillDetected={(data) => {
-          showToast(`Gasto no cartão "${data.billName}" detectado e processada!`, 'success');
-          onRefresh();
-        }}
-        onNavigateToPlans={onNavigateToPlans}
-        onRefreshCoins={onRefreshCoins}
-      />
+
     </div>
   );
 };

@@ -1,7 +1,6 @@
 import React from 'react';
 import { Asset } from '../types';
 import { Edit2, Trash2, Plus, Mic } from 'lucide-react';
-import VoiceFab from './VoiceFab';
 import { useToast } from '../contexts/ToastContext';
 
 interface AssetsViewProps {
@@ -51,11 +50,7 @@ const AssetsView: React.FC<AssetsViewProps> = ({ assets, onAdd, onEdit, onDelete
                   <Edit2 size={16} />
                 </button>
                 <button 
-                  onClick={() => {
-                    if (window.confirm('Excluir esta renda?')) {
-                      onDelete(asset.id);
-                    }
-                  }}
+                  onClick={() => onDelete(asset.id)}
                   className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                 >
                   <Trash2 size={16} />
@@ -65,17 +60,6 @@ const AssetsView: React.FC<AssetsViewProps> = ({ assets, onAdd, onEdit, onDelete
           </div>
         ))}
       </div>
-
-      {/* Floating Voice Button */}
-      <VoiceFab 
-        mode="BILL" 
-        onBillDetected={(data) => {
-          showToast(`Renda "${data.billName}" detectada e processada!`, 'success');
-          onRefresh();
-        }}
-        onNavigateToPlans={onNavigateToPlans}
-        onRefreshCoins={onRefreshCoins}
-      />
     </div>
   );
 };

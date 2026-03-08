@@ -15,6 +15,8 @@ import Onboarding from './components/Onboarding';
 import Login from './components/Login';
 import RegisterView from './components/RegisterView';
 import TransactionForm from './components/TransactionForm';
+import ConfirmationModal from './components/ConfirmationModal';
+import VoiceFab from './components/VoiceFab';
 import { MOCK_BILLS, MOCK_CARD_TRANSACTIONS, MOCK_ASSETS, DEFAULT_CATEGORIES, MOCK_CARDS } from './constants';
 import { Bill, CardTransaction, Asset, SummaryData, Category, CreditCard, UserProfile, Transaction } from './types';
 import { authService } from './services/authService';
@@ -23,6 +25,7 @@ import { billService } from './services/billService';
 import { cardService } from './services/cardService';
 import { aiAdviceService } from './services/aiAdviceService';
 import { coinService } from './services/coinService';
+import { categoryService } from './services/categoryService';
 import { api } from './services/api';
 import MonthContext from './contexts/MonthContext';
 import { useToast } from './contexts/ToastContext';
@@ -50,6 +53,12 @@ const App: React.FC = () => {
   const [isCoinStoreOpen, setIsCoinStoreOpen] = useState(false);
   const [isUpsellOpen, setIsUpsellOpen] = useState(false);
   const [formForcedType, setFormForcedType] = useState<'income' | 'expense' | undefined>(undefined);
+  const [isAssetEditModalOpen, setIsAssetEditModalOpen] = useState(false);
+  const [isAssetDeleteConfirmOpen, setIsAssetDeleteConfirmOpen] = useState(false);
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+  const [isEditBillModalOpen, setIsEditBillModalOpen] = useState(false);
+  const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
+  const [voiceBillData, setVoiceBillData] = useState<Partial<Transaction> | null>(null);
   
   // Data State
   const [bills, setBills] = useState<Bill[]>([]);
@@ -346,16 +355,29 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!isLoggedIn) return;
 
-    const loadAll = async () => {
+    const loadData = async () => {
       setDataLoaded(false);
-      await Promise.all([
-        fetchBills(),
-        fetchCardTransactions(),
-        fetchAssets()
-      ]);
-      setDataLoaded(true);
+      try {
+        const [billsResult, cardResult, assetsResult, categoriesResult] = await Promise.allSettled([
+          billService.getBills(selectedMonth),
+          billService.getCardBills(selectedMonth),
+          billService.getAssetsBills(selectedMonth),
+          categoryService.getCategories()
+        ]);
+        
+        if (billsResult.status === 'fulfilled') setBills(billsResult.value);
+        if (cardResult.status === 'fulfilled') setCardTransactions(cardResult.value);
+        if (assetsResult.status === 'fulfilled') setAssets(assetsResult.value);
+        if (categoriesResult.status === 'fulfilled' && categoriesResult.value.length > 0) {
+          setCategories(categoriesResult.value);
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setDataLoaded(true);
+      }
     };
-    loadAll();
+    loadData();
   }, [isLoggedIn, selectedMonth]);
 
   // Handle automatic insight fetching/updating
@@ -392,22 +414,45 @@ const App: React.FC = () => {
       summary.totalIncome, summary.totalExpense, summary.forecastBalance]);
 
   // Category Logic
-  const handleAddCategory = (newCategory: Category) => {
-    setCategories([...categories, newCategory]);
-    showToast('Categoria adicionada!', 'success');
+  const handleAddCategory = async (newCategory: Omit<Category, 'id'>) => {
+    try {
+      const saved = await categoryService.createCategory(newCategory);
+      setCategories(prev => [...prev, saved]);
+      showToast('Categoria adicionada!', 'success');
+    } catch (error) {
+      console.error('Error adding category:', error);
+      showToast('Erro ao adicionar categoria', 'error');
+    }
   };
 
-  const handleEditCategory = (updatedCategory: Category) => {
-    setCategories(categories.map(c => c.id === updatedCategory.id ? updatedCategory : c));
-    showToast('Categoria atualizada!', 'success');
+  const handleEditCategory = async (updatedCategory: Category) => {
+    try {
+      const saved = await categoryService.updateCategory(updatedCategory);
+      setCategories(prev => prev.map(c => c.id === saved.id ? saved : c));
+      showToast('Categoria atualizada!', 'success');
+    } catch (error) {
+      console.error('Error updating category:', error);
+      showToast('Erro ao atualizar categoria', 'error');
+    }
   };
 
-  const handleDeleteCategory = (id: string) => {
-    setCategories(categories.filter(c => c.id !== id));
-    showToast('Categoria excluída!', 'success');
+  const handleDeleteCategory = async (id: string) => {
+    try {
+      await categoryService.deleteCategory(id);
+      setCategories(prev => prev.filter(c => c.id !== id));
+      showToast('Categoria excluída!', 'success');
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      showToast('Erro ao excluir categoria', 'error');
+    }
   };
 
   // Debits Logic
+  const handleEditBillClick = (bill: Bill) => {
+    setSelectedBill(bill);
+    setIsEditBillModalOpen(true);
+  };
+
   const handleEditBill = async (updatedBill: Bill): Promise<Bill> => {
     try {
       const saved = await billService.updateBill(updatedBill);
@@ -517,14 +562,59 @@ const App: React.FC = () => {
   };
 
   // Assets Logic
-  const handleEditAsset = (updatedAsset: Asset) => {
-    setAssets(assets.map(a => a.id === updatedAsset.id ? updatedAsset : a));
-    showToast('Renda atualizada!', 'success');
+  const handleEditAsset = (asset: Asset) => {
+    setSelectedAsset(asset);
+    setIsAssetEditModalOpen(true);
+  };
+
+  const handleUpdateAsset = async (data: Omit<Transaction, 'id'>) => {
+    try {
+      if (!selectedAsset) return;
+      const saved = await billService.updateBill({
+        ...data,
+        id: selectedAsset.id,
+        billTable: 'ASSETS',
+        billType: 'INCOME'
+      } as any);
+      
+      const updatedAsset: Asset = {
+        id: saved.id,
+        amount: saved.amount,
+        description: saved.description,
+        date: saved.date,
+        type: (saved.category === 'others' ? 'other' : saved.category) as any
+      };
+      
+      setAssets(prev => prev.map(a => a.id === updatedAsset.id ? updatedAsset : a));
+      showToast('Renda atualizada!', 'success');
+      setIsAssetEditModalOpen(false);
+      setSelectedAsset(null);
+    } catch (error: any) {
+      console.error('Error updating asset:', error);
+      showToast(error?.message || 'Erro ao atualizar renda', 'error');
+    }
   };
 
   const handleDeleteAsset = (id: string) => {
-    setAssets(assets.filter(a => a.id !== id));
-    showToast('Renda excluída!', 'success');
+    const asset = assets.find(a => a.id === id);
+    if (asset) {
+      setSelectedAsset(asset);
+      setIsAssetDeleteConfirmOpen(true);
+    }
+  };
+
+  const confirmDeleteAsset = async () => {
+    try {
+      if (!selectedAsset) return;
+      await billService.deleteBill(selectedAsset.id);
+      setAssets(prev => prev.filter(a => a.id !== selectedAsset.id));
+      showToast('Renda excluída!', 'success');
+      setIsAssetDeleteConfirmOpen(false);
+      setSelectedAsset(null);
+    } catch (error) {
+      console.error('Error deleting asset:', error);
+      showToast('Erro ao excluir renda', 'error');
+    }
   };
 
   const handleImportInvoice = (file: File) => {
@@ -552,6 +642,7 @@ const App: React.FC = () => {
                 onAdd={() => { setFormForcedType('expense'); setIsFormOpen(true); }} 
                 onDelete={handleDeleteBill}
                 onEdit={handleEditBill}
+                onEditClick={handleEditBillClick}
                 categories={categories} 
                 onRefresh={fetchBills}
                 onRefreshCoins={fetchProfile}
@@ -745,13 +836,18 @@ const App: React.FC = () => {
       {/* Reusing the transaction form for now, customized for the active tab context in future iterations */}
       <TransactionForm 
         isOpen={isFormOpen}
-        onClose={() => { setIsFormOpen(false); setFormForcedType(undefined); }}
+        onClose={() => { 
+          setIsFormOpen(false); 
+          setFormForcedType(undefined); 
+          setVoiceBillData(null);
+        }}
         forcedType={formForcedType}
+        initialData={voiceBillData || undefined}
         onSubmit={async (data) => {
           try {
             const isIncome = data.type === 'income';
-            const table = isIncome ? 'ASSETS' : 'MAIN';
-            const type = isIncome ? 'INCOME' : 'EXPENSE';
+            const table = (data.billTable as any) || (isIncome ? 'ASSETS' : 'MAIN');
+            const type = isIncome ? 'INCOME' : (table === 'PAYMENT_CARD' ? 'Payment' : 'EXPENSE');
 
             const newRecord = await billService.createBill({
               ...data,
@@ -759,7 +855,10 @@ const App: React.FC = () => {
             }, table, type);
 
             if (isIncome) {
-              const newAsset = { ...newRecord, type: 'other' } as any;
+              const newAsset = { 
+                ...newRecord, 
+                type: (newRecord.category === 'others' ? 'other' : newRecord.category) as any
+              };
               setAssets([newAsset, ...assets]);
               if (showToast) showToast('Renda adicionada!', 'success');
             } else {
@@ -769,6 +868,7 @@ const App: React.FC = () => {
             
             setIsFormOpen(false);
             setFormForcedType(undefined);
+            setVoiceBillData(null);
           } catch (error: any) {
             (showToast || (() => {}))(error?.message || 'Erro ao criar registro', 'error');
           }
@@ -779,7 +879,103 @@ const App: React.FC = () => {
           if (isIncomeForm) return incomeIds.includes(cat.id) || cat.id === 'others';
           return !incomeIds.includes(cat.id) || cat.id === 'others';
         })}
+        cards={cards}
       />
+
+      <TransactionForm 
+        isOpen={isAssetEditModalOpen}
+        onClose={() => {
+          setIsAssetEditModalOpen(false);
+          setSelectedAsset(null);
+        }}
+        onSubmit={handleUpdateAsset}
+        categories={categories.filter(cat => ['salary', 'freelance', 'projects', 'investments', 'savings', 'others'].includes(cat.id))}
+        forcedType="income"
+        initialData={selectedAsset ? {
+          description: selectedAsset.description,
+          amount: selectedAsset.amount,
+          date: selectedAsset.date,
+          type: 'income',
+          category: selectedAsset.type === 'other' ? 'others' : selectedAsset.type
+        } : undefined}
+      />
+
+      <TransactionForm 
+        isOpen={isEditBillModalOpen}
+        onClose={() => {
+          setIsEditBillModalOpen(false);
+          setSelectedBill(null);
+        }}
+        onSubmit={async (data) => {
+          if (selectedBill) {
+            await handleEditBill({ ...selectedBill, ...data } as Bill);
+          }
+          setIsEditBillModalOpen(false);
+          setSelectedBill(null);
+        }}
+        categories={categories.filter(cat => !['salary', 'freelance', 'projects', 'investments', 'savings'].includes(cat.id))}
+        forcedType="expense"
+        initialData={selectedBill ? {
+          description: selectedBill.description,
+          amount: selectedBill.amount,
+          date: selectedBill.date,
+          category: selectedBill.category,
+          type: 'expense'
+        } : undefined}
+      />
+
+      <ConfirmationModal 
+        isOpen={isAssetDeleteConfirmOpen}
+        onClose={() => {
+          setIsAssetDeleteConfirmOpen(false);
+          setSelectedAsset(null);
+        }}
+        onConfirm={confirmDeleteAsset}
+        title="Excluir Renda"
+        message={`Tem certeza que deseja excluir a renda "${selectedAsset?.description}"? Esta ação não pode ser desfeita.`}
+      />
+
+      {['debits', 'cards', 'assets', 'summary'].includes(activeTab) && (
+        <VoiceFab 
+          mode="BILL" 
+          tableType={
+            activeTab === 'cards' ? 'CARD' : 
+            activeTab === 'assets' ? 'ASSETS' : 
+            'MAIN'
+          }
+          onBillDetected={(data) => {
+            console.log('Voice bill detected:', data);
+            
+            // Map backend DTO to Transaction type
+            const mappedData: Partial<Transaction> = {
+              description: data.billName || '',
+              amount: data.billValue || 0,
+              category: data.billCategory?.toLowerCase() || '',
+              date: data.possibleDate ? data.possibleDate.split('/').reverse().join('-') : new Date().toISOString().split('T')[0],
+              type: data.billTable === 'ASSETS' ? 'income' : 'expense',
+              isInstallment: data.isInstallment || false,
+              installmentCount: data.installmentCount || undefined,
+              currentInstallment: data.currentInstallment || 1,
+              isRecurrent: data.isRecurrent || false,
+              billTable: data.billTable || 'MAIN'
+            };
+
+            setVoiceBillData(mappedData);
+            // Don't force type if we want user to be able to change it, 
+            // but set it as initial
+            setFormForcedType(undefined); 
+            setIsFormOpen(true);
+            
+            showToast(`Registro "${data.billName}" detectado! Verifique os dados.`, 'success');
+            fetchBills();
+            fetchAssets();
+            fetchCardTransactions();
+            fetchProfile();
+          }}
+          onNavigateToPlans={() => setActiveTab('plans')}
+          onRefreshCoins={fetchProfile}
+        />
+      )}
     </>
   );
 };

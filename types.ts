@@ -1,3 +1,10 @@
+export enum BillType {
+  INCOME = 'INCOME',
+  EXPENSE = 'EXPENSE',
+  SAVINGS = 'SAVINGS',
+  PAYMENT = 'PAYMENT'
+}
+
 export type TransactionType = 'income' | 'expense';
 
 export interface BaseRecord {
@@ -14,12 +21,13 @@ export interface Transaction extends BaseRecord {
   isRecurrent?: boolean;
   isInstallment?: boolean;
   installmentCount?: number;
+  currentInstallment?: number;
   frequencyType?: 'SINGLE' | 'RECURRENT' | 'INSTALLMENT';
   billTable?: string;
-  billType?: string;
+  billType?: string | BillType;
   paymentType?: 'Total' | 'Parcial' | 'Mínimo' | null;
   cardId?: string;
-  entryMethod?: 'MANUAL' | 'AUDIO';
+  entryMethod?: 'MANUAL' | 'AUDIO' | 'AI_DOCUMENT';
 }
 
 export interface CreditCard {
@@ -37,6 +45,8 @@ export interface Bill extends BaseRecord {
   category: string;
   paymentType?: 'Total' | 'Parcial' | 'Mínimo' | null;
   cardId?: string;
+  billTable?: string;
+  billType?: string | BillType;
   installments?: {
     current: number;
     total: number;
@@ -53,7 +63,7 @@ export interface CardTransaction extends BaseRecord {
     total: number;
   };
   billTable?: string;
-  billType?: string;
+  billType?: string | BillType;
 }
 
 // Corresponds to "Ativos" (Ativos/Income)

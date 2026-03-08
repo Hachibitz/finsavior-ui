@@ -77,6 +77,8 @@ const CoinStoreModal: React.FC<CoinStoreModalProps> = ({ isOpen, onClose, curren
   };
 
   const handleBuyCoins = async (packageId: string, amount: number) => {
+    showToast('Funcionalidade disponível em breve!', 'info');
+    return;
     setLoading(packageId);
     try {
       // Simulate payment processing
@@ -173,37 +175,39 @@ const CoinStoreModal: React.FC<CoinStoreModalProps> = ({ isOpen, onClose, curren
               <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Comprar Pacotes</h3>
               <div className="grid grid-cols-1 gap-3">
                 {packages.map((pkg) => (
-                  <button
-                    key={pkg.id}
-                    onClick={() => handleBuyCoins(pkg.id, pkg.amount)}
-                    disabled={loading !== null}
-                    className={`p-5 rounded-3xl border border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/10 transition-all flex items-center justify-between group relative ${
-                      pkg.popular ? 'ring-2 ring-primary/50 border-primary/30' : ''
-                    }`}
-                  >
-                    {pkg.popular && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-primary text-white text-[9px] font-black uppercase tracking-widest shadow-lg">
-                        Mais Popular
-                      </div>
-                    )}
-                    <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-2xl ${pkg.bg} ${pkg.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                        <pkg.icon size={24} />
-                      </div>
-                      <div className="text-left">
-                        <p className="font-bold text-white">{pkg.amount} FSCoins</p>
-                        <p className="text-xs text-slate-400">{pkg.label}</p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end">
-                      <span className="text-lg font-black text-white">{pkg.price}</span>
-                      {loading === pkg.id ? (
-                        <Loader2 className="animate-spin text-primary" size={16} />
-                      ) : (
-                        <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Comprar</span>
+                  <div key={pkg.id} className="relative group">
+                    <button
+                      disabled={true}
+                      className={`w-full p-5 rounded-3xl border border-white/5 bg-white/5 transition-all flex items-center justify-between opacity-60 cursor-not-allowed ${
+                        pkg.popular ? 'ring-2 ring-primary/50 border-primary/30' : ''
+                      }`}
+                    >
+                      {pkg.popular && (
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-primary text-white text-[9px] font-black uppercase tracking-widest shadow-lg">
+                          Mais Popular
+                        </div>
                       )}
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-2xl ${pkg.bg} ${pkg.color} flex items-center justify-center`}>
+                          <pkg.icon size={24} />
+                        </div>
+                        <div className="text-left">
+                          <p className="font-bold text-white">{pkg.amount} FSCoins</p>
+                          <p className="text-xs text-slate-400">{pkg.label}</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className="text-lg font-black text-white/40 line-through">{pkg.price}</span>
+                      </div>
+                    </button>
+                    
+                    {/* Coming Soon Overlay */}
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                      <span className="bg-primary text-white text-[10px] font-black uppercase tracking-[0.2em] px-4 py-2 rounded-full shadow-lg">
+                        Disponível em breve
+                      </span>
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             </div>

@@ -27,29 +27,69 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [frequencyType, setFrequencyType] = useState<'SINGLE' | 'RECURRENT' | 'INSTALLMENT'>('SINGLE');
   const [installmentCount, setInstallmentCount] = useState('2');
+  const [currentInstallment, setCurrentInstallment] = useState('1');
   const [paymentType, setPaymentType] = useState<'Total' | 'Parcial' | 'Mínimo'>('Total');
+  const [currentMode, setCurrentMode] = useState<string>(mode === 'DEFAULT' ? 'MAIN' : mode);
+
+  const [hasSynced, setHasSynced] = useState(false);
 
   // Sync with initialData or props
   React.useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) {
+      setHasSynced(false);
+      return;
+    }
+
+    if (isOpen && !hasSynced) {
       if (initialData) {
         setType(initialData.type || 'expense');
         setAmount(initialData.amount?.toString() || '');
         setDescription(initialData.description || '');
-        setCategory(initialData.category || categories[0]?.id || '');
+        
+        // Robust category matching
+        let initialCat = initialData.category || '';
+        if (initialCat && !categories.some(c => c.id === initialCat)) {
+          const found = categories.find(c => c.name.toLowerCase() === initialCat.toLowerCase());
+          if (found) initialCat = found.id;
+        }
+        setCategory(initialCat || categories[0]?.id || '');
+        
         setCardId(initialData.cardId || cards[0]?.id || '');
         setDate(initialData.date ? initialData.date.split('T')[0] : new Date().toISOString().split('T')[0]);
         setFrequencyType(initialData.isInstallment ? 'INSTALLMENT' : initialData.isRecurrent ? 'RECURRENT' : 'SINGLE');
         setInstallmentCount(initialData.installmentCount?.toString() || '2');
+        setCurrentInstallment(initialData.currentInstallment?.toString() || '1');
         setPaymentType(initialData.paymentType as any || 'Total');
+        if (initialData.billTable) {
+          setCurrentMode(initialData.billTable);
+          // Ensure type is synced with billTable
+          if (initialData.billTable === 'ASSETS') setType('income');
+          else if (initialData.billTable === 'CREDIT_CARD' || initialData.billTable === 'MAIN') setType('expense');
+        }
+        setHasSynced(true);
       } else {
+        // New form or waiting for data
         if (forcedType) setType(forcedType);
+        if (mode) setCurrentMode(mode === 'DEFAULT' ? 'MAIN' : mode);
         if (initialTitle) setDescription(initialTitle);
         if (initialAmount !== undefined) setAmount(initialAmount.toString());
         if (initialCardId) setCardId(initialCardId);
+
+        // If we have at least one of these or it's a completely fresh form, we can consider it synced
+        // A fresh form is when we don't have initialData.
+        if (!initialData) {
+          if (!initialTitle && !initialAmount) {
+            setAmount('');
+            setDescription('');
+            setCategory(categories[0]?.id || '');
+            setDate(new Date().toISOString().split('T')[0]);
+            setFrequencyType('SINGLE');
+          }
+          setHasSynced(true);
+        }
       }
     }
-  }, [isOpen, initialData, initialTitle, initialAmount, forcedType, categories, cards, initialCardId]);
+  }, [isOpen, initialData, initialTitle, initialAmount, forcedType, categories, cards, initialCardId, hasSynced]);
 
   if (!isOpen) return null;
 
@@ -67,10 +107,11 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
       isRecurrent: frequencyType === 'RECURRENT',
       isInstallment: frequencyType === 'INSTALLMENT',
       installmentCount: frequencyType === 'INSTALLMENT' ? parseInt(installmentCount) : undefined,
-      billTable: mode === 'PAYMENT_CARD' ? 'PAYMENT_CARD' : mode === 'CREDIT_CARD' ? 'CREDIT_CARD' : undefined,
-      paymentType: mode === 'PAYMENT_CARD' ? paymentType : undefined,
-      cardId: mode === 'CREDIT_CARD' ? cardId : undefined,
-      billType: mode === 'PAYMENT_CARD' ? 'Payment' : mode === 'CREDIT_CARD' ? 'Passivo' : undefined,
+      currentInstallment: frequencyType === 'INSTALLMENT' ? parseInt(currentInstallment) : undefined,
+      billTable: currentMode,
+      paymentType: currentMode === 'PAYMENT_CARD' ? paymentType : undefined,
+      cardId: currentMode === 'CREDIT_CARD' ? cardId : undefined,
+      billType: currentMode === 'PAYMENT_CARD' ? 'Payment' : currentMode === 'CREDIT_CARD' ? 'Passivo' : undefined,
       entryMethod: 'MANUAL'
     });
     
@@ -88,7 +129,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
         
         <div className="p-6 border-b border-slate-700/50 flex justify-between items-center">
           <h3 className="text-xl font-bold text-white">
-            {mode === 'PAYMENT_CARD' ? 'Pagar Fatura' : forcedType === 'income' ? 'Adicionar Renda' : forcedType === 'expense' ? 'Adicionar Despesa' : 'Nova Transação'}
+            {currentMode === 'PAYMENT_CARD' ? 'Pagar Fatura' : currentMode === 'ASSETS' || type === 'income' ? 'Adicionar Renda' : currentMode === 'CREDIT_CARD' ? 'Gasto no Cartão' : 'Nova Transação'}
           </h3>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
             <X size={24} />
@@ -96,14 +137,18 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto custom-scrollbar">
-          {/* Type Toggle - Only show if not forced */}
-          {!forcedType && (
-            <div className="grid grid-cols-2 gap-2 bg-slate-900/50 p-1 rounded-xl">
+          {/* Type/Mode Selection */}
+          <div className="space-y-3">
+            <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider">Tipo de Registro</label>
+            <div className="grid grid-cols-3 gap-2 bg-slate-900/50 p-1 rounded-xl">
               <button
                 type="button"
-                onClick={() => setType('expense')}
-                className={`py-2 rounded-lg text-sm font-semibold transition-all ${
-                  type === 'expense' 
+                onClick={() => {
+                  setCurrentMode('MAIN');
+                  setType('expense');
+                }}
+                className={`py-2 rounded-lg text-xs font-semibold transition-all ${
+                  currentMode === 'MAIN'
                     ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20' 
                     : 'text-slate-400 hover:text-white'
                 }`}
@@ -112,17 +157,34 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => setType('income')}
-                className={`py-2 rounded-lg text-sm font-semibold transition-all ${
-                  type === 'income' 
+                onClick={() => {
+                  setCurrentMode('CREDIT_CARD');
+                  setType('expense');
+                }}
+                className={`py-2 rounded-lg text-xs font-semibold transition-all ${
+                  currentMode === 'CREDIT_CARD'
+                    ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' 
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Cartão
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentMode('ASSETS');
+                  setType('income');
+                }}
+                className={`py-2 rounded-lg text-xs font-semibold transition-all ${
+                  currentMode === 'ASSETS'
                     ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                Renda
+                Receita
               </button>
             </div>
-          )}
+          </div>
 
           <div>
             <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Valor</label>
@@ -154,7 +216,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
             />
           </div>
 
-          {mode === 'PAYMENT_CARD' ? (
+          {currentMode === 'PAYMENT_CARD' ? (
             <div>
               <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Tipo de Pagamento</label>
               <div className="grid grid-cols-3 gap-2 bg-slate-900/50 p-1 rounded-xl">
@@ -176,7 +238,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
             </div>
           ) : (
             <div className="space-y-5">
-              {mode === 'CREDIT_CARD' && (
+              {currentMode === 'CREDIT_CARD' && (
                 <div>
                   <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Cartão</label>
                   <select 
@@ -259,17 +321,30 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
           )}
 
           {frequencyType === 'INSTALLMENT' && (
-            <div className="animate-fade-in">
-              <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Número de Parcelas</label>
-              <input 
-                type="number" 
-                min="2"
-                required
-                value={installmentCount}
-                onChange={(e) => setInstallmentCount(e.target.value)}
-                placeholder="Ex: 12"
-                className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-              />
+            <div className="grid grid-cols-2 gap-4 animate-fade-in">
+              <div>
+                <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Parcela Atual</label>
+                <input 
+                  type="number" 
+                  min="1"
+                  required
+                  value={currentInstallment}
+                  onChange={(e) => setCurrentInstallment(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Total de Parcelas</label>
+                <input 
+                  type="number" 
+                  min="2"
+                  required
+                  value={installmentCount}
+                  onChange={(e) => setInstallmentCount(e.target.value)}
+                  placeholder="Ex: 12"
+                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </div>
             </div>
           )}
 

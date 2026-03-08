@@ -1,6 +1,6 @@
 const BASE_URL = import.meta.env.PROD 
   ? 'https://www.finsavior.com.br/api' 
-  : 'https://4dc3-179-190-143-111.ngrok-free.app/api';
+  : 'http://localhost:8085/api';
 
 export const getAccessToken = () => localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
 export const setAccessToken = (token: string) => {
@@ -53,6 +53,8 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   }
   
   headers.set('ngrok-skip-browser-warning', '69420');
+  headers.set('bypass-tunnel-reminder', 'true');
+  headers.set('X-Pinggy-No-Screen', 'true');
   
   if (!(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
@@ -73,7 +75,9 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'ngrok-skip-browser-warning': '69420'
+              'ngrok-skip-browser-warning': '69420',
+              'bypass-tunnel-reminder': 'true',
+              'X-Pinggy-No-Screen': 'true',
             },
             body: refreshToken // Send as raw string, not JSON.stringify
           });

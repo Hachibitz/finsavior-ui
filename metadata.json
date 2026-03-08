@@ -1,5 +1,5 @@
 {
   "name": "FinSavior Web",
   "description": "A premium personal finance tracker with AI-powered insights, beautiful analytics, and a modern dark UI.",
-  "requestFramePermissions": []
+  "requestFramePermissions": ["microphone"]
 }

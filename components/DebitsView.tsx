@@ -4,7 +4,6 @@ import { getCategoryIcon } from '../constants';
 import { Plus, CheckCircle2, Circle, Edit2, Trash2, FileText, Loader2, Mic } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
 import ImportDocButton from './ImportDocButton';
-import VoiceFab from './VoiceFab';
 import { useToast } from '../contexts/ToastContext';
 import { AiBillExtractionDTO } from '../services/aiTranscriptionService';
 
@@ -13,13 +12,14 @@ interface DebitsViewProps {
   onAdd: () => void;
   onDelete: (id: string, deleteAll?: boolean) => void;
   onEdit: (bill: Bill) => Promise<Bill>;
+  onEditClick?: (bill: Bill) => void;
   categories: Category[];
   onRefresh: () => void;
   onRefreshCoins: () => void;
   onNavigateToPlans: () => void;
 }
 
-const DebitsView: React.FC<DebitsViewProps> = ({ bills, onAdd, onDelete, onEdit, categories, onRefresh, onRefreshCoins, onNavigateToPlans }) => {
+const DebitsView: React.FC<DebitsViewProps> = ({ bills, onAdd, onDelete, onEdit, onEditClick, categories, onRefresh, onRefreshCoins, onNavigateToPlans }) => {
   const [billToDelete, setBillToDelete] = useState<Bill | null>(null);
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [updatingBillId, setUpdatingBillId] = useState<string | null>(null);
@@ -28,8 +28,11 @@ const DebitsView: React.FC<DebitsViewProps> = ({ bills, onAdd, onDelete, onEdit,
   // Temporary state for inline editing (simplified for UX)
   // In a full app, this might open a modal or navigate to a form
   const handleEditClick = (bill: Bill) => {
-    // reuse add/edit flow if desired
-    onAdd();
+    if (onEditClick) {
+      onEditClick(bill);
+    } else {
+      onAdd();
+    }
   };
 
   const togglePaid = async (bill: Bill) => {
@@ -167,16 +170,6 @@ const DebitsView: React.FC<DebitsViewProps> = ({ bills, onAdd, onDelete, onEdit,
         message={billToDelete?.installments && billToDelete.installments.total > 1 ? "Esta conta faz parte de um parcelamento. Deseja excluir apenas esta parcela ou todas as parcelas futuras?" : "Tem certeza que deseja excluir esta conta? Essa ação não pode ser desfeita."}
         showCheckbox={!!billToDelete?.installments && billToDelete.installments.total > 1}
         checkboxLabel="Excluir todas as parcelas"
-      />
-
-      <VoiceFab 
-        mode="BILL" 
-        onBillDetected={(data) => {
-          showToast(`Conta "${data.billName}" detectada e processada!`, 'success');
-          onRefresh();
-        }}
-        onNavigateToPlans={onNavigateToPlans}
-        onRefreshCoins={onRefreshCoins}
       />
     </div>
   );

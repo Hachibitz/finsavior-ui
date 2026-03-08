@@ -20,7 +20,8 @@ import {
   ShieldCheck,
   Info,
   Eye,
-  EyeOff
+  EyeOff,
+  ChevronDown
 } from 'lucide-react';
 import { getCategoryIcon } from '../constants';
 import { aiAdviceService } from '../services/aiAdviceService';
@@ -66,7 +67,22 @@ const SummaryView: React.FC<SummaryViewProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(initialInsightOpen || false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
+  const [showScrollHint, setShowScrollHint] = useState(() => {
+    return !sessionStorage.getItem('dashboard_scroll_hint_shown');
+  });
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 100) {
+        setShowScrollHint(false);
+        sessionStorage.setItem('dashboard_scroll_hint_shown', 'true');
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
+  const [isSavingsVisible, setIsSavingsVisible] = useState(false);
   const [historicalData, setHistoricalData] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [isBannerClosed, setIsBannerClosed] = useState(() => {
@@ -111,7 +127,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({
           // Calculate values
           // Receitas: Assets that are not "Poupança"
           const income = assetsData
-            .filter(a => (a as any).category !== 'Poupança')
+            .filter(a => a.type !== 'savings')
             .reduce((acc, a) => acc + a.amount, 0);
           
           // Despesas: Bills + Card Transactions
@@ -119,12 +135,10 @@ const SummaryView: React.FC<SummaryViewProps> = ({
           const billsExpense = billsData.reduce((acc, b) => acc + b.amount, 0);
           const totalExpense = billsExpense + cardExpense;
           
-          // Poupança: Assets or Bills with category "Poupança"
-          const savings = [
-            ...assetsData,
-            ...billsData
-          ].filter(item => (item as any).category === 'Poupança')
-           .reduce((acc, item) => acc + item.amount, 0);
+          // Poupança: Assets with type "savings"
+          const savings = assetsData
+            .filter(a => a.type === 'savings')
+            .reduce((acc, a) => acc + a.amount, 0);
 
           return {
             name: m.label.charAt(0).toUpperCase() + m.label.slice(1),
@@ -177,11 +191,17 @@ const SummaryView: React.FC<SummaryViewProps> = ({
   const categoryData = useMemo(() => {
     const totals: Record<string, number> = {};
     allExpenses.forEach(e => {
-      totals[e.category] = (totals[e.category] || 0) + e.amount;
+      // Find category by ID or Name
+      const cat = categories.find(c => 
+        c.id === e.category || 
+        c.name.toLowerCase() === e.category.toLowerCase()
+      );
+      const key = cat?.id || e.category;
+      totals[key] = (totals[key] || 0) + e.amount;
     });
 
     return Object.entries(totals).map(([catId, value]) => {
-      const cat = categories.find(c => c.id === catId);
+      const cat = categories.find(c => c.id === catId || c.name.toLowerCase() === catId.toLowerCase());
       return {
         name: cat?.name || catId,
         value,
@@ -189,6 +209,17 @@ const SummaryView: React.FC<SummaryViewProps> = ({
       };
     }).sort((a, b) => b.value - a.value);
   }, [allExpenses, categories]);
+
+  const totalSavings = useMemo(() => {
+    return assets.filter(a => a.type === 'savings').reduce((acc, a) => acc + a.amount, 0);
+  }, [assets]);
+
+  const netWorth = useMemo(() => {
+    // User wants PL including savings
+    // summary.totalBalance already includes (Income - Expenses)
+    // Since filteredAssets includes savings, totalIncome includes savings, so totalBalance includes savings.
+    return summary.totalBalance;
+  }, [summary.totalBalance]);
 
   const savingsRate = useMemo(() => {
     if (summary.totalIncome === 0) return 0;
@@ -262,15 +293,28 @@ const SummaryView: React.FC<SummaryViewProps> = ({
       )}
 
       {/* Hero Section - Modern Glassmorphism */}
-      <div className="relative overflow-hidden rounded-[2.5rem] bg-slate-900 p-8 shadow-2xl border border-white/5">
-        <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/20 rounded-full blur-[100px]" />
-        <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-indigo-600/10 rounded-full blur-[100px]" />
+      <div className="relative rounded-[2.5rem] bg-slate-900 p-6 md:p-8 shadow-2xl border border-white/5">
+        {/* Blur circles contained in a separate absolute div with overflow hidden */}
+        <div className="absolute inset-0 overflow-hidden rounded-[2.5rem] pointer-events-none">
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/20 rounded-full blur-[100px]" />
+          <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-indigo-600/10 rounded-full blur-[100px]" />
+        </div>
         
-        <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-8">
-          <div>
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex-1">
             <div className="flex items-center gap-2 text-indigo-300/80 mb-2">
               <Wallet size={16} />
-              <span className="text-xs font-bold uppercase tracking-widest">Patrimônio Líquido</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">Patrimônio Líquido</span>
+                <div className="relative group">
+                  <Info size={12} className="text-indigo-400/60 cursor-help hover:text-white transition-colors" />
+                  <div className="absolute bottom-full left-0 mb-2 w-64 p-3 bg-slate-800 border border-white/10 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[60] pointer-events-none">
+                    <p className="text-[10px] text-slate-300 leading-relaxed normal-case font-medium">
+                      O Patrimônio Líquido é calculado somando todas as suas receitas e economias (incluindo poupança) e subtraindo todas as suas despesas do mês.
+                    </p>
+                  </div>
+                </div>
+              </div>
               <button 
                 onClick={() => setIsBalanceVisible(!isBalanceVisible)}
                 className="p-1 hover:bg-white/5 rounded-full transition-colors"
@@ -279,49 +323,64 @@ const SummaryView: React.FC<SummaryViewProps> = ({
                 {isBalanceVisible ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
-            <h1 className="text-5xl md:text-6xl font-black text-white tracking-tighter mb-4">
-              {isBalanceVisible 
-                ? `R$ ${summary.totalBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
-                : 'R$ ••••••••'}
-            </h1>
-            <div className="flex flex-wrap gap-3">
-              <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-2xl text-emerald-400 font-bold text-sm">
-                <TrendingUp size={16} />
-                <span>{isBalanceVisible ? `+R$ ${summary.totalIncome.toLocaleString()}` : 'R$ •••'}</span>
-              </div>
-              <div className="flex items-center gap-2 bg-rose-500/10 border border-rose-500/20 px-4 py-2 rounded-2xl text-rose-400 font-bold text-sm">
-                <TrendingDown size={16} />
-                <span>{isBalanceVisible ? `-R$ ${summary.totalExpense.toLocaleString()}` : 'R$ •••'}</span>
+            
+            <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
+              <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter">
+                {isBalanceVisible 
+                  ? `R$ ${netWorth.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                  : 'R$ ••••••••'}
+              </h1>
+
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl text-emerald-400 font-black text-[10px] uppercase tracking-wider">
+                  <TrendingUp size={12} />
+                  <span>{isBalanceVisible ? `+R$ ${summary.totalIncome.toLocaleString()}` : 'R$ •••'}</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 rounded-xl text-rose-400 font-black text-[10px] uppercase tracking-wider">
+                  <TrendingDown size={12} />
+                  <span>{isBalanceVisible ? `-R$ ${summary.totalExpense.toLocaleString()}` : 'R$ •••'}</span>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-col items-end gap-2">
-             <div className="text-right">
-                <div className="flex items-center justify-end gap-1.5 mb-1">
+          <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-4 pt-4 md:pt-0 border-t md:border-t-0 border-white/5">
+             <div className="text-left md:text-right">
+                <div className="flex items-center md:justify-end gap-1.5 mb-1">
                   <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Taxa de Poupança</p>
                   <div className="relative group">
                     <Info size={12} className="text-slate-600 cursor-help hover:text-primary transition-colors" />
-                    <div className="absolute bottom-full right-0 mb-2 w-48 p-3 bg-slate-800 border border-white/10 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 pointer-events-none">
+                    <div className="absolute bottom-full right-0 mb-2 w-48 p-3 bg-slate-800 border border-white/10 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[60] pointer-events-none">
                       <p className="text-[10px] text-slate-300 leading-relaxed normal-case font-medium">
-                        A taxa de poupança mostra qual porcentagem da sua renda total sobrou após o pagamento de todas as despesas. É um indicador vital da sua saúde financeira.
+                        Percentual da sua renda que foi economizado ou investido este mês.
                       </p>
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                   <div className="h-2 w-32 bg-slate-800 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-full transition-all duration-1000"
-                        style={{ width: `${savingsRate}%` }}
-                      />
-                   </div>
-                   <span className="text-white font-black text-lg">{Math.round(savingsRate)}%</span>
+                <div className="flex items-center md:justify-end gap-2">
+                   <span className={`text-2xl font-black ${
+                     savingsRate > 30 ? 'text-emerald-400' : savingsRate > 10 ? 'text-amber-400' : 'text-rose-400'
+                   }`}>
+                     {savingsRate.toFixed(1)}%
+                   </span>
+                   <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
+                     savingsRate > 30 ? 'bg-emerald-500/10 text-emerald-400' : savingsRate > 10 ? 'bg-amber-500/10 text-amber-400' : 'bg-rose-500/10 text-rose-400'
+                   }`}>
+                     {savingsRate > 30 ? 'Excelente' : savingsRate > 10 ? 'Boa' : 'Atenção'}
+                   </span>
                 </div>
              </div>
           </div>
         </div>
       </div>
+
+      {/* Scroll Hint - Only on mobile and once per session */}
+      {showScrollHint && (
+        <div className="md:hidden flex flex-col items-center gap-1 py-4 animate-bounce opacity-50">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Role para ver mais</p>
+          <ChevronDown size={16} className="text-slate-500" />
+        </div>
+      )}
 
       {/* AI Quick Insight - Minimalist & Atmospheric */}
       <div 

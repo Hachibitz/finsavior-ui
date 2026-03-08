@@ -11,13 +11,17 @@ export interface AiBillExtractionDTO {
   isRecurrent: boolean | null;
   possibleDate: string | null;
   redirectAction: string | null;
+  billTable?: string;
 }
 
 export const aiTranscriptionService = {
-  processAudioToBill: async (file: File | Blob, isUsingCoins: boolean = false): Promise<AiBillExtractionDTO> => {
+  processAudioToBill: async (file: File | Blob, isUsingCoins: boolean = false, billTable?: string): Promise<AiBillExtractionDTO> => {
     const formData = new FormData();
     formData.append('file', file, 'audio.aac');
     formData.append('isUsingCoins', String(isUsingCoins));
+    if (billTable) {
+      formData.append('billTable', billTable);
+    }
 
     return await api.post<AiBillExtractionDTO>('/ai/transcription/process-audio', formData);
   },
