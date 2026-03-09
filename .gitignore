@@ -25,3 +25,4 @@ dist-ssr
 
 # Android
 android/app/release/baselineProfiles/**/*.dm
+android/app/debug/**
