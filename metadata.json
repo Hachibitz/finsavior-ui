@@ -1,5 +1,5 @@
 {
   "name": "FinSavior Web",
-  "description": "A premium personal finance tracker with AI-powered insights, beautiful analytics, and a modern dark UI.",
+  "description": "🎯 Seu dinheiro merece mais do que planilhas. Ele merece inteligência. O FinSavior é um app de controle financeiro pessoal com algo que vai além dos gráficos: uma assistente virtual inteligente chamada Savi. Ela analisa seus dados, entende seu momento financeiro e responde com conselhos que fazem sentido — porque usa raciocínio em cadeia (via chamadas MCP). ✨ O que você encontra aqui: A Savi, sua assistente com IA que entende contexto e responde de forma humana; Painéis com gráficos simples e bonitos pra visualizar tudo de forma clara; Análises e insights baseados nos seus dados reais; Funções gratuitas que já resolvem sua vida — com planos extras se quiser mais da Savi; Um app feito com carinho por quem também já se perdeu no fim do mês. 💡 Saia do piloto automático. Deixe o FinSavior te mostrar pra onde vai seu dinheiro — e como fazer ele trabalhar por você.",
   "requestFramePermissions": ["microphone"]
 }
