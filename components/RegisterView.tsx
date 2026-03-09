@@ -28,6 +28,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [termsType, setTermsType] = useState<'terms' | 'privacy'>('terms');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   
   const [formData, setFormData] = useState({
     email: '',
@@ -60,21 +61,62 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Clear error for this field when user types
+    if (fieldErrors[name]) {
+      setFieldErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+
     if (name === 'password') {
       checkPassword(value);
     }
   };
 
+  const parseBackendErrors = (msg: string) => {
+    const errors: Record<string, string> = {};
+    if (!msg) return errors;
+    
+    const lines = msg.split(/[\n,]/).map(l => l.trim()).filter(l => l);
+    
+    lines.forEach(line => {
+      const lowerLine = line.toLowerCase();
+      if (lowerLine.includes('email já cadastrado') || lowerLine.includes('email inválido')) {
+        errors.email = line;
+      } else if (lowerLine.includes('usuário já cadastrado') || lowerLine.includes('usuário precisa ter') || lowerLine.includes('usuário não pode conter')) {
+        errors.username = line;
+      } else if (lowerLine.includes('nome precisa ter') || lowerLine.includes('nome não pode conter')) {
+        errors.firstName = line;
+      } else if (lowerLine.includes('sobrenome precisa ter') || lowerLine.includes('sobrenome não pode conter')) {
+        errors.lastName = line;
+      } else if (lowerLine.includes('emails não conferem')) {
+        errors.emailConfirmation = line;
+      } else if (lowerLine.includes('as senhas não coincidem')) {
+        errors.passwordConfirmation = line;
+      } else if (lowerLine.includes('critérios da senha não atendidos')) {
+        errors.password = line;
+      }
+    });
+    
+    return errors;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFieldErrors({});
     
     if (formData.email !== formData.emailConfirmation) {
       showToast('Os e-mails não coincidem.', 'error');
+      setFieldErrors(prev => ({ ...prev, emailConfirmation: 'Os e-mails não coincidem.' }));
       return;
     }
     
     if (formData.password !== formData.passwordConfirmation) {
       showToast('As senhas não coincidem.', 'error');
+      setFieldErrors(prev => ({ ...prev, passwordConfirmation: 'As senhas não coincidem.' }));
       return;
     }
 
@@ -92,8 +134,19 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
       showToast('Cadastro realizado com sucesso!', 'success');
       onRegisterSuccess();
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Erro ao realizar cadastro. Verifique os dados e tente novamente.';
-      showToast(message, 'error');
+      const errorMsg = error.data?.message || error.data?.msg || error.message || '';
+      
+      if (errorMsg) {
+        const parsedErrors = parseBackendErrors(errorMsg);
+        if (Object.keys(parsedErrors).length > 0) {
+          setFieldErrors(parsedErrors);
+          showToast('Verifique os campos com erro.', 'error');
+        } else {
+          showToast(errorMsg, 'error');
+        }
+      } else {
+        showToast('Erro ao realizar cadastro. Verifique os dados e tente novamente.', 'error');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -152,9 +205,12 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
                       value={formData.firstName}
                       onChange={handleInputChange}
                       placeholder="Seu nome"
-                      className="w-full bg-slate-900/50 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                      className={`w-full bg-slate-900/50 border rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all ${
+                        fieldErrors.firstName ? 'border-rose-500/50 ring-1 ring-rose-500/20' : 'border-white/5'
+                      }`}
                       required
                     />
+                    {fieldErrors.firstName && <p className="text-rose-500 text-[10px] mt-1 ml-1 font-bold animate-shake">{fieldErrors.firstName}</p>}
                   </div>
                 </div>
 
@@ -168,9 +224,12 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
                       value={formData.lastName}
                       onChange={handleInputChange}
                       placeholder="Seu sobrenome"
-                      className="w-full bg-slate-900/50 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                      className={`w-full bg-slate-900/50 border rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all ${
+                        fieldErrors.lastName ? 'border-rose-500/50 ring-1 ring-rose-500/20' : 'border-white/5'
+                      }`}
                       required
                     />
+                    {fieldErrors.lastName && <p className="text-rose-500 text-[10px] mt-1 ml-1 font-bold animate-shake">{fieldErrors.lastName}</p>}
                   </div>
                 </div>
 
@@ -184,9 +243,12 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
                       value={formData.username}
                       onChange={handleInputChange}
                       placeholder="nome_usuario"
-                      className="w-full bg-slate-900/50 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                      className={`w-full bg-slate-900/50 border rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all ${
+                        fieldErrors.username ? 'border-rose-500/50 ring-1 ring-rose-500/20' : 'border-white/5'
+                      }`}
                       required
                     />
+                    {fieldErrors.username && <p className="text-rose-500 text-[10px] mt-1 ml-1 font-bold animate-shake">{fieldErrors.username}</p>}
                   </div>
                 </div>
               </div>
@@ -205,9 +267,12 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
                       value={formData.email}
                       onChange={handleInputChange}
                       placeholder="exemplo@email.com"
-                      className="w-full bg-slate-900/50 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                      className={`w-full bg-slate-900/50 border rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all ${
+                        fieldErrors.email ? 'border-rose-500/50 ring-1 ring-rose-500/20' : 'border-white/5'
+                      }`}
                       required
                     />
+                    {fieldErrors.email && <p className="text-rose-500 text-[10px] mt-1 ml-1 font-bold animate-shake">{fieldErrors.email}</p>}
                   </div>
                 </div>
 
@@ -222,10 +287,11 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
                       onChange={handleInputChange}
                       placeholder="Repita seu e-mail"
                       className={`w-full bg-slate-900/50 border rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all ${
-                        formData.emailConfirmation && formData.email !== formData.emailConfirmation ? 'border-rose-500/50' : 'border-white/5'
+                        (formData.emailConfirmation && formData.email !== formData.emailConfirmation) || fieldErrors.emailConfirmation ? 'border-rose-500/50 ring-1 ring-rose-500/20' : 'border-white/5'
                       }`}
                       required
                     />
+                    {fieldErrors.emailConfirmation && <p className="text-rose-500 text-[10px] mt-1 ml-1 font-bold animate-shake">{fieldErrors.emailConfirmation}</p>}
                   </div>
                 </div>
 
@@ -239,9 +305,12 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
                       value={formData.password}
                       onChange={handleInputChange}
                       placeholder="Sua senha forte"
-                      className="w-full bg-slate-900/50 border border-white/5 rounded-2xl py-4 pl-12 pr-12 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                      className={`w-full bg-slate-900/50 border rounded-2xl py-4 pl-12 pr-12 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all ${
+                        fieldErrors.password ? 'border-rose-500/50 ring-1 ring-rose-500/20' : 'border-white/5'
+                      }`}
                       required
                     />
+                    {fieldErrors.password && <p className="text-rose-500 text-[10px] mt-1 ml-1 font-bold animate-shake">{fieldErrors.password}</p>}
                     <button 
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
@@ -263,10 +332,11 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
                       onChange={handleInputChange}
                       placeholder="Repita sua senha"
                       className={`w-full bg-slate-900/50 border rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all ${
-                        formData.passwordConfirmation && formData.password !== formData.passwordConfirmation ? 'border-rose-500/50' : 'border-white/5'
+                        (formData.passwordConfirmation && formData.password !== formData.passwordConfirmation) || fieldErrors.passwordConfirmation ? 'border-rose-500/50 ring-1 ring-rose-500/20' : 'border-white/5'
                       }`}
                       required
                     />
+                    {fieldErrors.passwordConfirmation && <p className="text-rose-500 text-[10px] mt-1 ml-1 font-bold animate-shake">{fieldErrors.passwordConfirmation}</p>}
                   </div>
                 </div>
               </div>
