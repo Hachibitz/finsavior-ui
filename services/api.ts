@@ -52,7 +52,11 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers.set('Authorization', `Bearer ${token}`);
   }
   
-  headers.set('ngrok-skip-browser-warning', '69420');
+  // Conditionally add headers to avoid CORS issues with tunnels
+  if (!import.meta.env.PROD) {
+    headers.set('ngrok-skip-browser-warning', '69420');
+    headers.set('x-pinggy-no-screen', 'true');
+  }
   
   if (!(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
@@ -74,6 +78,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
             headers: {
               'Content-Type': 'application/json',
               'ngrok-skip-browser-warning': '69420',
+              'x-pinggy-no-screen': 'true',
             },
             body: refreshToken // Send as raw string, not JSON.stringify
           });
