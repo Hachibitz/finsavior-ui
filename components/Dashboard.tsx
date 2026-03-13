@@ -17,18 +17,33 @@ interface DashboardProps {
   transactions: Transaction[];
   summary: SummaryData;
   categories: Category[];
+  selectedMonth?: string;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ transactions, summary, categories }) => {
+const Dashboard: React.FC<DashboardProps> = ({ transactions, summary, categories, selectedMonth }) => {
   const [aiAdvice, setAiAdvice] = useState<string | null>(null);
   const [isLoadingAdvice, setIsLoadingAdvice] = useState(false);
 
   const chartData = useMemo(() => {
     // Group transactions by date for the chart
     const dataMap = new Map<string, number>();
-    // Initialize last 7 days with 0
+    
+    // Determine the reference date (last day of selected month or today)
+    let referenceDate = new Date();
+    if (selectedMonth) {
+      const [year, month] = selectedMonth.split('-').map(Number);
+      const now = new Date();
+      if (now.getFullYear() === year && (now.getMonth() + 1) === month) {
+        referenceDate = now;
+      } else {
+        // Last day of the selected month
+        referenceDate = new Date(year, month, 0);
+      }
+    }
+
+    // Initialize last 7 days from referenceDate with 0
     for (let i = 6; i >= 0; i--) {
-      const d = new Date();
+      const d = new Date(referenceDate);
       d.setDate(d.getDate() - i);
       const dateStr = d.toISOString().split('T')[0];
       dataMap.set(dateStr, 0);

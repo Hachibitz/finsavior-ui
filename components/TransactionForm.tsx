@@ -14,24 +14,74 @@ interface TransactionFormProps {
   initialAmount?: number;
   initialData?: Partial<Transaction>;
   initialCardId?: string;
+  selectedMonth?: string;
 }
 
 const TransactionForm: React.FC<TransactionFormProps> = ({ 
-  isOpen, onClose, onSubmit, categories, cards = [], forcedType, mode = 'DEFAULT', initialTitle, initialAmount, initialData, initialCardId 
+  isOpen, onClose, onSubmit, categories, cards = [], forcedType, mode = 'DEFAULT', initialTitle, initialAmount, initialData, initialCardId, selectedMonth 
 }) => {
   const [type, setType] = useState<'income' | 'expense'>(forcedType || 'expense');
   const [amount, setAmount] = useState(initialAmount?.toString() || '');
   const [description, setDescription] = useState(initialTitle || '');
   const [category, setCategory] = useState(categories[0]?.id || '');
   const [cardId, setCardId] = useState(initialCardId || cards[0]?.id || '');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+
+  const getDefaultDate = React.useCallback(() => {
+    if (selectedMonth) {
+      const [year, month] = selectedMonth.split('-').map(Number);
+      const now = new Date();
+      // If it's the current month, use today's day. Otherwise use the 1st.
+      const day = (now.getFullYear() === year && (now.getMonth() + 1) === month) 
+        ? now.getDate() 
+        : 1;
+      return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+    }
+    return new Date().toISOString().split('T')[0];
+  }, [selectedMonth]);
+
+  const [date, setDate] = useState(getDefaultDate());
   const [frequencyType, setFrequencyType] = useState<'SINGLE' | 'RECURRENT' | 'INSTALLMENT'>('SINGLE');
   const [installmentCount, setInstallmentCount] = useState('2');
   const [currentInstallment, setCurrentInstallment] = useState('1');
   const [paymentType, setPaymentType] = useState<'Total' | 'Parcial' | 'Mínimo'>('Total');
-  const [currentMode, setCurrentMode] = useState<string>(mode === 'DEFAULT' ? 'MAIN' : mode);
+  const [currentMode, setCurrentMode] = useState<string>(() => {
+    if (mode !== 'DEFAULT') return mode;
+    if (forcedType === 'income') return 'ASSETS';
+    return 'MAIN';
+  });
 
   const [hasSynced, setHasSynced] = useState(false);
+
+  const formatToInputDate = (dateStr: string) => {
+    if (!dateStr) return getDefaultDate();
+    
+    // If it's already YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+    
+    // If it has T (ISO string)
+    if (dateStr.includes('T')) return dateStr.split('T')[0];
+    
+    // If it's like "Oct 2023" or "10/2023"
+    const months: Record<string, string> = {
+      'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05', 'Jun': '06',
+      'Jul': '07', 'Aug': '08', 'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
+    };
+    
+    const parts = dateStr.split(' ');
+    if (parts.length === 2 && months[parts[0]]) {
+      return `${parts[1]}-${months[parts[0]]}-01`;
+    }
+
+    // Try to parse as Date object
+    try {
+      const d = new Date(dateStr);
+      if (!isNaN(d.getTime())) {
+        return d.toISOString().split('T')[0];
+      }
+    } catch (e) {}
+
+    return getDefaultDate();
+  };
 
   // Sync with initialData or props
   React.useEffect(() => {
@@ -55,7 +105,10 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
         setCategory(initialCat || categories[0]?.id || '');
         
         setCardId(initialData.cardId || cards[0]?.id || '');
-        setDate(initialData.date ? initialData.date.split('T')[0] : new Date().toISOString().split('T')[0]);
+        
+        // Fix: Ensure date is correctly pre-filled from initialData
+        setDate(formatToInputDate(initialData.date || ''));
+
         setFrequencyType(initialData.isInstallment ? 'INSTALLMENT' : initialData.isRecurrent ? 'RECURRENT' : 'SINGLE');
         setInstallmentCount(initialData.installmentCount?.toString() || '2');
         setCurrentInstallment(initialData.currentInstallment?.toString() || '1');
@@ -69,27 +122,34 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
         setHasSynced(true);
       } else {
         // New form or waiting for data
-        if (forcedType) setType(forcedType);
-        if (mode) setCurrentMode(mode === 'DEFAULT' ? 'MAIN' : mode);
+        if (forcedType) {
+          setType(forcedType);
+        }
+        
+        if (mode && mode !== 'DEFAULT') {
+          setCurrentMode(mode);
+        } else if (forcedType === 'income') {
+          setCurrentMode('ASSETS');
+        } else {
+          setCurrentMode('MAIN');
+        }
         if (initialTitle) setDescription(initialTitle);
         if (initialAmount !== undefined) setAmount(initialAmount.toString());
         if (initialCardId) setCardId(initialCardId);
 
-        // If we have at least one of these or it's a completely fresh form, we can consider it synced
-        // A fresh form is when we don't have initialData.
-        if (!initialData) {
-          if (!initialTitle && !initialAmount) {
-            setAmount('');
-            setDescription('');
-            setCategory(categories[0]?.id || '');
-            setDate(new Date().toISOString().split('T')[0]);
-            setFrequencyType('SINGLE');
-          }
-          setHasSynced(true);
+        // Always set default date for new forms
+        setDate(getDefaultDate());
+
+        if (!initialTitle && !initialAmount) {
+          setAmount('');
+          setDescription('');
+          setCategory(categories[0]?.id || '');
+          setFrequencyType('SINGLE');
         }
+        setHasSynced(true);
       }
     }
-  }, [isOpen, initialData, initialTitle, initialAmount, forcedType, categories, cards, initialCardId, hasSynced]);
+  }, [isOpen, initialData, initialTitle, initialAmount, forcedType, categories, cards, initialCardId, hasSynced, selectedMonth, getDefaultDate]);
 
   if (!isOpen) return null;
 

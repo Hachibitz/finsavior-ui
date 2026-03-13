@@ -32,6 +32,8 @@ const mapDTOToBill = (dto: BillDTO | undefined, fallback?: Partial<Bill>): Bill 
   category: dto?.billCategory ?? fallback?.category ?? 'Others',
   paymentType: dto?.paymentType as any,
   cardId: dto?.cardId ?? fallback?.cardId,
+  billTable: dto?.billTable ?? fallback?.billTable,
+  billType: dto?.billType ?? fallback?.billType,
   installments: dto?.currentInstallment !== undefined && dto?.installmentCount !== undefined ? { current: dto.currentInstallment, total: dto.installmentCount } : fallback?.installments,
 });
 

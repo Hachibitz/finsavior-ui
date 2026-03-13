@@ -4,6 +4,7 @@ import DebitsView from './components/DebitsView';
 import CardsView from './components/CardsView';
 import AssetsView from './components/AssetsView';
 import SummaryView from './components/SummaryView';
+import GoalsView from './components/GoalsView';
 import AiAdvisorView from './components/AiAdvisorView';
 import PlansView from './components/PlansView';
 import CategoriesView from './components/CategoriesView';
@@ -714,6 +715,14 @@ const App: React.FC = () => {
             onRefreshCoins={fetchProfile}
           />
         );
+      case 'goals':
+        return (
+          <GoalsView 
+            profile={profile} 
+            onRefreshCoins={fetchProfile}
+            onNavigateToPlans={() => setActiveTab('plans')}
+          />
+        );
       case 'plans':
         return <PlansView profile={profile} />;
       case 'categories':
@@ -844,6 +853,7 @@ const App: React.FC = () => {
         }}
         forcedType={formForcedType}
         initialData={voiceBillData || undefined}
+        selectedMonth={selectedMonth}
         onSubmit={async (data) => {
           try {
             const isIncome = data.type === 'income';
@@ -878,7 +888,8 @@ const App: React.FC = () => {
           const incomeIds = ['salary', 'freelance', 'projects', 'investments', 'savings'];
           const isIncomeForm = formForcedType === 'income';
           if (isIncomeForm) return incomeIds.includes(cat.id) || cat.id === 'others';
-          return !incomeIds.includes(cat.id) || cat.id === 'others';
+          // Allow investments in expenses too
+          return !incomeIds.includes(cat.id) || cat.id === 'others' || cat.id === 'investments';
         })}
         cards={cards}
       />
@@ -889,6 +900,7 @@ const App: React.FC = () => {
           setIsAssetEditModalOpen(false);
           setSelectedAsset(null);
         }}
+        selectedMonth={selectedMonth}
         onSubmit={handleUpdateAsset}
         categories={categories.filter(cat => ['salary', 'freelance', 'projects', 'investments', 'savings', 'others'].includes(cat.id))}
         forcedType="income"
@@ -907,6 +919,7 @@ const App: React.FC = () => {
           setIsEditBillModalOpen(false);
           setSelectedBill(null);
         }}
+        selectedMonth={selectedMonth}
         onSubmit={async (data) => {
           if (selectedBill) {
             await handleEditBill({ ...selectedBill, ...data } as Bill);
@@ -914,7 +927,7 @@ const App: React.FC = () => {
           setIsEditBillModalOpen(false);
           setSelectedBill(null);
         }}
-        categories={categories.filter(cat => !['salary', 'freelance', 'projects', 'investments', 'savings'].includes(cat.id))}
+        categories={categories.filter(cat => !['salary', 'freelance', 'projects', 'investments', 'savings'].includes(cat.id) || cat.id === 'investments')}
         forcedType="expense"
         initialData={selectedBill ? {
           description: selectedBill.description,
@@ -952,7 +965,9 @@ const App: React.FC = () => {
               description: data.billName || '',
               amount: data.billValue || 0,
               category: data.billCategory?.toLowerCase() || '',
-              date: data.possibleDate ? data.possibleDate.split('/').reverse().join('-') : new Date().toISOString().split('T')[0],
+              date: data.possibleDate 
+                ? data.possibleDate.split('/').reverse().join('-') 
+                : (selectedMonth ? `${selectedMonth}-${new Date().getFullYear() === parseInt(selectedMonth.split('-')[0]) && (new Date().getMonth() + 1) === parseInt(selectedMonth.split('-')[1]) ? String(new Date().getDate()).padStart(2, '0') : '01'}` : new Date().toISOString().split('T')[0]),
               type: data.billTable === 'ASSETS' ? 'income' : 'expense',
               isInstallment: data.isInstallment || false,
               installmentCount: data.installmentCount || undefined,

@@ -44,7 +44,7 @@ function addRefreshSubscriber(cb: (token: string) => void) {
   refreshSubscribers.push(cb);
 }
 
-async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+export async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = getAccessToken();
   const headers = new Headers(options.headers);
   
@@ -54,8 +54,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   
   // Conditionally add headers to avoid CORS issues with tunnels
   if (!import.meta.env.PROD) {
-    headers.set('ngrok-skip-browser-warning', '69420');
-    headers.set('x-pinggy-no-screen', 'true');
+    headers.set('ngrok-skip-browser-warning', 'true');
   }
   
   if (!(options.body instanceof FormData)) {
@@ -67,56 +66,85 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers,
   });
 
-  if ((response.status === 401 || response.status === 403) && !endpoint.includes('/auth/')) {
-    if (!isRefreshing) {
-      isRefreshing = true;
-      try {
-        const refreshToken = getRefreshToken();
-        if (refreshToken) {
-          const refreshResponse = await fetch(`${BASE_URL}/auth/refresh-token`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'ngrok-skip-browser-warning': '69420',
-              'x-pinggy-no-screen': 'true',
-            },
-            body: refreshToken // Send as raw string, not JSON.stringify
-          });
+  if (!response.ok) {
+    const isAuthRoute = endpoint.includes('/auth/');
+    const isRefreshableStatus = response.status === 401 || response.status === 403;
 
-          if (refreshResponse.ok) {
-            const newToken = await refreshResponse.text();
-            setAccessToken(newToken);
-            isRefreshing = false;
-            onRefreshed(newToken);
-            return request<T>(endpoint, options);
-          }
+    if (isRefreshableStatus && !isAuthRoute) {
+      const clone = response.clone();
+      try {
+        const errorData = await clone.json();
+        const msg = (errorData.msg || errorData.message || '').toLowerCase();
+        
+        // If it's a plan limit error, don't try to refresh
+        const isPlanLimit = response.status === 403 && (
+          msg.includes('limite') || 
+          msg.includes('upgrade') || 
+          msg.includes('fscoins') || 
+          msg.includes('moedas') || 
+          msg.includes('insuficiente') ||
+          msg.includes('saldo')
+        );
+
+        if (isPlanLimit) {
+          const error = new Error(errorData.msg || errorData.message || 'Limite atingido') as any;
+          error.status = response.status;
+          error.data = errorData;
+          throw error;
         }
-      } catch (error) {
-        console.error('Token refresh failed:', error);
-      } finally {
-        isRefreshing = false;
+      } catch (e: any) {
+        if (e.status === 403) throw e; // Re-throw plan limit error
+        // Otherwise ignore parse error and proceed to refresh attempt
       }
 
-      clearTokens();
-      window.location.href = '/login';
-      throw new Error('Unauthorized');
-    } else {
-      // Wait for refresh to complete
-      return new Promise((resolve) => {
-        addRefreshSubscriber((newToken) => {
-          const newOptions = { ...options };
-          const newHeaders = new Headers(newOptions.headers);
-          newHeaders.set('Authorization', `Bearer ${newToken}`);
-          newOptions.headers = newHeaders;
-          resolve(request<T>(endpoint, newOptions));
-        });
-      });
-    }
-  }
+      // Proceed with refresh logic
+      if (!isRefreshing) {
+        isRefreshing = true;
+        try {
+          const refreshToken = getRefreshToken();
+          if (refreshToken) {
+            const refreshResponse = await fetch(`${BASE_URL}/auth/refresh-token`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true',
+              },
+              body: refreshToken,
+            });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-    const error = new Error(errorData.message || 'Request failed') as any;
+            if (refreshResponse.ok) {
+              const newToken = await refreshResponse.text();
+              setAccessToken(newToken);
+              isRefreshing = false;
+              onRefreshed(newToken);
+              return request<T>(endpoint, options);
+            }
+          }
+        } catch (error) {
+          console.error('Token refresh failed:', error);
+        } finally {
+          isRefreshing = false;
+        }
+
+        clearTokens();
+        window.location.href = '/login';
+        throw new Error('Unauthorized');
+      } else {
+        return new Promise((resolve) => {
+          addRefreshSubscriber((newToken) => {
+            const newOptions = { ...options };
+            const newHeaders = new Headers(newOptions.headers);
+            newHeaders.set('Authorization', `Bearer ${newToken}`);
+            newOptions.headers = newHeaders;
+            resolve(request<T>(endpoint, newOptions));
+          });
+        });
+      }
+    }
+
+    // Standard error handling for non-refreshable errors
+    const errorData = await response.json().catch(() => ({ msg: 'Unknown error' }));
+    const error = new Error(errorData.msg || errorData.message || 'Request failed') as any;
     error.status = response.status;
     error.data = errorData;
     throw error;

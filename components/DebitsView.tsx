@@ -122,7 +122,6 @@ const DebitsView: React.FC<DebitsViewProps> = ({ bills, onAdd, onDelete, onEdit,
                 </div>
                 <div className="flex justify-between items-center mt-1">
                    <span className="text-xs text-slate-500 uppercase font-medium">{category?.name || 'Unknown'}</span>
-                   <span className="text-[10px] text-slate-600 bg-slate-900 px-2 py-0.5 rounded">Venc. 15/02</span>
                 </div>
               </div>
 

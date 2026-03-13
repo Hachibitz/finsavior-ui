@@ -111,6 +111,14 @@ const CardsView: React.FC<CardsViewProps> = ({
     .reduce((acc, t) => acc + t.amount, 0);
   const remainingBalance = total - totalPaid;
 
+  const handleAddCardClick = () => {
+    if (cards.length >= 25) {
+      showToast('Você atingiu o limite máximo de 25 cartões.', 'info');
+      return;
+    }
+    setIsAddCardOpen(true);
+  };
+
   const handleAddCardSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCardName) return;
@@ -161,8 +169,8 @@ const CardsView: React.FC<CardsViewProps> = ({
               <CardIcon size={24} />
             </div>
             <div>
-              <h4 className="font-bold text-white">Múltiplos Cartões?</h4>
-              <p className="text-slate-400 text-xs">Assine o Premium para cartões ilimitados, comandos de voz e WhatsApp.</p>
+              <h4 className="font-bold text-white">Comandos de Voz?</h4>
+              <p className="text-slate-400 text-xs">Assine o Premium para comandos de voz ilimitados, WhatsApp e relatórios avançados.</p>
             </div>
           </div>
           <button 
@@ -186,7 +194,7 @@ const CardsView: React.FC<CardsViewProps> = ({
              </button>
          ))}
          <button 
-            onClick={() => setIsAddCardOpen(true)}
+            onClick={handleAddCardClick}
             className="flex-shrink-0 w-8 h-8 rounded-full border border-dashed border-slate-600 flex items-center justify-center text-slate-400 hover:text-white hover:border-white transition-colors"
          >
             <Plus size={16} />
@@ -248,7 +256,7 @@ const CardsView: React.FC<CardsViewProps> = ({
             </div>
         </div>
       ) : (
-          <div onClick={() => setIsAddCardOpen(true)} className="h-56 w-full max-w-sm mx-auto border-2 border-dashed border-slate-700 rounded-3xl flex flex-col items-center justify-center text-slate-500 hover:text-white hover:border-primary hover:bg-slate-800/50 cursor-pointer transition-all">
+          <div onClick={handleAddCardClick} className="h-56 w-full max-w-sm mx-auto border-2 border-dashed border-slate-700 rounded-3xl flex flex-col items-center justify-center text-slate-500 hover:text-white hover:border-primary hover:bg-slate-800/50 cursor-pointer transition-all">
               <Plus size={48} />
               <p className="font-bold mt-2">Adicionar Cartão</p>
           </div>
@@ -382,6 +390,7 @@ const CardsView: React.FC<CardsViewProps> = ({
         initialAmount={remainingBalance}
         forcedType="expense"
         initialCardId={activeCardId}
+        selectedMonth={selectedMonth}
       />
 
       <TransactionForm 
@@ -393,6 +402,7 @@ const CardsView: React.FC<CardsViewProps> = ({
         mode="CREDIT_CARD"
         forcedType="expense"
         initialCardId={activeCardId}
+        selectedMonth={selectedMonth}
       />
 
       <TransactionForm 
@@ -412,6 +422,7 @@ const CardsView: React.FC<CardsViewProps> = ({
         cards={cards}
         mode="CREDIT_CARD"
         forcedType="expense"
+        selectedMonth={selectedMonth}
         initialData={selectedTransaction ? {
           description: selectedTransaction.description,
           amount: selectedTransaction.amount,

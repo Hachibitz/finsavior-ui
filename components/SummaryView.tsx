@@ -97,11 +97,13 @@ const SummaryView: React.FC<SummaryViewProps> = ({
     sessionStorage.setItem('summary_banner_closed_at', Date.now().toString());
   };
 
-  const getLastSixMonths = () => {
+  const getLastSixMonths = (referenceMonth: string) => {
     const months = [];
-    const now = new Date();
+    const [year, month] = referenceMonth.split('-').map(Number);
+    const baseDate = new Date(year, month - 1, 1);
+    
     for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const d = new Date(baseDate.getFullYear(), baseDate.getMonth() - i, 1);
       months.push({
         key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
         label: d.toLocaleString('pt-BR', { month: 'short' }).replace('.', '')
@@ -113,7 +115,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({
   useEffect(() => {
     const fetchHistory = async () => {
       setIsLoadingHistory(true);
-      const months = getLastSixMonths();
+      const months = getLastSixMonths(selectedMonth);
       
       try {
         const results = await Promise.all(months.map(async (m) => {
@@ -158,7 +160,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({
     };
 
     fetchHistory();
-  }, []);
+  }, [selectedMonth]);
 
   useEffect(() => {
     if (initialInsightOpen) {

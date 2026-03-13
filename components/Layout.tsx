@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useMonth } from '../contexts/MonthContext';
 import { 
   LayoutDashboard, CreditCard, Wallet, Receipt, BrainCircuit, ShieldCheck, 
-  Menu, X, User, LogOut, Bell, Search, Tags, ArrowLeft, HelpCircle
+  Menu, X, User, LogOut, Bell, Search, Tags, ArrowLeft, HelpCircle, Target
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { Notification } from '../types/notifications';
@@ -41,6 +41,27 @@ const Layout: React.FC<LayoutProps> = ({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const notificationsRef = useRef<HTMLDivElement>(null);
+  const bellButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (isNotificationsOpen && 
+          notificationsRef.current && 
+          !notificationsRef.current.contains(event.target as Node) &&
+          bellButtonRef.current &&
+          !bellButtonRef.current.contains(event.target as Node)) {
+        setIsNotificationsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isNotificationsOpen]);
 
   // Modern Floating Dock Icons
   const navItems = [
@@ -48,6 +69,7 @@ const Layout: React.FC<LayoutProps> = ({
     { id: 'debits', label: 'Débitos', icon: Receipt },
     { id: 'cards', label: 'Cartão', icon: CreditCard },
     { id: 'assets', label: 'Rendas', icon: Wallet },
+    { id: 'goals', label: 'Metas', icon: Target },
     { id: 'ai', label: 'IA', icon: BrainCircuit },
   ];
 
@@ -91,7 +113,11 @@ const Layout: React.FC<LayoutProps> = ({
             >
               <Search size={20} />
             </button>
-            <button className="w-10 h-10 rounded-full glass-card flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/10 transition-all relative" onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}>
+            <button 
+              ref={bellButtonRef}
+              className="w-10 h-10 rounded-full glass-card flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/10 transition-all relative" 
+              onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+            >
               <Bell size={20} />
               {unreadCount > 0 && (
                 <span className="absolute top-2 right-2.5 w-2 h-2 bg-danger rounded-full animate-pulse"></span>
@@ -100,10 +126,8 @@ const Layout: React.FC<LayoutProps> = ({
 
             {/* Notifications Dropdown */}
             {isNotificationsOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setIsNotificationsOpen(false)} />
-                <div className="absolute top-16 right-4 w-80 max-h-[400px] bg-[#0b1121] border border-white/10 rounded-3xl shadow-2xl z-50 overflow-hidden flex flex-col animate-slide-up">
-                  <div className="p-4 border-b border-white/5 flex justify-between items-center bg-white/5">
+              <div ref={notificationsRef} className="absolute top-16 right-4 w-80 max-h-[400px] bg-[#0b1121] border border-white/10 rounded-3xl shadow-2xl z-50 overflow-hidden flex flex-col animate-slide-up">
+                <div className="p-4 border-b border-white/5 flex justify-between items-center bg-white/5">
                     <h3 className="font-bold text-white text-sm">Notificações</h3>
                     {notifications.length > 0 && (
                       <button onClick={onClearAll} className="text-[10px] font-bold text-slate-500 hover:text-danger uppercase tracking-widest transition-colors">Limpar Tudo</button>
@@ -149,7 +173,6 @@ const Layout: React.FC<LayoutProps> = ({
                     )}
                   </div>
                 </div>
-              </>
             )}
           </div>
         </div>
@@ -260,7 +283,7 @@ const Layout: React.FC<LayoutProps> = ({
       </main>
 
       {/* Floating Dock Navigation */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[90%] max-w-md" style={{ marginBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[95%] max-w-lg" style={{ marginBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="glass-panel rounded-full p-2 flex justify-between items-center shadow-2xl shadow-primary/10 border border-white/10 backdrop-blur-2xl">
           {navItems.map((item) => (
             <button
