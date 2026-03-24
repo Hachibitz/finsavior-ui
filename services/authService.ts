@@ -1,4 +1,4 @@
-import { api, getAccessToken, setAccessToken, setRefreshToken, getRefreshToken, clearTokens, setRememberMe } from './api';
+import { api, getAccessToken, setAccessToken, setRefreshToken, getRefreshToken, clearTokens, setRememberMe, logout as apiLogout } from './api';
 
 export const authService = {
   login: async (username: string, password: string, rememberMe: boolean = true): Promise<void> => {
@@ -18,6 +18,11 @@ export const authService = {
     if (accessToken) {
       setAccessToken(accessToken);
       if (refreshToken) setRefreshToken(refreshToken);
+      
+      // Store email if the username looks like one
+      if (username.includes('@')) {
+        localStorage.setItem('user_email', username);
+      }
       return;
     }
     throw new Error('Tokens not found in response');
@@ -29,7 +34,7 @@ export const authService = {
   },
   
   logout: () => {
-    clearTokens();
+    apiLogout();
   },
   
   validateToken: async (token: string): Promise<boolean> => {
@@ -46,9 +51,14 @@ export const authService = {
     if (!refreshToken) throw new Error('No refresh token available');
 
     // Swagger says it takes a string and returns a string
-    const response = await api.post<string>('/auth/refresh-token', refreshToken);
-    setAccessToken(response);
-    return response;
+    // But let's handle JSON response just in case
+    const response = await api.post<any>('/auth/refresh-token', refreshToken);
+    const newToken = typeof response === 'string' ? response : (response.accessToken || response.token || response.text);
+    
+    if (!newToken) throw new Error('New token not found in refresh response');
+    
+    setAccessToken(newToken);
+    return newToken;
   },
 
   isAuthenticated: async (): Promise<boolean> => {
@@ -64,10 +74,13 @@ export const authService = {
         await authService.refreshToken();
         return true;
       } catch (refreshError) {
+        // If refresh fails, we must clear everything
+        authService.logout();
         return false;
       }
     } catch (error) {
       console.error("Auth check error:", error);
+      authService.logout();
       return false;
     }
   },

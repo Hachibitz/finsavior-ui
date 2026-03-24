@@ -75,6 +75,12 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
       if (!idToken) throw new Error('Token do Google não encontrado.');
 
       await authService.registerWithGoogle(idToken);
+      
+      // Store email if available
+      if (googleUserData?.email) {
+        localStorage.setItem('user_email', googleUserData.email);
+      }
+      
       onLoginSuccess();
     } catch (err: any) {
       setError(err.message || 'Erro ao realizar cadastro via Google.');

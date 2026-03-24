@@ -45,6 +45,9 @@ export const googleAuthService = {
 
           if (accessToken) {
             authService.setTokens(accessToken, refreshToken || accessToken);
+            if (result.user.email) {
+              localStorage.setItem('user_email', result.user.email);
+            }
           }
           
           return { accessToken, refreshToken };

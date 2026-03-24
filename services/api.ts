@@ -34,15 +34,30 @@ export const clearTokens = () => {
 
 let isRefreshing = false;
 let refreshSubscribers: ((token: string) => void)[] = [];
+let refreshErrorSubscribers: ((error: any) => void)[] = [];
 
 function onRefreshed(token: string) {
-  refreshSubscribers.map(cb => cb(token));
+  refreshSubscribers.forEach(cb => cb(token));
   refreshSubscribers = [];
+  refreshErrorSubscribers = [];
 }
 
-function addRefreshSubscriber(cb: (token: string) => void) {
-  refreshSubscribers.push(cb);
+function onRefreshFailed(error: any) {
+  refreshErrorSubscribers.forEach(cb => cb(error));
+  refreshSubscribers = [];
+  refreshErrorSubscribers = [];
+  logout();
 }
+
+function addRefreshSubscriber(cb: (token: string) => void, errCb: (error: any) => void) {
+  refreshSubscribers.push(cb);
+  refreshErrorSubscribers.push(errCb);
+}
+
+export const logout = () => {
+  clearTokens();
+  window.dispatchEvent(new CustomEvent('auth-logout'));
+};
 
 export async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = getAccessToken();
@@ -97,8 +112,8 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
         // Otherwise ignore parse error and proceed to refresh attempt
       }
 
-      // Proceed with refresh logic
-      if (!isRefreshing) {
+  // Proceed with refresh logic
+      if (!isRefreshing && !(options as any)._retry) {
         isRefreshing = true;
         try {
           const refreshToken = getRefreshToken();
@@ -113,32 +128,49 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
             });
 
             if (refreshResponse.ok) {
-              const newToken = await refreshResponse.text();
+              const text = await refreshResponse.text();
+              let newToken: string;
+              try {
+                const json = JSON.parse(text);
+                newToken = json.accessToken || json.token || text;
+              } catch {
+                newToken = text;
+              }
+              
               setAccessToken(newToken);
               isRefreshing = false;
               onRefreshed(newToken);
-              return request<T>(endpoint, options);
+              return request<T>(endpoint, { ...options, _retry: true } as any);
             }
           }
         } catch (error) {
           console.error('Token refresh failed:', error);
+          onRefreshFailed(error);
         } finally {
           isRefreshing = false;
         }
 
-        clearTokens();
-        window.location.href = '/login';
+        logout();
         throw new Error('Unauthorized');
-      } else {
-        return new Promise((resolve) => {
-          addRefreshSubscriber((newToken) => {
-            const newOptions = { ...options };
-            const newHeaders = new Headers(newOptions.headers);
-            newHeaders.set('Authorization', `Bearer ${newToken}`);
-            newOptions.headers = newHeaders;
-            resolve(request<T>(endpoint, newOptions));
-          });
+      } else if (isRefreshing && !(options as any)._retry) {
+        return new Promise((resolve, reject) => {
+          addRefreshSubscriber(
+            (newToken) => {
+              const newOptions = { ...options, _retry: true } as any;
+              const newHeaders = new Headers(newOptions.headers);
+              newHeaders.set('Authorization', `Bearer ${newToken}`);
+              newOptions.headers = newHeaders;
+              resolve(request<T>(endpoint, newOptions));
+            },
+            (error) => {
+              reject(error);
+            }
+          );
         });
+      } else if ((options as any)._retry) {
+        // If it's already a retry and still 401, refresh failed to provide a valid token
+        logout();
+        throw new Error('Unauthorized');
       }
     }
 

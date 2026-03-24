@@ -22,5 +22,9 @@ export const paymentService = {
 
   cancelSubscription: async (immediate: boolean): Promise<void> => {
     await api.post('/payment/subscription/cancel', { immediate });
+  },
+
+  reactivateSubscription: async (): Promise<void> => {
+    await api.post('/payment/subscription/reactivate', {});
   }
 };

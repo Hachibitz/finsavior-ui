@@ -7,16 +7,20 @@ import {
   Trash2, 
   Camera, 
   ChevronRight, 
-  ExternalLink, 
   CreditCard,
   CheckCircle2,
   AlertTriangle,
   Loader2,
   X,
-  Lock
+  Lock,
+  MessageCircle,
+  Copy,
+  Check,
+  ExternalLink
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { userService } from '../services/userService';
+import { whatsappService } from '../services/whatsappService';
 import { paymentService } from '../services/paymentService';
 import { useToast } from '../contexts/ToastContext';
 
@@ -31,8 +35,30 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [isCancelingSubscription, setIsCancelingSubscription] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [agentNumber, setAgentNumber] = useState<string | null>(null);
+  const [isLoadingAgent, setIsLoadingAgent] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    if (profile?.isWhatsappEnabled) {
+      fetchAgentNumber();
+    }
+  }, [profile?.isWhatsappEnabled]);
+
+  const fetchAgentNumber = async () => {
+    setIsLoadingAgent(true);
+    try {
+      const { phoneNumber } = await whatsappService.getAgentNumber();
+      setAgentNumber(phoneNumber);
+    } catch (error) {
+      console.error('Error fetching agent number:', error);
+    } finally {
+      setIsLoadingAgent(false);
+    }
+  };
 
   // Form States
   const [profileForm, setProfileForm] = useState({
@@ -138,19 +164,54 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
     }
   };
 
-  const handleOpenPortal = async () => {
+  const handleCancelSubscription = async () => {
     setIsLoading(true);
     try {
-      const response = await paymentService.createCustomerPortalSession(profile?.email || '');
-      if (response?.url) {
-        window.location.href = response.url;
-      }
+      await paymentService.cancelSubscription(false); // Recurring cancellation (end of period)
+      showToast('Sua assinatura foi cancelada e não será renovada.', 'success');
+      setIsCancelingSubscription(false);
+      onRefreshProfile();
     } catch (error: any) {
-      showToast('Não foi possível abrir o portal de pagamentos', 'error');
+      showToast(error?.message || 'Erro ao cancelar assinatura', 'error');
     } finally {
       setIsLoading(false);
     }
   };
+
+  const handleReactivateSubscription = async () => {
+    setIsLoading(true);
+    try {
+      await paymentService.reactivateSubscription();
+      showToast('Sua assinatura foi reativada com sucesso!', 'success');
+      onRefreshProfile();
+    } catch (error: any) {
+      showToast(error?.message || 'Erro ao reativar assinatura', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOpenPortal = async () => {
+    // Feature not ready yet as per user request
+    return;
+  };
+
+  const copyToClipboard = () => {
+    if (!agentNumber) return;
+    navigator.clipboard.writeText(agentNumber);
+    setCopied(true);
+    showToast('Número copiado!', 'success');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const openWhatsApp = () => {
+    if (!agentNumber) return;
+    const cleanNumber = agentNumber.replace(/\D/g, '');
+    window.open(`https://wa.me/${cleanNumber}`, '_blank');
+  };
+
+  const subscriptionStatus = profile?.plan.subscriptionStatus;
+  const isCanceledAtEnd = subscriptionStatus === 'CANCELED_AT_PERIOD_END';
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-20 animate-slide-up">
@@ -260,20 +321,109 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
 
             <button 
               onClick={handleOpenPortal}
-              className="w-full p-5 flex items-center justify-between hover:bg-white/5 transition-all group"
+              disabled={true}
+              className="w-full p-5 flex items-center justify-between hover:bg-white/5 transition-all group relative cursor-not-allowed opacity-70"
             >
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
                   <ExternalLink size={20} />
                 </div>
                 <div className="text-left">
-                  <p className="text-sm font-bold text-white">Portal de Pagamento</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold text-white">Portal de Pagamento</p>
+                    <span className="text-[8px] font-black bg-primary/20 text-primary px-1.5 py-0.5 rounded uppercase tracking-widest">Em breve</span>
+                  </div>
                   <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Gerenciar assinaturas e faturas</p>
                 </div>
               </div>
-              <ChevronRight size={18} className="text-slate-600" />
+              <Lock size={16} className="text-slate-600" />
             </button>
+
+            {profile?.plan.planDs !== 'FREE' && (
+              <>
+                <div className="h-px bg-white/5 mx-5" />
+                {isCanceledAtEnd ? (
+                  <button 
+                    onClick={handleReactivateSubscription}
+                    disabled={isLoading}
+                    className="w-full p-5 flex items-center justify-between hover:bg-emerald-500/5 transition-all group"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <CheckCircle2 size={20} />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-sm font-bold text-white">Reativar Assinatura</p>
+                        <p className="text-[10px] text-emerald-500/70 font-medium uppercase tracking-wider">Sua assinatura expira em breve</p>
+                      </div>
+                    </div>
+                    {isLoading ? <Loader2 className="animate-spin text-emerald-500" size={18} /> : <ChevronRight size={18} className="text-slate-600" />}
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => setIsCancelingSubscription(true)}
+                    className="w-full p-5 flex items-center justify-between hover:bg-white/5 transition-all group"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <X size={20} />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-sm font-bold text-white">Cancelar Assinatura</p>
+                        <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Interromper renovação automática</p>
+                      </div>
+                    </div>
+                    <ChevronRight size={18} className="text-slate-600" />
+                  </button>
+                )}
+              </>
+            )}
           </div>
+
+          {/* WhatsApp Integration Info */}
+          {profile?.isWhatsappEnabled && (
+            <div className="space-y-4">
+              <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] ml-4">Integração WhatsApp</h3>
+              <div className="glass-card rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-500 flex items-center justify-center">
+                      <MessageCircle size={24} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-white">Agente FinSavior</p>
+                      {isLoadingAgent ? (
+                        <div className="h-6 w-32 bg-white/5 animate-pulse rounded-md mt-1" />
+                      ) : (
+                        <p className="text-lg font-mono font-bold text-emerald-400 tracking-tight">{agentNumber || 'Carregando...'}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={copyToClipboard}
+                      disabled={!agentNumber}
+                      className="p-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all disabled:opacity-50"
+                    >
+                      {copied ? <Check size={18} className="text-emerald-500" /> : <Copy size={18} />}
+                    </button>
+                    <button 
+                      onClick={openWhatsApp}
+                      disabled={!agentNumber}
+                      className="p-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 transition-all disabled:opacity-50"
+                    >
+                      <ExternalLink size={18} />
+                    </button>
+                  </div>
+                </div>
+                <div className="p-4 rounded-2xl bg-black/20 border border-white/5">
+                  <p className="text-[10px] text-slate-400 leading-relaxed">
+                    Envie mensagens ou áudios para este número para registrar despesas e consultar seu saldo instantaneamente.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Danger Zone */}
@@ -419,6 +569,61 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
                 {isLoading ? <Loader2 className="animate-spin" size={18} /> : 'Atualizar Senha'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Subscription Modal */}
+      {isCancelingSubscription && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-slate-900 w-full max-w-md rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden animate-slide-up">
+            <div className="p-6 border-b border-white/5 flex justify-between items-center">
+              <div className="flex items-center gap-3 text-amber-500">
+                <AlertTriangle size={24} />
+                <h3 className="text-xl font-black tracking-tight">Cancelar Assinatura</h3>
+              </div>
+              <button onClick={() => setIsCancelingSubscription(false)} className="p-2 text-slate-400 hover:text-white rounded-full transition-all">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="space-y-4">
+                <p className="text-sm text-slate-400 leading-relaxed">
+                  Tem certeza que deseja cancelar sua assinatura? Você perderá acesso aos recursos premium ao final do seu período de faturamento atual.
+                </p>
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+                  <div className="flex items-center gap-3 text-xs text-slate-300">
+                    <CheckCircle2 size={14} className="text-emerald-500" />
+                    <span>Seu acesso continua até o fim do ciclo atual</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-slate-300">
+                    <CheckCircle2 size={14} className="text-emerald-500" />
+                    <span>Nenhuma nova cobrança será realizada</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-slate-300">
+                    <CheckCircle2 size={14} className="text-emerald-500" />
+                    <span>Você pode reativar a qualquer momento</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={handleCancelSubscription}
+                  disabled={isLoading}
+                  className="w-full py-4 bg-rose-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-rose-500/20 hover:bg-rose-600 transition-all flex items-center justify-center gap-2"
+                >
+                  {isLoading ? <Loader2 className="animate-spin" size={18} /> : 'Confirmar Cancelamento'}
+                </button>
+                <button 
+                  onClick={() => setIsCancelingSubscription(false)}
+                  disabled={isLoading}
+                  className="w-full py-4 bg-white/5 text-white rounded-2xl font-bold text-sm hover:bg-white/10 transition-all"
+                >
+                  Manter minha assinatura
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

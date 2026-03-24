@@ -181,30 +181,61 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
     }
   }, []);
 
+  useEffect(() => {
+    if (checkoutActive && embeddedCheckout) {
+      const timer = setTimeout(() => {
+        const container = document.getElementById('checkout-container');
+        if (container) {
+          try {
+            console.log('Mounting checkout to #checkout-container');
+            embeddedCheckout.mount('#checkout-container');
+          } catch (err) {
+            console.error('Mount error:', err);
+          }
+        } else {
+          console.error('#checkout-container not found in DOM');
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [checkoutActive, embeddedCheckout]);
+
   const startCheckout = async (planType: string) => {
     setShowChoiceModal(false);
     setLoading(true);
     try {
-      const session = await paymentService.createCheckoutSession(planType, profile?.email || '');
+      console.log('Starting checkout for plan:', planType);
+      const userEmail = profile?.email || localStorage.getItem('user_email') || '';
+      console.log('Using email for checkout:', userEmail);
+      
+      const session = await paymentService.createCheckoutSession(planType, userEmail);
+      console.log('Checkout session created:', session);
       
       if (session.clientSecret) {
         const stripe = await loadStripe(STRIPE_PUBLIC_KEY);
-        if (!stripe) throw new Error('Stripe failed to load');
+        if (!stripe) throw new Error('Falha ao carregar o Stripe');
         setStripeInstance(stripe);
+        
+        // Ativa a visualização do checkout para renderizar o container
         setCheckoutActive(true);
 
+        console.log('Initializing embedded checkout with clientSecret');
         const checkout = await stripe.initEmbeddedCheckout({
           clientSecret: session.clientSecret,
         });
+        console.log('Embedded checkout initialized successfully');
 
         setEmbeddedCheckout(checkout);
-        checkout.mount('#checkout-container');
       } else if (session.url) {
+        console.log('Redirecting to checkout URL:', session.url);
         window.location.href = session.url;
+      } else {
+        throw new Error('Resposta do servidor não contém clientSecret ou URL');
       }
-    } catch (error) {
-      console.error('Checkout error:', error);
-      alert('Erro ao iniciar checkout. Tente novamente.');
+    } catch (error: any) {
+      console.error('Checkout error detail:', error);
+      const msg = error.message || 'Erro desconhecido';
+      alert(`Erro ao iniciar checkout: ${msg}. Tente novamente.`);
     } finally {
       setLoading(false);
     }
@@ -261,6 +292,11 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h2 className="text-xl font-bold text-white">{group.name}</h2>
+                  {group.monthly?.trial && (
+                    <div className="inline-flex items-center gap-1 bg-emerald-500/10 text-emerald-500 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md mb-1">
+                      7 Dias Grátis
+                    </div>
+                  )}
                   <p className="text-2xl font-bold text-slate-200">
                     {group.monthly?.priceMonthly || group.yearly?.priceYearly}
                     <span className="text-sm font-normal text-slate-500">

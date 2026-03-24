@@ -129,9 +129,17 @@ export interface SummaryData {
   status: 'green' | 'yellow' | 'red';
 }
 
+export enum SubscriptionStatusEnum {
+  ACTIVE = 'ACTIVE',
+  CANCELED_AT_PERIOD_END = 'CANCELED_AT_PERIOD_END',
+  INACTIVE = 'INACTIVE',
+  PAST_DUE = 'PAST_DUE'
+}
+
 export interface Plan {
   planId: string;
   planDs: string;
+  subscriptionStatus?: SubscriptionStatusEnum;
 }
 
 export interface UserProfile {
@@ -144,6 +152,13 @@ export interface UserProfile {
   profilePicture?: string;
   plan: Plan;
   coins: number;
+  phoneNumber?: string;
+  isWhatsappEnabled?: boolean;
+}
+
+export interface EnableWhatsappRequest {
+  isEnabled: boolean;
+  phoneNumber: string;
 }
 
 export interface CheckoutSessionDTO {

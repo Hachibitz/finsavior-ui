@@ -131,6 +131,10 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
         ...formData,
         agreement: true
       });
+      
+      // Store email for later use (e.g. checkout)
+      localStorage.setItem('user_email', formData.email);
+      
       showToast('Cadastro realizado com sucesso!', 'success');
       onRegisterSuccess();
     } catch (error: any) {

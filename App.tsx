@@ -10,6 +10,7 @@ import PlansView from './components/PlansView';
 import CategoriesView from './components/CategoriesView';
 import AccountView from './components/AccountView';
 import SupportView from './components/SupportView';
+import WhatsappModal from './components/WhatsappModal';
 import CoinStoreModal from './components/CoinStoreModal';
 import UpsellModal from './components/UpsellModal';
 import Onboarding from './components/Onboarding';
@@ -52,6 +53,7 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('summary');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isCoinStoreOpen, setIsCoinStoreOpen] = useState(false);
+  const [isWhatsappModalOpen, setIsWhatsappModalOpen] = useState(false);
   const [isUpsellOpen, setIsUpsellOpen] = useState(false);
   const [formForcedType, setFormForcedType] = useState<'income' | 'expense' | undefined>(undefined);
   const [isAssetEditModalOpen, setIsAssetEditModalOpen] = useState(false);
@@ -149,10 +151,27 @@ const App: React.FC = () => {
     } else if (notification.actionUrl === 'ai' && notification.actionData?.reportId) {
       setActiveTab('ai');
       setSelectedReportId(notification.actionData.reportId);
+    } else if (notification.actionUrl === 'whatsapp') {
+      setIsWhatsappModalOpen(true);
     } else if (notification.actionUrl) {
       setActiveTab(notification.actionUrl);
     }
   };
+
+  const handleLogout = React.useCallback(() => {
+    setIsLoggedIn(false);
+    authService.logout();
+    googleAuthService.logout();
+    setProfile(null);
+    setBills([]);
+    setCardTransactions([]);
+    setAssets([]);
+    setDataLoaded(false);
+    sessionStorage.removeItem('summary_banner_closed');
+    sessionStorage.removeItem('cards_banner_closed');
+    sessionStorage.removeItem('onboarding_shown');
+    localStorage.removeItem('whatsapp_prompt_last_shown');
+  }, []);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -161,7 +180,14 @@ const App: React.FC = () => {
       setIsCheckingAuth(false);
     };
     checkAuth();
-  }, []);
+
+    const handleAuthLogout = () => {
+      handleLogout();
+    };
+
+    window.addEventListener('auth-logout', handleAuthLogout);
+    return () => window.removeEventListener('auth-logout', handleAuthLogout);
+  }, [handleLogout]);
 
   const fetchProfile = async () => {
     try {
@@ -173,6 +199,10 @@ const App: React.FC = () => {
       // Format profile picture if it exists
       if (profileData.profilePicture && !profileData.profilePicture.startsWith('data:')) {
         profileData.profilePicture = `data:image/png;base64,${profileData.profilePicture}`;
+      }
+      
+      if (profileData.email) {
+        localStorage.setItem('user_email', profileData.email);
       }
       
       setProfile({ ...profileData, coins: coinsBalance });
@@ -191,6 +221,19 @@ const App: React.FC = () => {
     if (isLoggedIn) {
       fetchProfile();
       fetchCards();
+      
+      // WhatsApp integration hint
+      const checkWhatsappHint = () => {
+        const lastPrompt = localStorage.getItem('whatsapp_prompt_last_shown');
+        const oneDay = 24 * 60 * 60 * 1000;
+        
+        if (!lastPrompt || (Date.now() - parseInt(lastPrompt, 10)) >= oneDay) {
+          // We'll check if it's enabled after profile is loaded
+          return true;
+        }
+        return false;
+      };
+
       // Show upsell modal after a short delay if logged in and not recently closed
       const timer = setTimeout(() => {
         const closedAt = sessionStorage.getItem('upsell_modal_closed_at');
@@ -204,6 +247,23 @@ const App: React.FC = () => {
       return () => clearTimeout(timer);
     }
   }, [isLoggedIn]);
+
+  useEffect(() => {
+    if (isLoggedIn && profile && !profile.isWhatsappEnabled) {
+      const lastPrompt = localStorage.getItem('whatsapp_prompt_last_shown');
+      const oneDay = 24 * 60 * 60 * 1000;
+      
+      if (!lastPrompt || (Date.now() - parseInt(lastPrompt, 10)) >= oneDay) {
+        addNotification({
+          title: 'Integração WhatsApp',
+          message: 'Habilite o WhatsApp para adicionar despesas por áudio ou texto de onde estiver!',
+          type: 'ai',
+          actionUrl: 'whatsapp'
+        });
+        localStorage.setItem('whatsapp_prompt_last_shown', Date.now().toString());
+      }
+    }
+  }, [isLoggedIn, profile?.isWhatsappEnabled]);
 
   const fetchBills = async () => {
     try {
@@ -624,16 +684,6 @@ const App: React.FC = () => {
     // In a real app, this would send file to backend
   };
 
-  const handleLogout = () => {
-    googleAuthService.logout();
-    setIsLoggedIn(false);
-    setProfile(null);
-    setBills([]);
-    sessionStorage.removeItem('summary_banner_closed');
-    sessionStorage.removeItem('cards_banner_closed');
-    sessionStorage.removeItem('onboarding_shown');
-  };
-
   const renderContent = () => {
     switch (activeTab) {
       case 'debits':
@@ -821,10 +871,19 @@ const App: React.FC = () => {
           onClearAll={clearNotifications}
           onNotificationAction={handleNotificationAction}
           onOpenCoinStore={() => setIsCoinStoreOpen(true)}
+          onOpenWhatsapp={() => setIsWhatsappModalOpen(true)}
         >
           {renderContent()}
         </Layout>
       </MonthContext.Provider>
+
+      <WhatsappModal 
+        isOpen={isWhatsappModalOpen}
+        onClose={() => setIsWhatsappModalOpen(false)}
+        profile={profile}
+        onRefreshProfile={fetchProfile}
+        onNavigateToPlans={() => setActiveTab('plans')}
+      />
 
       <CoinStoreModal 
         isOpen={isCoinStoreOpen}

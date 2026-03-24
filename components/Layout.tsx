@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useMonth } from '../contexts/MonthContext';
 import { 
   LayoutDashboard, CreditCard, Wallet, Receipt, BrainCircuit, ShieldCheck, 
-  Menu, X, User, LogOut, Bell, Search, Tags, ArrowLeft, HelpCircle, Target
+  Menu, X, User, LogOut, Bell, Search, Tags, ArrowLeft, HelpCircle, Target,
+  MessageCircle
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { Notification } from '../types/notifications';
@@ -23,6 +24,7 @@ interface LayoutProps {
   onClearAll: () => void;
   onNotificationAction: (notification: Notification) => void;
   onOpenCoinStore?: () => void;
+  onOpenWhatsapp?: () => void;
 }
 
 const Layout: React.FC<LayoutProps> = ({ 
@@ -36,7 +38,8 @@ const Layout: React.FC<LayoutProps> = ({
   onMarkAsRead,
   onClearAll,
   onNotificationAction,
-  onOpenCoinStore
+  onOpenCoinStore,
+  onOpenWhatsapp
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -231,6 +234,24 @@ const Layout: React.FC<LayoutProps> = ({
                   <ShieldCheck size={20} /> 
                 </div>
                 <span className="font-medium">Planos Premium</span>
+              </button>
+
+              <button 
+                onClick={() => { onOpenWhatsapp?.(); setIsMenuOpen(false); }}
+                className="flex items-center gap-4 text-slate-300 hover:text-white w-full p-4 rounded-2xl hover:bg-white/5 transition-all group relative"
+              >
+                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                  <MessageCircle size={20} />
+                </div>
+                <div className="flex flex-col items-start">
+                  <span className="font-medium">WhatsApp</span>
+                  {!profile?.isWhatsappEnabled && (
+                    <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-tighter animate-pulse">Configurar agora</span>
+                  )}
+                </div>
+                {!profile?.isWhatsappEnabled && (
+                  <span className="absolute top-4 right-4 w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                )}
               </button>
               
               <button 

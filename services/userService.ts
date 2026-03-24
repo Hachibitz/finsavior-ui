@@ -1,5 +1,5 @@
 import { api } from './api';
-import { UserProfile } from '../types';
+import { UserProfile, EnableWhatsappRequest } from '../types';
 
 export interface ChangePasswordRequest {
   username: string;
@@ -26,18 +26,26 @@ export const userService = {
   },
 
   updateProfile: async (formData: FormData): Promise<void> => {
-    await api.patch('/user/update-profile', formData);
+    await api.patch('/user/profile-data/update-profile', formData);
   },
 
   uploadProfilePicture: async (formData: FormData): Promise<{ status: string; message: string }> => {
-    return await api.post('/user/upload-picture', formData);
+    return await api.post('/user/profile-data/upload-picture', formData);
   },
 
   changePassword: async (data: ChangePasswordRequest): Promise<void> => {
-    await api.post('/user/change-account-password', data);
+    await api.post('/user/change-password', data);
   },
 
   deleteAccount: async (data: DeleteAccountRequest): Promise<void> => {
     await api.post('/user/delete-account', data);
+  },
+
+  enableWhatsapp: async (data: EnableWhatsappRequest): Promise<void> => {
+    await api.patch('/user/enable-whatsapp', data);
+  },
+
+  disableWhatsapp: async (): Promise<void> => {
+    await api.patch('/user/disable-whatsapp', {});
   }
 };
