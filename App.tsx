@@ -993,6 +993,7 @@ const App: React.FC = () => {
           amount: selectedBill.amount,
           date: selectedBill.purchaseDate || selectedBill.date,
           category: selectedBill.category,
+          fixedBillGenerationStrategy: selectedBill.fixedBillGenerationStrategy,
           type: 'expense'
         } : undefined}
       />

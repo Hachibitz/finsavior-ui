@@ -21,6 +21,7 @@ export interface BillDTO {
   cardId?: string;
   purchaseDate?: string;
   fixedBillId?: number;
+  fixedBillGenerationStrategy?: 'YEARLY_UPFRONT' | 'MONTHLY_FIRST_DAY';
 }
 
 const mapDTOToBill = (dto: BillDTO | undefined, fallback?: Partial<Bill>): Bill => ({
@@ -39,6 +40,7 @@ const mapDTOToBill = (dto: BillDTO | undefined, fallback?: Partial<Bill>): Bill 
   purchaseDate: dto?.purchaseDate ?? fallback?.purchaseDate,
   isRecurrent: dto?.isRecurrent ?? fallback?.isRecurrent,
   fixedBillId: dto?.fixedBillId ?? fallback?.fixedBillId,
+  fixedBillGenerationStrategy: dto?.fixedBillGenerationStrategy ?? fallback?.fixedBillGenerationStrategy,
   installments: dto?.currentInstallment !== undefined && dto?.installmentCount !== undefined ? { current: dto.currentInstallment, total: dto.installmentCount } : fallback?.installments,
 });
 
@@ -69,6 +71,7 @@ const mapBillToDTO = (bill: any, existing?: BillDTO, table: 'MAIN' | 'CREDIT_CAR
     paymentType: bill.paymentType || existing?.paymentType,
     cardId: bill.cardId || existing?.cardId,
     purchaseDate,
+    fixedBillGenerationStrategy: bill.fixedBillGenerationStrategy || existing?.fixedBillGenerationStrategy,
   };
 };
 

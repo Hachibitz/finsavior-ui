@@ -6,6 +6,7 @@ export enum BillType {
 }
 
 export type TransactionType = 'income' | 'expense';
+export type FixedBillGenerationStrategy = 'YEARLY_UPFRONT' | 'MONTHLY_FIRST_DAY';
 
 export interface BaseRecord {
   id: string;
@@ -20,6 +21,7 @@ export interface Transaction extends BaseRecord {
   type: TransactionType;
   isPaid?: boolean;
   isRecurrent?: boolean;
+  fixedBillGenerationStrategy?: FixedBillGenerationStrategy;
   isInstallment?: boolean;
   installmentCount?: number;
   currentInstallment?: number;
@@ -50,6 +52,7 @@ export interface Bill extends BaseRecord {
   billType?: string | BillType;
   isRecurrent?: boolean;
   fixedBillId?: number;
+  fixedBillGenerationStrategy?: FixedBillGenerationStrategy;
   installments?: {
     current: number;
     total: number;

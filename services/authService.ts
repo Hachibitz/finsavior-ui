@@ -48,11 +48,10 @@ export const authService = {
 
   refreshToken: async (): Promise<string> => {
     const refreshToken = getRefreshToken();
-    if (!refreshToken) throw new Error('No refresh token available');
 
     // Swagger says it takes a string and returns a string
     // But let's handle JSON response just in case
-    const response = await api.post<any>('/auth/refresh-token', refreshToken);
+    const response = await api.post<any>('/auth/refresh-token', refreshToken || '');
     const newToken = typeof response === 'string' ? response : (response.accessToken || response.token || response.text);
     
     if (!newToken) throw new Error('New token not found in refresh response');
@@ -64,7 +63,14 @@ export const authService = {
   isAuthenticated: async (): Promise<boolean> => {
     try {
       const accessToken = getAccessToken();
-      if (!accessToken) return false;
+      if (!accessToken) {
+        try {
+          await authService.refreshToken();
+          return true;
+        } catch {
+          return false;
+        }
+      }
 
       const isValid = await authService.validateToken(accessToken);
       if (isValid) return true;
