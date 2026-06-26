@@ -253,6 +253,8 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
               <input 
                 type="number" 
                 step="0.01" 
+                min="0"
+                max="9999999999.99"
                 required
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
@@ -269,6 +271,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
             <input 
               type="text" 
               required
+              maxLength={100}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder={mode === 'PAYMENT_CARD' ? "ex: Nubank" : "ex: Salário, Aluguel, etc"}
@@ -411,7 +414,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
           {frequencyType === 'RECURRENT' && (
             <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl animate-fade-in">
               <p className="text-xs text-blue-400">
-                Isso repetirá a conta todos os meses até o final do ano.
+                Isso repetirá a conta automaticamente todos os meses. Você pode editá-la ou excluí-la a qualquer momento.
               </p>
             </div>
           )}

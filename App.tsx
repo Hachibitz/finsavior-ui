@@ -991,7 +991,7 @@ const App: React.FC = () => {
         initialData={selectedBill ? {
           description: selectedBill.description,
           amount: selectedBill.amount,
-          date: selectedBill.date,
+          date: selectedBill.purchaseDate || selectedBill.date,
           category: selectedBill.category,
           type: 'expense'
         } : undefined}

@@ -12,6 +12,7 @@ export interface BaseRecord {
   amount: number;
   description: string;
   date: string; // ISO string
+  purchaseDate?: string; // Real purchase/bill date (yyyy-MM-dd), independent of the billing month
 }
 
 export interface Transaction extends BaseRecord {
@@ -47,6 +48,8 @@ export interface Bill extends BaseRecord {
   cardId?: string;
   billTable?: string;
   billType?: string | BillType;
+  isRecurrent?: boolean;
+  fixedBillId?: number;
   installments?: {
     current: number;
     total: number;
