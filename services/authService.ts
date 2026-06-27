@@ -18,6 +18,7 @@ export const authService = {
     if (accessToken) {
       setAccessToken(accessToken);
       if (refreshToken) setRefreshToken(refreshToken);
+      localStorage.setItem('auth_provider', 'password');
       
       // Store email if the username looks like one
       if (username.includes('@')) {
@@ -33,8 +34,8 @@ export const authService = {
     setRefreshToken(refreshToken);
   },
   
-  logout: () => {
-    apiLogout();
+  logout: (emitEvent: boolean = true) => {
+    apiLogout(emitEvent);
   },
   
   validateToken: async (token: string): Promise<boolean> => {
@@ -51,13 +52,17 @@ export const authService = {
 
     // Swagger says it takes a string and returns a string
     // But let's handle JSON response just in case
-    const response = await api.post<any>('/auth/refresh-token', refreshToken || '');
+    const response = await api.post<any>('/auth/refresh-token', refreshToken || undefined);
     const newToken = typeof response === 'string' ? response : (response.accessToken || response.token || response.text);
     
     if (!newToken) throw new Error('New token not found in refresh response');
     
     setAccessToken(newToken);
     return newToken;
+  },
+
+  hasRefreshToken: (): boolean => {
+    return !!getRefreshToken();
   },
 
   isAuthenticated: async (): Promise<boolean> => {
@@ -104,6 +109,7 @@ export const authService = {
     if (accessToken) {
       setAccessToken(accessToken);
       if (refreshToken) setRefreshToken(refreshToken);
+      localStorage.setItem('auth_provider', 'google');
     }
     return response;
   },
@@ -117,6 +123,7 @@ export const authService = {
     if (accessToken) {
       setAccessToken(accessToken);
       if (refreshToken) setRefreshToken(refreshToken);
+      localStorage.setItem('auth_provider', 'google');
     }
     return response;
   },

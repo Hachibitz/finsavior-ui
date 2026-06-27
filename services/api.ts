@@ -31,6 +31,7 @@ export const clearTokens = () => {
   localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
   localStorage.removeItem('rememberMe');
+  localStorage.removeItem('auth_provider');
   sessionStorage.removeItem('accessToken');
   sessionStorage.removeItem('refreshToken');
 };
@@ -49,7 +50,6 @@ function onRefreshFailed(error: any) {
   refreshErrorSubscribers.forEach(cb => cb(error));
   refreshSubscribers = [];
   refreshErrorSubscribers = [];
-  logout();
 }
 
 function addRefreshSubscriber(cb: (token: string) => void, errCb: (error: any) => void) {
@@ -57,9 +57,11 @@ function addRefreshSubscriber(cb: (token: string) => void, errCb: (error: any) =
   refreshErrorSubscribers.push(errCb);
 }
 
-export const logout = () => {
+export const logout = (emitEvent: boolean = true) => {
   clearTokens();
-  window.dispatchEvent(new CustomEvent('auth-logout'));
+  if (emitEvent) {
+    window.dispatchEvent(new CustomEvent('auth-logout'));
+  }
 };
 
 export async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -87,7 +89,7 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
 
   if (!response.ok) {
     const isAuthRoute = endpoint.includes('/auth/');
-    const isRefreshableStatus = response.status === 401 || response.status === 403;
+    const isRefreshableStatus = response.status === 401;
 
     if (isRefreshableStatus && !isAuthRoute) {
       const clone = response.clone();

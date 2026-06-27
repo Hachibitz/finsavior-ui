@@ -45,6 +45,7 @@ export const googleAuthService = {
 
           if (accessToken) {
             authService.setTokens(accessToken, refreshToken || accessToken);
+            localStorage.setItem('auth_provider', 'google');
             if (result.user.email) {
               localStorage.setItem('user_email', result.user.email);
             }
@@ -79,13 +80,13 @@ export const googleAuthService = {
     return onAuthStateChanged(auth, callback);
   },
 
-  logout: async (): Promise<void> => {
+  logout: async (emitEvent: boolean = true): Promise<void> => {
     try {
       if (Capacitor.isNativePlatform()) {
         await GoogleAuth.signOut();
       }
       await signOut(auth);
-      authService.logout();
+      authService.logout(emitEvent);
     } catch (error) {
       console.error('Erro ao deslogar do Firebase/Google:', error);
     }
@@ -97,5 +98,25 @@ export const googleAuthService = {
       return await user.getIdToken();
     }
     return null;
+  },
+
+  waitForCurrentIdToken: async (timeoutMs: number = 2500): Promise<string | null> => {
+    if (auth.currentUser) {
+      return await auth.currentUser.getIdToken(true);
+    }
+
+    return await new Promise((resolve) => {
+      let unsubscribe: () => void = () => {};
+      const timeout = window.setTimeout(() => {
+        unsubscribe();
+        resolve(null);
+      }, timeoutMs);
+
+      unsubscribe = onAuthStateChanged(auth, async (user) => {
+        window.clearTimeout(timeout);
+        unsubscribe();
+        resolve(user ? await user.getIdToken(true) : null);
+      });
+    });
   }
 };

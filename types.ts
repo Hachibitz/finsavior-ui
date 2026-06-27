@@ -172,6 +172,7 @@ export interface CheckoutSessionDTO {
   url: string;
   email: string;
   clientSecret: string;
+  hostedCheckout?: boolean;
 }
 
 export interface Goal {

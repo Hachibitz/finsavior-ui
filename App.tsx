@@ -158,10 +158,12 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogout = React.useCallback(() => {
+  const clearAuthenticatedState = React.useCallback((signOutGoogle: boolean = true) => {
     setIsLoggedIn(false);
-    authService.logout();
-    googleAuthService.logout();
+    authService.logout(false);
+    if (signOutGoogle) {
+      googleAuthService.logout(false);
+    }
     setProfile(null);
     setBills([]);
     setCardTransactions([]);
@@ -173,21 +175,46 @@ const App: React.FC = () => {
     localStorage.removeItem('whatsapp_prompt_last_shown');
   }, []);
 
+  const restoreGoogleBackendSession = React.useCallback(async (): Promise<boolean> => {
+    try {
+      if (localStorage.getItem('auth_provider') !== 'google') return false;
+      const idToken = await googleAuthService.waitForCurrentIdToken();
+      if (!idToken) return false;
+
+      await authService.loginWithGoogle(idToken);
+      setIsLoggedIn(true);
+      return true;
+    } catch (error) {
+      console.error('Failed to restore Google session:', error);
+      return false;
+    }
+  }, []);
+
+  const handleLogout = React.useCallback(() => {
+    clearAuthenticatedState(true);
+  }, [clearAuthenticatedState]);
+
   useEffect(() => {
     const checkAuth = async () => {
-      const authenticated = await authService.isAuthenticated();
+      let authenticated = await authService.isAuthenticated();
+      if (!authenticated) {
+        authenticated = await restoreGoogleBackendSession();
+      }
       setIsLoggedIn(authenticated);
       setIsCheckingAuth(false);
     };
     checkAuth();
 
-    const handleAuthLogout = () => {
-      handleLogout();
+    const handleAuthLogout = async () => {
+      const restored = await restoreGoogleBackendSession();
+      if (!restored) {
+        clearAuthenticatedState(true);
+      }
     };
 
     window.addEventListener('auth-logout', handleAuthLogout);
     return () => window.removeEventListener('auth-logout', handleAuthLogout);
-  }, [handleLogout]);
+  }, [clearAuthenticatedState, restoreGoogleBackendSession]);
 
   const fetchProfile = async () => {
     try {
