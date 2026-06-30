@@ -106,8 +106,11 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
       }
     } catch (error: any) {
       console.error('Chat error:', error);
-      const errorMsg = error?.response?.data?.message || error?.message || 'Erro ao processar sua pergunta.';
-      setMessages(prev => [...prev, { role: 'assistant', content: `Desculpe, houve um erro: ${errorMsg} 😕` }]);
+      const errorMsg = error?.data?.msg || error?.message || 'Não foi possível processar sua pergunta agora.';
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: `${errorMsg} Tente novamente em instantes. 😕`
+      }]);
       showToast(errorMsg, 'error');
     } finally {
       setIsTyping(false);
