@@ -222,9 +222,19 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
               className={`flex items-start gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''} animate-slide-up`}
             >
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 overflow-hidden ${
-                msg.role === 'user' ? 'bg-indigo-500 text-white' : 'bg-slate-800 border border-white/10'
+                msg.role === 'user'
+                  ? profile?.profilePicture ? 'bg-transparent' : 'bg-indigo-500 text-white'
+                  : 'bg-slate-800 border border-white/10'
               }`}>
-                {msg.role === 'user' ? <User size={20} /> : <SaviIcon className="w-full h-full" />}
+                {msg.role === 'user' ? (
+                  profile?.profilePicture ? (
+                    <img src={profile.profilePicture} alt="User" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  ) : (
+                    <User size={20} />
+                  )
+                ) : (
+                  <SaviIcon className="w-full h-full" />
+                )}
               </div>
               <div className={`max-w-[85%] md:max-w-[70%] p-4 rounded-2xl text-sm leading-relaxed ${
                 msg.role === 'user' 
