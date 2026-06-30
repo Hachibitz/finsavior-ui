@@ -40,6 +40,7 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
   const [coinsBalance, setCoinsBalance] = useState(profile?.coins || 0);
   
   const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const { showToast } = useToast();
 
   const COIN_COST = 10;
@@ -50,8 +51,10 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
   }, [profile]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, isTyping]);
+    if (!isLoadingHistory) {
+      scrollToBottom();
+    }
+  }, [messages, isTyping, isLoadingHistory]);
 
   const fetchHistory = async () => {
     try {
@@ -65,9 +68,12 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
   };
 
   const scrollToBottom = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    requestAnimationFrame(() => {
+      bottomRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+      if (scrollRef.current) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }
+    });
   };
 
   const handleSend = async () => {
@@ -244,6 +250,7 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
             </div>
           </div>
         )}
+        <div ref={bottomRef} aria-hidden="true" />
       </div>
 
       {/* Footer / Input */}
