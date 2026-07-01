@@ -3,8 +3,15 @@ import { Check, Zap, ArrowLeft, Loader2 } from 'lucide-react';
 import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
 import { loadStripe } from '@stripe/stripe-js';
+import { useTranslation } from 'react-i18next';
 import { paymentService } from '../services/paymentService';
+import { googlePlayBillingService } from '../services/googlePlayBillingService';
 import { UserProfile } from '../types';
+
+const planFamily = (planType?: string) => {
+  if (!planType || planType === 'FREE') return 'FREE';
+  return planType.replace(/^(STRIPE_|PLAY_)/, '').replace(/_MONTHLY|_ANNUAL$/, '');
+};
 
 const STRIPE_PUBLIC_KEY = import.meta.env.PROD 
   ? 'pk_live_51RAXKGP48Sfjk7zmg09SbDC5o0ZEThNvRfXQ0CcxbLaM9Y89n3rzPDeKr8uy2FQxvJfLPfRciM9FwvxlvXVDBQ8p00Ikf069O6' 
@@ -126,6 +133,8 @@ interface PlansViewProps {
 }
 
 const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
+  const { t } = useTranslation();
+  const usePlayBilling = googlePlayBillingService.isAndroidNative();
   const [loading, setLoading] = useState(false);
   const [checkoutActive, setCheckoutActive] = useState(false);
   const [stripeInstance, setStripeInstance] = useState<any>(null);
@@ -161,7 +170,9 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
   const handlePlanClick = (planGroup: any) => {
     if (planGroup.name === 'FREE') return;
     
-    const isCurrent = planGroup.monthly?.type === currentPlanDs || planGroup.yearly?.type === currentPlanDs;
+    const isCurrent =
+      planFamily(planGroup.monthly?.type) === planFamily(currentPlanDs) ||
+      planFamily(planGroup.yearly?.type) === planFamily(currentPlanDs);
     if (isCurrent) return;
 
     setSelectedPlanGroup(planGroup);
@@ -173,7 +184,7 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
     const sessionId = params.get('session_id');
     if (sessionId) {
       // Simple confirmation flow: notify user and clean URL
-      alert('Assinatura concluída! Seu plano ficará disponível em instantes.');
+      alert(t('plans.checkoutSuccess'));
       params.delete('session_id');
       const newUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
       window.history.replaceState({}, '', newUrl);
@@ -206,6 +217,13 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
     setShowChoiceModal(false);
     setLoading(true);
     try {
+      if (usePlayBilling) {
+        await googlePlayBillingService.purchaseSubscription(planType);
+        alert(t('plans.checkoutSuccess'));
+        window.location.reload();
+        return;
+      }
+
       console.log('Starting checkout for plan:', planType);
       const userEmail = profile?.email || localStorage.getItem('user_email') || '';
       console.log('Using email for checkout:', userEmail);
@@ -243,8 +261,8 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
       }
     } catch (error: any) {
       console.error('Checkout error detail:', error);
-      const msg = error.message || 'Erro desconhecido';
-      alert(`Erro ao iniciar checkout: ${msg}. Tente novamente.`);
+      const msg = error.message || t('plans.checkoutError');
+      alert(msg);
     } finally {
       setLoading(false);
     }
@@ -266,7 +284,7 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
           className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-4"
         >
           <ArrowLeft size={20} />
-          <span>Voltar para planos</span>
+          <span>{t('plans.backToPlans')}</span>
         </button>
         <div id="checkout-container" className="bg-white rounded-3xl overflow-hidden min-h-[600px]"></div>
       </div>
@@ -276,13 +294,18 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
   return (
     <div className="space-y-8 animate-fade-in pb-20">
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-extrabold text-white mb-2">Planos FinSavior</h1>
-        <p className="text-slate-400">Escolha o plano ideal para sua jornada financeira.</p>
+        <h1 className="text-3xl font-extrabold text-white mb-2">{t('plans.title')}</h1>
+        <p className="text-slate-400">{t('plans.subtitle')}</p>
+        {usePlayBilling && (
+          <p className="text-xs text-emerald-400 mt-2">{t('plans.playBilling')}</p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-6">
         {groupedPlans.map((group: any) => {
-          const isCurrent = group.monthly?.type === currentPlanDs || group.yearly?.type === currentPlanDs;
+          const isCurrent =
+            planFamily(group.monthly?.type) === planFamily(currentPlanDs) ||
+            planFamily(group.yearly?.type) === planFamily(currentPlanDs);
           const isPro = group.name !== 'FREE';
           
           return (
@@ -348,11 +371,11 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
                 {loading && selectedPlanGroup?.name === group.name ? (
                   <Loader2 className="animate-spin" size={18} />
                 ) : isCurrent ? (
-                  'PLANO ATUAL'
+                  t('plans.current')
                 ) : isPro ? (
-                  'MUDAR PARA ESTE PLANO'
+                  t('plans.upgrade')
                 ) : (
-                  'PLANO BÁSICO'
+                  t('plans.free')
                 )}
               </button>
             </div>
@@ -361,7 +384,7 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
       </div>
 
       <p className="text-center text-xs text-slate-500 mt-8">
-        * O período de teste gratuito é concedido apenas para a primeira assinatura.
+        {t('plans.trialNote')}
       </p>
 
       {/* Choice Modal */}

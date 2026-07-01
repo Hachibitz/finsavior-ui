@@ -22,6 +22,9 @@ import { UserProfile } from '../types';
 import { userService } from '../services/userService';
 import { whatsappService } from '../services/whatsappService';
 import { paymentService } from '../services/paymentService';
+import { googlePlayBillingService } from '../services/googlePlayBillingService';
+import LanguageSelector from './LanguageSelector';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '../contexts/ToastContext';
 
 interface AccountViewProps {
@@ -31,6 +34,7 @@ interface AccountViewProps {
 }
 
 const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, onNavigateToPlans }) => {
+  const { t } = useTranslation();
   const { showToast } = useToast();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -212,6 +216,7 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
 
   const subscriptionStatus = profile?.plan.subscriptionStatus;
   const isCanceledAtEnd = subscriptionStatus === 'CANCELED_AT_PERIOD_END';
+  const isGooglePlaySubscription = profile?.plan.subscriptionProvider === 'GOOGLE_PLAY';
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-20 animate-slide-up">
@@ -280,8 +285,12 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Account Settings */}
         <div className="space-y-6">
-          <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] ml-4">Configurações de Conta</h3>
+          <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] ml-4">{t('account.settings')}</h3>
           
+          <div className="glass-card rounded-3xl border border-white/5 overflow-hidden p-5">
+            <LanguageSelector />
+          </div>
+
           <div className="glass-card rounded-3xl border border-white/5 overflow-hidden">
             <button 
               onClick={() => setIsChangingPassword(true)}
@@ -342,7 +351,23 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
             {profile?.plan.planDs !== 'FREE' && (
               <>
                 <div className="h-px bg-white/5 mx-5" />
-                {isCanceledAtEnd ? (
+                {isGooglePlaySubscription ? (
+                  <button
+                    onClick={() => googlePlayBillingService.openPlaySubscriptionManagement()}
+                    className="w-full p-5 flex items-center justify-between hover:bg-white/5 transition-all group"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <ExternalLink size={20} />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-sm font-bold text-white">{t('account.managePlaySubscription')}</p>
+                        <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">{t('account.playSubscriptionHint')}</p>
+                      </div>
+                    </div>
+                    <ChevronRight size={18} className="text-slate-600" />
+                  </button>
+                ) : isCanceledAtEnd ? (
                   <button 
                     onClick={handleReactivateSubscription}
                     disabled={isLoading}

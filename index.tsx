@@ -1,3 +1,4 @@
+import './i18n';
 import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
@@ -5,6 +6,7 @@ import { ToastProvider } from './contexts/ToastContext';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
 import { admobService } from './services/admobService';
+import { googlePlayBillingService } from './services/googlePlayBillingService';
 
 const Root = () => {
   useEffect(() => {
@@ -12,6 +14,7 @@ const Root = () => {
       StatusBar.setOverlaysWebView({ overlay: true });
       StatusBar.setStyle({ style: Style.Dark });
       admobService.initialize();
+      googlePlayBillingService.initialize();
     }
   }, []);
 

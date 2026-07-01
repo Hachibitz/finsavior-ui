@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import SearchModal from './SearchModal';
 import { FinSaviorLogo } from './Logo';
+import { useTranslation } from 'react-i18next';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -41,6 +42,7 @@ const Layout: React.FC<LayoutProps> = ({
   onOpenCoinStore,
   onOpenWhatsapp
 }) => {
+  const { t } = useTranslation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -68,12 +70,12 @@ const Layout: React.FC<LayoutProps> = ({
 
   // Modern Floating Dock Icons
   const navItems = [
-    { id: 'summary', label: 'Home', icon: LayoutDashboard },
-    { id: 'debits', label: 'Débitos', icon: Receipt },
-    { id: 'cards', label: 'Cartão', icon: CreditCard },
-    { id: 'assets', label: 'Rendas', icon: Wallet },
-    { id: 'goals', label: 'Metas', icon: Target },
-    { id: 'ai', label: 'IA', icon: BrainCircuit },
+    { id: 'summary', label: t('nav.summary'), icon: LayoutDashboard },
+    { id: 'debits', label: t('nav.debits'), icon: Receipt },
+    { id: 'cards', label: t('nav.cards'), icon: CreditCard },
+    { id: 'assets', label: t('nav.assets'), icon: Wallet },
+    { id: 'goals', label: t('nav.goals'), icon: Target },
+    { id: 'ai', label: t('nav.ai'), icon: BrainCircuit },
   ];
 
   return (
@@ -92,7 +94,7 @@ const Layout: React.FC<LayoutProps> = ({
                </div>
              </div>
              <div className="flex flex-col">
-               <span className="text-xs text-slate-400 font-medium">Bem vindo,</span>
+               <span className="text-xs text-slate-400 font-medium">{t('nav.welcome')}</span>
                <span className="text-sm font-bold text-white leading-tight">{profile?.name || profile?.firstName || 'Usuário'}</span>
              </div>
           </div>

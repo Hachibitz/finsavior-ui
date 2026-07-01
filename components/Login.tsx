@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { authService } from '../services/authService';
 import { googleAuthService } from '../services/googleAuthService';
 import { LogIn, Lock, User, Loader2, HelpCircle, ShieldCheck, ArrowRight, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import TermsModal from './TermsModal';
 import PasswordRecoveryModal from './PasswordRecoveryModal';
+import LanguageSelector from './LanguageSelector';
 import { FinSaviorLogo } from './Logo';
 
 interface LoginProps {
@@ -13,6 +15,7 @@ interface LoginProps {
 }
 
 const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigateToRegister }) => {
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -44,7 +47,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
       await authService.login(username, password, rememberMe);
       onLoginSuccess();
     } catch (err: any) {
-      setError(err.message || 'Falha no login. Verifique suas credenciais.');
+      setError(err.message || t('auth.loginFailed'));
     } finally {
       setLoading(false);
     }
@@ -65,7 +68,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
         onLoginSuccess();
       }
     } catch (err: any) {
-      setError(err.message || 'Falha no login com Google.');
+      setError(err.message || t('auth.googleFailed'));
     } finally {
       setGoogleLoading(false);
     }
@@ -108,13 +111,16 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
       <div className="w-full max-w-md animate-scale-in">
         <div className="text-center mb-8">
           <h1 className="text-5xl font-black text-white tracking-tight bg-gradient-to-br from-white to-slate-400 bg-clip-text text-transparent">FinSavior</h1>
-          <p className="text-slate-400 mt-2">Sua liberdade financeira começa aqui</p>
+          <p className="text-slate-400 mt-2">{t('auth.welcome')}</p>
+          <div className="mt-4 max-w-xs mx-auto">
+            <LanguageSelector variant="compact" />
+          </div>
         </div>
 
         <div className="glass-card p-8 rounded-3xl border border-white/10">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Usuário ou E-mail</label>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">{t('auth.username')}</label>
               <div className="relative">
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                 <input
@@ -129,7 +135,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Senha</label>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">{t('auth.password')}</label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                 <input
@@ -153,7 +159,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
                   className="w-4 h-4 rounded border-slate-700 bg-slate-900/50 text-primary focus:ring-primary/50"
                 />
                 <label htmlFor="rememberMe" className="text-sm text-slate-400 font-medium cursor-pointer select-none">
-                  Permanecer logado
+                  {t('auth.rememberMe')}
                 </label>
               </div>
               <button 
@@ -161,7 +167,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
                 onClick={() => setShowRecoveryModal(true)}
                 className="text-xs font-bold text-primary hover:underline uppercase tracking-widest"
               >
-                Esqueci minha senha
+                {t('auth.forgotPassword')}
               </button>
             </div>
 
@@ -179,10 +185,10 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
               {loading ? (
                 <>
                   <Loader2 className="animate-spin" size={20} />
-                  Entrando...
+                  {t('auth.loggingIn')}
                 </>
               ) : (
-                'Entrar'
+                t('auth.login')
               )}
             </button>
 
@@ -191,7 +197,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
                 <div className="w-full border-t border-slate-700"></div>
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-[#0b1121] px-4 text-slate-500 font-bold tracking-widest">Ou continue com</span>
+                <span className="bg-[#0b1121] px-4 text-slate-500 font-bold tracking-widest">{t('auth.continueWith')}</span>
               </div>
             </div>
 

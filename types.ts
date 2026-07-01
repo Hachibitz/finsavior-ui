@@ -146,6 +146,7 @@ export interface Plan {
   planId: string;
   planDs: string;
   subscriptionStatus?: SubscriptionStatusEnum;
+  subscriptionProvider?: 'STRIPE' | 'GOOGLE_PLAY' | 'PAYPAL' | string;
 }
 
 export interface UserProfile {
