@@ -14,6 +14,7 @@ export interface BaseRecord {
   description: string;
   date: string; // ISO string
   purchaseDate?: string; // Real purchase/bill date (yyyy-MM-dd), independent of the billing month
+  billingMonth?: string; // yyyy-MM — month the bill appears on (from calendar / fatura)
 }
 
 export interface Transaction extends BaseRecord {

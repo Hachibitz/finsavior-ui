@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Check } from 'lucide-react';
 import { Category, Transaction, CreditCard, FixedBillGenerationStrategy } from '../types';
+import { billDateToYYYYMM } from '../utils/billDate';
 
 interface TransactionFormProps {
   isOpen: boolean;
@@ -26,20 +27,10 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   const [category, setCategory] = useState(categories[0]?.id || '');
   const [cardId, setCardId] = useState(initialCardId || cards[0]?.id || '');
 
-  const getDefaultDate = React.useCallback(() => {
-    if (selectedMonth) {
-      const [year, month] = selectedMonth.split('-').map(Number);
-      const now = new Date();
-      // If it's the current month, use today's day. Otherwise use the 1st.
-      const day = (now.getFullYear() === year && (now.getMonth() + 1) === month) 
-        ? now.getDate() 
-        : 1;
-      return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-    }
-    return new Date().toISOString().split('T')[0];
-  }, [selectedMonth]);
+  const getDefaultBillingMonth = React.useCallback(() => selectedMonth || new Date().toISOString().slice(0, 7), [selectedMonth]);
 
-  const [date, setDate] = useState(getDefaultDate());
+  const [billingMonth, setBillingMonth] = useState(getDefaultBillingMonth());
+  const [purchaseDate, setPurchaseDate] = useState('');
   const [frequencyType, setFrequencyType] = useState<'SINGLE' | 'RECURRENT' | 'INSTALLMENT'>('SINGLE');
   const [fixedBillGenerationStrategy, setFixedBillGenerationStrategy] = useState<FixedBillGenerationStrategy>('YEARLY_UPFRONT');
   const [installmentCount, setInstallmentCount] = useState('2');
@@ -53,35 +44,16 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
 
   const [hasSynced, setHasSynced] = useState(false);
 
-  const formatToInputDate = (dateStr: string) => {
-    if (!dateStr) return getDefaultDate();
-    
-    // If it's already YYYY-MM-DD
+  const formatPurchaseDateForInput = (dateStr?: string) => {
+    if (!dateStr) return '';
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
-    
-    // If it has T (ISO string)
     if (dateStr.includes('T')) return dateStr.split('T')[0];
-    
-    // If it's like "Oct 2023" or "10/2023"
-    const months: Record<string, string> = {
-      'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04', 'May': '05', 'Jun': '06',
-      'Jul': '07', 'Aug': '08', 'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
-    };
-    
-    const parts = dateStr.split(' ');
-    if (parts.length === 2 && months[parts[0]]) {
-      return `${parts[1]}-${months[parts[0]]}-01`;
-    }
+    return '';
+  };
 
-    // Try to parse as Date object
-    try {
-      const d = new Date(dateStr);
-      if (!isNaN(d.getTime())) {
-        return d.toISOString().split('T')[0];
-      }
-    } catch (e) {}
-
-    return getDefaultDate();
+  const formatBillingMonthForInput = (dateStr?: string) => {
+    if (!dateStr) return getDefaultBillingMonth();
+    return billDateToYYYYMM(dateStr) || getDefaultBillingMonth();
   };
 
   // Sync with initialData or props
@@ -107,8 +79,8 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
         
         setCardId(initialData.cardId || cards[0]?.id || '');
         
-        // Fix: Ensure date is correctly pre-filled from initialData
-        setDate(formatToInputDate(initialData.date || ''));
+        setBillingMonth(formatBillingMonthForInput(initialData.billingMonth || initialData.date));
+        setPurchaseDate(formatPurchaseDateForInput(initialData.purchaseDate));
 
         setFrequencyType(initialData.isInstallment ? 'INSTALLMENT' : initialData.isRecurrent ? 'RECURRENT' : 'SINGLE');
         setFixedBillGenerationStrategy(initialData.fixedBillGenerationStrategy || 'YEARLY_UPFRONT');
@@ -139,8 +111,8 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
         if (initialAmount !== undefined) setAmount(initialAmount.toString());
         if (initialCardId) setCardId(initialCardId);
 
-        // Always set default date for new forms
-        setDate(getDefaultDate());
+        setBillingMonth(getDefaultBillingMonth());
+        setPurchaseDate('');
 
         if (!initialTitle && !initialAmount) {
           setAmount('');
@@ -152,7 +124,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
         setHasSynced(true);
       }
     }
-  }, [isOpen, initialData, initialTitle, initialAmount, forcedType, categories, cards, initialCardId, hasSynced, selectedMonth, getDefaultDate]);
+  }, [isOpen, initialData, initialTitle, initialAmount, forcedType, categories, cards, initialCardId, hasSynced, selectedMonth, getDefaultBillingMonth]);
 
   if (!isOpen) return null;
 
@@ -164,7 +136,9 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
       amount: parseFloat(amount),
       description,
       category: currentMode === 'PAYMENT_CARD' ? 'payment' : category,
-      date: new Date(date).toISOString(),
+      billingMonth,
+      purchaseDate: purchaseDate || undefined,
+      date: billingMonth,
       type,
       frequencyType,
       isRecurrent: frequencyType === 'RECURRENT',
@@ -320,7 +294,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                   </select>
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  <div>
                     <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Categoria</label>
                     <select 
@@ -334,13 +308,24 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                     </select>
                  </div>
                  <div>
-                    <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Data</label>
+                    <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Mês da fatura</label>
                     <input 
-                      type="date" 
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
+                      type="month" 
+                      value={billingMonth}
+                      onChange={(e) => setBillingMonth(e.target.value)}
                       className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary [color-scheme:dark]"
                     />
+                    <p className="text-[10px] text-slate-500 mt-1">Mês em que a conta entra no seu controle.</p>
+                 </div>
+                 <div className="sm:col-span-2">
+                    <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Data da compra (opcional)</label>
+                    <input 
+                      type="date" 
+                      value={purchaseDate}
+                      onChange={(e) => setPurchaseDate(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary [color-scheme:dark]"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1">Ex.: comprou em 25/dez, mas a fatura cai em janeiro — informe 25/dez aqui.</p>
                  </div>
               </div>
             </div>

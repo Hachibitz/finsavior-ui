@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Check, Trash2, Edit3, Save, AlertCircle } from 'lucide-react';
 import { AiBillExtractionDTO, TableType, DocumentType } from '../types';
 import { billService } from '../services/billService';
+import { yyyyMMToBillDate } from '../utils/billDate';
 
 interface DocReviewModalProps {
   extractedBills: AiBillExtractionDTO[];
@@ -60,19 +61,14 @@ const DocReviewModal: React.FC<DocReviewModalProps> = ({
     setLoading(true);
     try {
       const payload = selected.map(item => {
-        // Use targetDate if available (format YYYY-MM), otherwise use possibleDate or today
-        let finalDate = item.possibleDate;
-        if (item.targetDate) {
-          // If we have a targetDate (YYYY-MM) and a possibleDate (DD/MM/YYYY), 
-          // we should probably keep the day from possibleDate but use the month/year from targetDate
-          // However, the backend formatBillDate usually expects a standard format or specific month string.
-          // To be safe and follow the user's request that it should be saved for the target month:
-          const [targetYear, targetMonth] = item.targetDate.split('-');
-          if (item.possibleDate && item.possibleDate.includes('/')) {
-            const [day] = item.possibleDate.split('/');
-            finalDate = `${targetYear}-${targetMonth}-${day.padStart(2, '0')}`;
-          } else {
-            finalDate = `${item.targetDate}-01`;
+        const billingMonth = targetDate || new Date().toISOString().slice(0, 7);
+        let purchaseDate: string | undefined;
+
+        if (item.possibleDate && item.possibleDate.includes('/')) {
+          const parts = item.possibleDate.split('/');
+          if (parts.length === 3) {
+            const [day, month, year] = parts;
+            purchaseDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
           }
         }
 
@@ -80,7 +76,8 @@ const DocReviewModal: React.FC<DocReviewModalProps> = ({
           billName: item.billName,
           billValue: item.billValue,
           billDescription: item.billDescription || 'Importado via PDF',
-          billDate: finalDate || new Date().toISOString().split('T')[0],
+          billDate: yyyyMMToBillDate(billingMonth),
+          purchaseDate,
           billType: item.billType,
           billTable: item.billTable,
           paymentType: item.paymentType,

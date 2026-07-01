@@ -17,6 +17,7 @@ import Onboarding from './components/Onboarding';
 import Login from './components/Login';
 import RegisterView from './components/RegisterView';
 import TransactionForm from './components/TransactionForm';
+import { billDateToYYYYMM } from './utils/billDate';
 import ConfirmationModal from './components/ConfirmationModal';
 import VoiceFab from './components/VoiceFab';
 import { MOCK_BILLS, MOCK_CARD_TRANSACTIONS, MOCK_ASSETS, DEFAULT_CATEGORIES, MOCK_CARDS } from './constants';
@@ -351,28 +352,6 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Error fetching cards:', error);
     }
-  };
-
-  // Helper to derive YYYY-MM from various backend date formats
-  const billDateToYYYYMM = (dateStr?: string) => {
-    if (!dateStr) return null;
-    // ISO-like yyyy-mm or yyyy-mm-dd
-    const iso = dateStr.match(/^(\d{4})-(\d{2})/);
-    if (iso) return `${iso[1]}-${iso[2]}`;
-
-    // Format like 'Feb 2026' or 'Feb2026'
-    const mon = dateStr.match(/([A-Za-z]{3,})\s*(\d{4})/);
-    if (mon) {
-      const m = mon[1].slice(0,3).toLowerCase();
-      const months: Record<string, string> = { jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06', jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12' };
-      const mm = months[m] || '01';
-      return `${mon[2]}-${mm}`;
-    }
-
-    // Fallback: try native Date parse
-    const d = new Date(dateStr);
-    if (!isNaN(d.getTime())) return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    return null;
   };
 
   // Filter data by selected month for views and analytics (robust across formats)
@@ -1004,7 +983,8 @@ const App: React.FC = () => {
         initialData={selectedAsset ? {
           description: selectedAsset.description,
           amount: selectedAsset.amount,
-          date: selectedAsset.date,
+          billingMonth: billDateToYYYYMM(selectedAsset.date) || selectedMonth,
+          purchaseDate: selectedAsset.purchaseDate || '',
           type: 'income',
           category: selectedAsset.type === 'other' ? 'others' : selectedAsset.type
         } : undefined}
@@ -1029,7 +1009,8 @@ const App: React.FC = () => {
         initialData={selectedBill ? {
           description: selectedBill.description,
           amount: selectedBill.amount,
-          date: selectedBill.purchaseDate || selectedBill.date,
+          billingMonth: billDateToYYYYMM(selectedBill.date) || selectedMonth,
+          purchaseDate: selectedBill.purchaseDate || '',
           category: selectedBill.category,
           fixedBillGenerationStrategy: selectedBill.fixedBillGenerationStrategy,
           type: 'expense'
@@ -1063,9 +1044,10 @@ const App: React.FC = () => {
               description: data.billName || '',
               amount: data.billValue || 0,
               category: data.billCategory?.toLowerCase() || '',
-              date: data.possibleDate 
-                ? data.possibleDate.split('/').reverse().join('-') 
-                : (selectedMonth ? `${selectedMonth}-${new Date().getFullYear() === parseInt(selectedMonth.split('-')[0]) && (new Date().getMonth() + 1) === parseInt(selectedMonth.split('-')[1]) ? String(new Date().getDate()).padStart(2, '0') : '01'}` : new Date().toISOString().split('T')[0]),
+              billingMonth: selectedMonth,
+              purchaseDate: data.possibleDate
+                ? data.possibleDate.split('/').reverse().join('-')
+                : undefined,
               type: data.billTable === 'ASSETS' ? 'income' : 'expense',
               isInstallment: data.isInstallment || false,
               installmentCount: data.installmentCount || undefined,

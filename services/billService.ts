@@ -1,5 +1,6 @@
 import { api } from './api';
 import { Bill, CardTransaction, Asset } from '../types';
+import { resolveBillDateForDto, resolvePurchaseDateForDto } from '../utils/billDate';
 
 export interface BillDTO {
   id: number;
@@ -45,20 +46,14 @@ const mapDTOToBill = (dto: BillDTO | undefined, fallback?: Partial<Bill>): Bill 
 });
 
 const mapBillToDTO = (bill: any, existing?: BillDTO, table: 'MAIN' | 'CREDIT_CARD' | 'ASSETS' | 'PAYMENT_CARD' = 'MAIN', type: 'INCOME' | 'EXPENSE' | 'PAYMENT' = 'EXPENSE'): Partial<BillDTO> => {
-  const formattedDate = bill.date ? bill.date.split('T')[0] : existing?.billDate || new Date().toISOString().split('T')[0];
-
-  // Derive the real purchase date: prefer a full ISO date picked in the form;
-  // otherwise keep whatever purchase date the record already had (so toggling
-  // "paid", whose bill.date is just a "Jun 2026" month string, doesn't wipe it).
-  const isoDay = (bill.date ? String(bill.date) : '').split('T')[0];
-  const isIsoDate = /^\d{4}-\d{2}-\d{2}$/.test(isoDay);
-  const purchaseDate = isIsoDate ? isoDay : (bill.purchaseDate || existing?.purchaseDate);
+  const billDate = resolveBillDateForDto(bill, existing?.billDate);
+  const purchaseDate = resolvePurchaseDateForDto(bill.purchaseDate, existing?.purchaseDate);
 
   return {
     ...existing,
     billName: bill.description || existing?.billName,
     billValue: bill.amount || existing?.billValue,
-    billDate: formattedDate,
+    billDate,
     billCategory: bill.category || existing?.billCategory || 'Others',
     paid: bill.isPaid !== undefined ? bill.isPaid : existing?.paid,
     billTable: (bill.billTable || table) as any,
