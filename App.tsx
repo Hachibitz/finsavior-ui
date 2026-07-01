@@ -196,6 +196,17 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const checkAuth = async () => {
+      try {
+        const redirectResult = await googleAuthService.handleRedirectResult();
+        if (redirectResult?.loggedIn) {
+          setIsLoggedIn(true);
+          setIsCheckingAuth(false);
+          return;
+        }
+      } catch (error) {
+        console.error('Google redirect auth failed:', error);
+      }
+
       let authenticated = await authService.isAuthenticated();
       if (!authenticated) {
         authenticated = await restoreGoogleBackendSession();

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { authService } from '../services/authService';
 import { googleAuthService } from '../services/googleAuthService';
 import { LogIn, Lock, User, Loader2, HelpCircle, ShieldCheck, ArrowRight, X } from 'lucide-react';
@@ -26,6 +26,16 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
   const [termsType, setTermsType] = useState<'terms' | 'privacy'>('terms');
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
 
+  useEffect(() => {
+    const pendingRegister = googleAuthService.consumePendingRegister();
+    if (pendingRegister) {
+      setGoogleUserData(pendingRegister);
+      setShowGoogleRegisterModal(true);
+    } else if (googleAuthService.isRedirectPending()) {
+      setGoogleLoading(true);
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -45,8 +55,11 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
     setError(null);
     try {
       const result = await googleAuthService.signIn();
-      if (result && (result as any).userNotFound) {
-        setGoogleUserData((result as any).firebaseUser);
+      if ('redirecting' in result && result.redirecting) {
+        return;
+      }
+      if (result && 'userNotFound' in result && result.userNotFound) {
+        setGoogleUserData(result.firebaseUser);
         setShowGoogleRegisterModal(true);
       } else {
         onLoginSuccess();
