@@ -40,6 +40,7 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
   const [coinsBalance, setCoinsBalance] = useState(profile?.coins || 0);
   
   const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const { showToast } = useToast();
 
   const COIN_COST = 10;
@@ -50,8 +51,10 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
   }, [profile]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, isTyping]);
+    if (!isLoadingHistory) {
+      scrollToBottom();
+    }
+  }, [messages, isTyping, isLoadingHistory]);
 
   const fetchHistory = async () => {
     try {
@@ -65,9 +68,12 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
   };
 
   const scrollToBottom = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    requestAnimationFrame(() => {
+      bottomRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+      if (scrollRef.current) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }
+    });
   };
 
   const handleSend = async () => {
@@ -100,8 +106,11 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
       }
     } catch (error: any) {
       console.error('Chat error:', error);
-      const errorMsg = error?.response?.data?.message || error?.message || 'Erro ao processar sua pergunta.';
-      setMessages(prev => [...prev, { role: 'assistant', content: `Desculpe, houve um erro: ${errorMsg} 😕` }]);
+      const errorMsg = error?.data?.msg || error?.message || 'Não foi possível processar sua pergunta agora.';
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: `${errorMsg} Tente novamente em instantes. 😕`
+      }]);
       showToast(errorMsg, 'error');
     } finally {
       setIsTyping(false);
@@ -216,9 +225,19 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
               className={`flex items-start gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''} animate-slide-up`}
             >
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 overflow-hidden ${
-                msg.role === 'user' ? 'bg-indigo-500 text-white' : 'bg-slate-800 border border-white/10'
+                msg.role === 'user'
+                  ? profile?.profilePicture ? 'bg-transparent' : 'bg-indigo-500 text-white'
+                  : 'bg-slate-800 border border-white/10'
               }`}>
-                {msg.role === 'user' ? <User size={20} /> : <SaviIcon className="w-full h-full" />}
+                {msg.role === 'user' ? (
+                  profile?.profilePicture ? (
+                    <img src={profile.profilePicture} alt="User" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  ) : (
+                    <User size={20} />
+                  )
+                ) : (
+                  <SaviIcon className="w-full h-full" />
+                )}
               </div>
               <div className={`max-w-[85%] md:max-w-[70%] p-4 rounded-2xl text-sm leading-relaxed ${
                 msg.role === 'user' 
@@ -244,6 +263,7 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
             </div>
           </div>
         )}
+        <div ref={bottomRef} aria-hidden="true" />
       </div>
 
       {/* Footer / Input */}

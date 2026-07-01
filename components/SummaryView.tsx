@@ -24,6 +24,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { getCategoryIcon } from '../constants';
+import { formatShortDate } from '../utils/format';
 import { aiAdviceService } from '../services/aiAdviceService';
 import { billService } from '../services/billService';
 import { Notification } from '../types/notifications';
@@ -722,7 +723,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({
                         <div className="min-w-0">
                           <p className="font-bold text-white text-sm truncate w-32 md:w-40">{t.description}</p>
                           <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
-                            {new Date(t.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                            {formatShortDate((t as any).purchaseDate, t.date)}
                           </p>
                         </div>
                       </div>

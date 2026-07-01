@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Check, Zap, ArrowLeft, Loader2 } from 'lucide-react';
+import { Browser } from '@capacitor/browser';
+import { Capacitor } from '@capacitor/core';
 import { loadStripe } from '@stripe/stripe-js';
 import { paymentService } from '../services/paymentService';
 import { UserProfile } from '../types';
@@ -207,11 +209,18 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
       console.log('Starting checkout for plan:', planType);
       const userEmail = profile?.email || localStorage.getItem('user_email') || '';
       console.log('Using email for checkout:', userEmail);
+      const shouldUseHostedCheckout = Capacitor.isNativePlatform();
       
-      const session = await paymentService.createCheckoutSession(planType, userEmail);
+      const session = await paymentService.createCheckoutSession(planType, userEmail, shouldUseHostedCheckout);
       console.log('Checkout session created:', session);
       
-      if (session.clientSecret) {
+      if (shouldUseHostedCheckout && session.url) {
+        console.log('Opening hosted checkout in system browser:', session.url);
+        await Browser.open({
+          url: session.url,
+          presentationStyle: 'fullscreen',
+        });
+      } else if (session.clientSecret) {
         const stripe = await loadStripe(STRIPE_PUBLIC_KEY);
         if (!stripe) throw new Error('Falha ao carregar o Stripe');
         setStripeInstance(stripe);

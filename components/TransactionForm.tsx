@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Check } from 'lucide-react';
-import { Category, Transaction, CreditCard } from '../types';
+import { Category, Transaction, CreditCard, FixedBillGenerationStrategy } from '../types';
 
 interface TransactionFormProps {
   isOpen: boolean;
@@ -41,6 +41,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
 
   const [date, setDate] = useState(getDefaultDate());
   const [frequencyType, setFrequencyType] = useState<'SINGLE' | 'RECURRENT' | 'INSTALLMENT'>('SINGLE');
+  const [fixedBillGenerationStrategy, setFixedBillGenerationStrategy] = useState<FixedBillGenerationStrategy>('YEARLY_UPFRONT');
   const [installmentCount, setInstallmentCount] = useState('2');
   const [currentInstallment, setCurrentInstallment] = useState('1');
   const [paymentType, setPaymentType] = useState<'Total' | 'Parcial' | 'Mínimo'>('Total');
@@ -110,6 +111,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
         setDate(formatToInputDate(initialData.date || ''));
 
         setFrequencyType(initialData.isInstallment ? 'INSTALLMENT' : initialData.isRecurrent ? 'RECURRENT' : 'SINGLE');
+        setFixedBillGenerationStrategy(initialData.fixedBillGenerationStrategy || 'YEARLY_UPFRONT');
         setInstallmentCount(initialData.installmentCount?.toString() || '2');
         setCurrentInstallment(initialData.currentInstallment?.toString() || '1');
         setPaymentType(initialData.paymentType as any || 'Total');
@@ -145,6 +147,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
           setDescription('');
           setCategory(categories[0]?.id || '');
           setFrequencyType('SINGLE');
+          setFixedBillGenerationStrategy('YEARLY_UPFRONT');
         }
         setHasSynced(true);
       }
@@ -165,6 +168,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
       type,
       frequencyType,
       isRecurrent: frequencyType === 'RECURRENT',
+      fixedBillGenerationStrategy: frequencyType === 'RECURRENT' ? fixedBillGenerationStrategy : undefined,
       isInstallment: frequencyType === 'INSTALLMENT',
       installmentCount: frequencyType === 'INSTALLMENT' ? parseInt(installmentCount) : undefined,
       currentInstallment: frequencyType === 'INSTALLMENT' ? parseInt(currentInstallment) : undefined,
@@ -179,6 +183,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
     setAmount('');
     setDescription('');
     setFrequencyType('SINGLE');
+    setFixedBillGenerationStrategy('YEARLY_UPFRONT');
     setInstallmentCount('2');
     onClose();
   };
@@ -253,6 +258,8 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
               <input 
                 type="number" 
                 step="0.01" 
+                min="0"
+                max="9999999999.99"
                 required
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
@@ -269,6 +276,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
             <input 
               type="text" 
               required
+              maxLength={100}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder={mode === 'PAYMENT_CARD' ? "ex: Nubank" : "ex: Salário, Aluguel, etc"}
@@ -409,10 +417,34 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
           )}
 
           {frequencyType === 'RECURRENT' && (
-            <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl animate-fade-in">
-              <p className="text-xs text-blue-400">
-                Isso repetirá a conta todos os meses até o final do ano.
-              </p>
+            <div className="space-y-3 animate-fade-in">
+              <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider">Como criar a conta fixa?</label>
+              <div className="grid grid-cols-1 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFixedBillGenerationStrategy('YEARLY_UPFRONT')}
+                  className={`text-left p-3 rounded-xl border transition-all ${
+                    fixedBillGenerationStrategy === 'YEARLY_UPFRONT'
+                      ? 'bg-blue-500/10 border-blue-500/40 text-blue-100'
+                      : 'bg-slate-900/50 border-slate-700 text-slate-400'
+                  }`}
+                >
+                  <span className="block text-sm font-bold">Criar até dezembro</span>
+                  <span className="block text-xs mt-1">Insere agora todos os meses restantes do ano e renova no dia 1 de janeiro.</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFixedBillGenerationStrategy('MONTHLY_FIRST_DAY')}
+                  className={`text-left p-3 rounded-xl border transition-all ${
+                    fixedBillGenerationStrategy === 'MONTHLY_FIRST_DAY'
+                      ? 'bg-blue-500/10 border-blue-500/40 text-blue-100'
+                      : 'bg-slate-900/50 border-slate-700 text-slate-400'
+                  }`}
+                >
+                  <span className="block text-sm font-bold">Criar mês a mês</span>
+                  <span className="block text-xs mt-1">Insere este mês agora e cria a próxima conta todo dia 1 às 00:00.</span>
+                </button>
+              </div>
             </div>
           )}
 

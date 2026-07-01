@@ -18,6 +18,7 @@ export const authService = {
     if (accessToken) {
       setAccessToken(accessToken);
       if (refreshToken) setRefreshToken(refreshToken);
+      localStorage.setItem('auth_provider', 'password');
       
       // Store email if the username looks like one
       if (username.includes('@')) {
@@ -33,8 +34,8 @@ export const authService = {
     setRefreshToken(refreshToken);
   },
   
-  logout: () => {
-    apiLogout();
+  logout: (emitEvent: boolean = true) => {
+    apiLogout(emitEvent);
   },
   
   validateToken: async (token: string): Promise<boolean> => {
@@ -48,11 +49,10 @@ export const authService = {
 
   refreshToken: async (): Promise<string> => {
     const refreshToken = getRefreshToken();
-    if (!refreshToken) throw new Error('No refresh token available');
 
     // Swagger says it takes a string and returns a string
     // But let's handle JSON response just in case
-    const response = await api.post<any>('/auth/refresh-token', refreshToken);
+    const response = await api.post<any>('/auth/refresh-token', refreshToken || undefined);
     const newToken = typeof response === 'string' ? response : (response.accessToken || response.token || response.text);
     
     if (!newToken) throw new Error('New token not found in refresh response');
@@ -61,10 +61,21 @@ export const authService = {
     return newToken;
   },
 
+  hasRefreshToken: (): boolean => {
+    return !!getRefreshToken();
+  },
+
   isAuthenticated: async (): Promise<boolean> => {
     try {
       const accessToken = getAccessToken();
-      if (!accessToken) return false;
+      if (!accessToken) {
+        try {
+          await authService.refreshToken();
+          return true;
+        } catch {
+          return false;
+        }
+      }
 
       const isValid = await authService.validateToken(accessToken);
       if (isValid) return true;
@@ -98,6 +109,7 @@ export const authService = {
     if (accessToken) {
       setAccessToken(accessToken);
       if (refreshToken) setRefreshToken(refreshToken);
+      localStorage.setItem('auth_provider', 'google');
     }
     return response;
   },
@@ -111,6 +123,7 @@ export const authService = {
     if (accessToken) {
       setAccessToken(accessToken);
       if (refreshToken) setRefreshToken(refreshToken);
+      localStorage.setItem('auth_provider', 'google');
     }
     return response;
   },

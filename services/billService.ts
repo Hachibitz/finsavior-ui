@@ -19,6 +19,9 @@ export interface BillDTO {
   isRecurrent: boolean;
   paymentType?: string;
   cardId?: string;
+  purchaseDate?: string;
+  fixedBillId?: number;
+  fixedBillGenerationStrategy?: 'YEARLY_UPFRONT' | 'MONTHLY_FIRST_DAY';
 }
 
 const mapDTOToBill = (dto: BillDTO | undefined, fallback?: Partial<Bill>): Bill => ({
@@ -34,11 +37,23 @@ const mapDTOToBill = (dto: BillDTO | undefined, fallback?: Partial<Bill>): Bill 
   cardId: dto?.cardId ?? fallback?.cardId,
   billTable: dto?.billTable ?? fallback?.billTable,
   billType: dto?.billType ?? fallback?.billType,
+  purchaseDate: dto?.purchaseDate ?? fallback?.purchaseDate,
+  isRecurrent: dto?.isRecurrent ?? fallback?.isRecurrent,
+  fixedBillId: dto?.fixedBillId ?? fallback?.fixedBillId,
+  fixedBillGenerationStrategy: dto?.fixedBillGenerationStrategy ?? fallback?.fixedBillGenerationStrategy,
   installments: dto?.currentInstallment !== undefined && dto?.installmentCount !== undefined ? { current: dto.currentInstallment, total: dto.installmentCount } : fallback?.installments,
 });
 
 const mapBillToDTO = (bill: any, existing?: BillDTO, table: 'MAIN' | 'CREDIT_CARD' | 'ASSETS' | 'PAYMENT_CARD' = 'MAIN', type: 'INCOME' | 'EXPENSE' | 'PAYMENT' = 'EXPENSE'): Partial<BillDTO> => {
   const formattedDate = bill.date ? bill.date.split('T')[0] : existing?.billDate || new Date().toISOString().split('T')[0];
+
+  // Derive the real purchase date: prefer a full ISO date picked in the form;
+  // otherwise keep whatever purchase date the record already had (so toggling
+  // "paid", whose bill.date is just a "Jun 2026" month string, doesn't wipe it).
+  const isoDay = (bill.date ? String(bill.date) : '').split('T')[0];
+  const isIsoDate = /^\d{4}-\d{2}-\d{2}$/.test(isoDay);
+  const purchaseDate = isIsoDate ? isoDay : (bill.purchaseDate || existing?.purchaseDate);
+
   return {
     ...existing,
     billName: bill.description || existing?.billName,
@@ -55,6 +70,8 @@ const mapBillToDTO = (bill: any, existing?: BillDTO, table: 'MAIN' | 'CREDIT_CAR
     currentInstallment: bill.currentInstallment ?? existing?.currentInstallment ?? 1,
     paymentType: bill.paymentType || existing?.paymentType,
     cardId: bill.cardId || existing?.cardId,
+    purchaseDate,
+    fixedBillGenerationStrategy: bill.fixedBillGenerationStrategy || existing?.fixedBillGenerationStrategy,
   };
 };
 
@@ -82,6 +99,7 @@ export const billService = {
       category: d.billCategory ?? 'others',
       cardId: d.cardId || '',
       paymentType: d.paymentType,
+      purchaseDate: d.purchaseDate,
       installments: d.currentInstallment !== undefined && d.installmentCount !== undefined ? { current: d.currentInstallment ?? 0, total: d.installmentCount ?? 0 } : undefined
     } as CardTransaction));
   },
@@ -100,6 +118,7 @@ export const billService = {
       category: d.billCategory ?? 'others',
       cardId: d.cardId || cardId,
       paymentType: d.paymentType,
+      purchaseDate: d.purchaseDate,
       installments: d.currentInstallment !== undefined && d.installmentCount !== undefined ? { current: d.currentInstallment ?? 0, total: d.installmentCount ?? 0 } : undefined
     } as CardTransaction));
   },
@@ -118,6 +137,7 @@ export const billService = {
       category: d.billCategory ?? 'others',
       cardId: d.cardId || '',
       paymentType: d.paymentType,
+      purchaseDate: d.purchaseDate,
       billType: 'PAYMENT'
     } as CardTransaction));
   },
@@ -156,6 +176,7 @@ export const billService = {
         amount: Number(d.billValue ?? 0),
         description: d.billName ?? '',
         date: d.billDate ?? formattedDate,
+        purchaseDate: d.purchaseDate,
         type
       } as Asset;
     });

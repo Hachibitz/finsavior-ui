@@ -2,13 +2,15 @@ const BASE_URL = import.meta.env.PROD
   ? 'https://www.finsavior.com.br/api' 
   : 'http://localhost:8085/api';
 
-export const getAccessToken = () => localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+let accessTokenMemory: string | null = sessionStorage.getItem('accessToken');
+
+export const getAccessToken = () => accessTokenMemory;
 export const setAccessToken = (token: string) => {
-  if (localStorage.getItem('rememberMe') === 'true') {
-    localStorage.setItem('accessToken', token);
-  } else {
-    sessionStorage.setItem('accessToken', token);
-  }
+  accessTokenMemory = token;
+  // Keep access tokens out of localStorage. sessionStorage is only a reload bridge
+  // and is cleared on logout; persisted auth is handled by the refresh token.
+  sessionStorage.setItem('accessToken', token);
+  localStorage.removeItem('accessToken');
 };
 
 export const getRefreshToken = () => localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken');
@@ -25,9 +27,11 @@ export const setRememberMe = (remember: boolean) => {
 };
 
 export const clearTokens = () => {
+  accessTokenMemory = null;
   localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
   localStorage.removeItem('rememberMe');
+  localStorage.removeItem('auth_provider');
   sessionStorage.removeItem('accessToken');
   sessionStorage.removeItem('refreshToken');
 };
@@ -46,7 +50,6 @@ function onRefreshFailed(error: any) {
   refreshErrorSubscribers.forEach(cb => cb(error));
   refreshSubscribers = [];
   refreshErrorSubscribers = [];
-  logout();
 }
 
 function addRefreshSubscriber(cb: (token: string) => void, errCb: (error: any) => void) {
@@ -54,9 +57,11 @@ function addRefreshSubscriber(cb: (token: string) => void, errCb: (error: any) =
   refreshErrorSubscribers.push(errCb);
 }
 
-export const logout = () => {
+export const logout = (emitEvent: boolean = true) => {
   clearTokens();
-  window.dispatchEvent(new CustomEvent('auth-logout'));
+  if (emitEvent) {
+    window.dispatchEvent(new CustomEvent('auth-logout'));
+  }
 };
 
 export async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -79,11 +84,12 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     ...options,
     headers,
+    credentials: 'include',
   });
 
   if (!response.ok) {
     const isAuthRoute = endpoint.includes('/auth/');
-    const isRefreshableStatus = response.status === 401 || response.status === 403;
+    const isRefreshableStatus = response.status === 401;
 
     if (isRefreshableStatus && !isAuthRoute) {
       const clone = response.clone();
@@ -117,31 +123,33 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
         isRefreshing = true;
         try {
           const refreshToken = getRefreshToken();
+          const refreshHeaders: Record<string, string> = {
+            'ngrok-skip-browser-warning': 'true',
+          };
           if (refreshToken) {
-            const refreshResponse = await fetch(`${BASE_URL}/auth/refresh-token`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'ngrok-skip-browser-warning': 'true',
-              },
-              body: refreshToken,
-            });
+            refreshHeaders['Content-Type'] = 'application/json';
+          }
+          const refreshResponse = await fetch(`${BASE_URL}/auth/refresh-token`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: refreshHeaders,
+            body: refreshToken || undefined,
+          });
 
-            if (refreshResponse.ok) {
-              const text = await refreshResponse.text();
-              let newToken: string;
-              try {
-                const json = JSON.parse(text);
-                newToken = json.accessToken || json.token || text;
-              } catch {
-                newToken = text;
-              }
-              
-              setAccessToken(newToken);
-              isRefreshing = false;
-              onRefreshed(newToken);
-              return request<T>(endpoint, { ...options, _retry: true } as any);
+          if (refreshResponse.ok) {
+            const text = await refreshResponse.text();
+            let newToken: string;
+            try {
+              const json = JSON.parse(text);
+              newToken = json.accessToken || json.token || text;
+            } catch {
+              newToken = text;
             }
+
+            setAccessToken(newToken);
+            isRefreshing = false;
+            onRefreshed(newToken);
+            return request<T>(endpoint, { ...options, _retry: true } as any);
           }
         } catch (error) {
           console.error('Token refresh failed:', error);

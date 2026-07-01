@@ -6,12 +6,14 @@ export enum BillType {
 }
 
 export type TransactionType = 'income' | 'expense';
+export type FixedBillGenerationStrategy = 'YEARLY_UPFRONT' | 'MONTHLY_FIRST_DAY';
 
 export interface BaseRecord {
   id: string;
   amount: number;
   description: string;
   date: string; // ISO string
+  purchaseDate?: string; // Real purchase/bill date (yyyy-MM-dd), independent of the billing month
 }
 
 export interface Transaction extends BaseRecord {
@@ -19,6 +21,7 @@ export interface Transaction extends BaseRecord {
   type: TransactionType;
   isPaid?: boolean;
   isRecurrent?: boolean;
+  fixedBillGenerationStrategy?: FixedBillGenerationStrategy;
   isInstallment?: boolean;
   installmentCount?: number;
   currentInstallment?: number;
@@ -47,6 +50,9 @@ export interface Bill extends BaseRecord {
   cardId?: string;
   billTable?: string;
   billType?: string | BillType;
+  isRecurrent?: boolean;
+  fixedBillId?: number;
+  fixedBillGenerationStrategy?: FixedBillGenerationStrategy;
   installments?: {
     current: number;
     total: number;
@@ -166,6 +172,7 @@ export interface CheckoutSessionDTO {
   url: string;
   email: string;
   clientSecret: string;
+  hostedCheckout?: boolean;
 }
 
 export interface Goal {

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Bill, Category } from '../types';
 import { getCategoryIcon } from '../constants';
+import { formatCurrency, formatDayLabel } from '../utils/format';
 import { Plus, CheckCircle2, Circle, Edit2, Trash2, FileText, Loader2, Mic } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
 import ImportDocButton from './ImportDocButton';
@@ -58,7 +59,7 @@ const DebitsView: React.FC<DebitsViewProps> = ({ bills, onAdd, onDelete, onEdit,
         <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-transparent pointer-events-none" />
         <div>
            <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Total a Pagar</p>
-           <h1 className="text-3xl font-extrabold text-white">R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h1>
+           <h1 className="text-3xl font-extrabold text-white">{formatCurrency(total)}</h1>
         </div>
         <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-rose-500 to-orange-600 flex items-center justify-center shadow-lg shadow-rose-500/20">
            <span className="text-xl font-bold text-white">{bills.length}</span>
@@ -117,11 +118,16 @@ const DebitsView: React.FC<DebitsViewProps> = ({ bills, onAdd, onDelete, onEdit,
                      {bill.description}
                    </h3>
                    <span className={`font-bold text-sm ${bill.isPaid ? 'text-emerald-400' : 'text-slate-200'}`}>
-                     R$ {bill.amount.toFixed(0)}
+                     {formatCurrency(bill.amount)}
                    </span>
                 </div>
                 <div className="flex justify-between items-center mt-1">
                    <span className="text-xs text-slate-500 uppercase font-medium">{category?.name || 'Unknown'}</span>
+                   {formatDayLabel(bill.purchaseDate, bill.date) && (
+                     <span className="text-xs text-slate-500 font-medium tabular-nums">
+                       {formatDayLabel(bill.purchaseDate, bill.date)}
+                     </span>
+                   )}
                 </div>
               </div>
 
@@ -166,9 +172,15 @@ const DebitsView: React.FC<DebitsViewProps> = ({ bills, onAdd, onDelete, onEdit,
         onClose={() => setBillToDelete(null)}
         onConfirm={(deleteAll) => billToDelete && onDelete(billToDelete.id, deleteAll)}
         title="Excluir Conta?"
-        message={billToDelete?.installments && billToDelete.installments.total > 1 ? "Esta conta faz parte de um parcelamento. Deseja excluir apenas esta parcela ou todas as parcelas futuras?" : "Tem certeza que deseja excluir esta conta? Essa ação não pode ser desfeita."}
-        showCheckbox={!!billToDelete?.installments && billToDelete.installments.total > 1}
-        checkboxLabel="Excluir todas as parcelas"
+        message={
+          billToDelete?.installments && billToDelete.installments.total > 1
+            ? "Esta conta faz parte de um parcelamento. Deseja excluir apenas esta parcela ou todas as parcelas futuras?"
+            : (billToDelete?.isRecurrent || billToDelete?.fixedBillId)
+              ? "Esta é uma conta fixa. Deseja excluir apenas este mês ou todos os meses?"
+              : "Tem certeza que deseja excluir esta conta? Essa ação não pode ser desfeita."
+        }
+        showCheckbox={(!!billToDelete?.installments && billToDelete.installments.total > 1) || !!billToDelete?.isRecurrent || !!billToDelete?.fixedBillId}
+        checkboxLabel={billToDelete?.installments && billToDelete.installments.total > 1 ? "Excluir todas as parcelas" : "Excluir todos os meses (conta fixa)"}
       />
     </div>
   );
