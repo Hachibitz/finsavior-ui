@@ -24,6 +24,7 @@ import { whatsappService } from '../services/whatsappService';
 import { paymentService } from '../services/paymentService';
 import { googlePlayBillingService } from '../services/googlePlayBillingService';
 import LanguageSelector from './LanguageSelector';
+import { translateApiError } from '../utils/apiError';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '../contexts/ToastContext';
 
@@ -176,7 +177,7 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
       setIsCancelingSubscription(false);
       onRefreshProfile();
     } catch (error: any) {
-      showToast(error?.message || 'Erro ao cancelar assinatura', 'error');
+      showToast(translateApiError(error, 'Erro ao cancelar assinatura'), 'error');
     } finally {
       setIsLoading(false);
     }
@@ -189,7 +190,7 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
       showToast('Sua assinatura foi reativada com sucesso!', 'success');
       onRefreshProfile();
     } catch (error: any) {
-      showToast(error?.message || 'Erro ao reativar assinatura', 'error');
+      showToast(translateApiError(error, 'Erro ao reativar assinatura'), 'error');
     } finally {
       setIsLoading(false);
     }

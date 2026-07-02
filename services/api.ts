@@ -187,6 +187,8 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
     const error = new Error(errorData.msg || errorData.message || 'Request failed') as any;
     error.status = response.status;
     error.data = errorData;
+    // Machine-readable code (e.g. PLAY_MANAGED_IN_STORE) that the UI translates via i18n
+    error.errorCode = errorData.errorCode;
     throw error;
   }
 

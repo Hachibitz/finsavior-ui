@@ -29,6 +29,7 @@ const ptBR = {
     signUp: 'Cadastre-se',
     needHelp: 'Precisa de Ajuda?',
     loginFailed: 'Falha no login. Verifique suas credenciais.',
+    googleFailed: 'Falha no login com Google.',
     continueWith: 'Ou continue com',
   },
   nav: {
@@ -90,6 +91,16 @@ const ptBR = {
     step3Desc: 'Seus dados protegidos e planos que cabem no seu bolso.',
     next: 'Próximo',
     start: 'Começar',
+  },
+  errors: {
+    GENERIC: 'Algo deu errado. Tente novamente.',
+    PLAY_PRODUCT_UNKNOWN: 'Produto não reconhecido na Google Play.',
+    PLAY_SUBSCRIPTION_INACTIVE: 'Esta assinatura não está ativa na Google Play.',
+    PLAY_PURCHASE_LINKED_TO_OTHER_ACCOUNT: 'Esta compra já está vinculada a outra conta FinSavior.',
+    PLAY_BILLING_NOT_CONFIGURED: 'Pagamentos pela Google Play indisponíveis no momento.',
+    PLAY_VERIFY_FAILED: 'Não foi possível validar a compra na Google Play. Tente novamente.',
+    PLAY_MANAGED_IN_STORE: 'Assinaturas Google Play são gerenciadas na Play Store.',
+    SUBSCRIPTION_OTHER_PROVIDER: 'Você já tem assinatura ativa por outro provedor. Cancele-a primeiro.',
   },
 };
 
@@ -186,6 +197,16 @@ const enUS = {
     next: 'Next',
     start: 'Get started',
   },
+  errors: {
+    GENERIC: 'Something went wrong. Please try again.',
+    PLAY_PRODUCT_UNKNOWN: 'Product not recognized on Google Play.',
+    PLAY_SUBSCRIPTION_INACTIVE: 'This subscription is not active on Google Play.',
+    PLAY_PURCHASE_LINKED_TO_OTHER_ACCOUNT: 'This purchase is already linked to another FinSavior account.',
+    PLAY_BILLING_NOT_CONFIGURED: 'Google Play payments are unavailable right now.',
+    PLAY_VERIFY_FAILED: 'Could not validate the purchase on Google Play. Please try again.',
+    PLAY_MANAGED_IN_STORE: 'Google Play subscriptions are managed in the Play Store.',
+    SUBSCRIPTION_OTHER_PROVIDER: 'You already have an active subscription with another provider. Cancel it first.',
+  },
 };
 
 const es = {
@@ -196,6 +217,7 @@ const es = {
   account: { settings: 'Configuración', language: 'Idioma de la app', changePassword: 'Cambiar contraseña', viewPlans: 'Ver planes', managePlaySubscription: 'Gestionar en Play Store', cancelSubscription: 'Cancelar suscripción', reactivateSubscription: 'Reactivar suscripción', playSubscriptionHint: 'Las suscripciones de Android se gestionan en Google Play.' },
   plans: { title: 'Planes FinSavior', subtitle: 'Elige el plan ideal para tu camino financiero.', current: 'PLAN ACTUAL', upgrade: 'CAMBIAR A ESTE PLAN', free: 'PLAN GRATIS', popular: 'Popular', trial: '7 días gratis', perMonth: '/mes', perYear: '/año', orYearly: 'o {{price}}/año (¡Ahorra!)', trialNote: '* La prueba gratis aplica solo a la primera suscripción.', chooseCycle: 'Elige el ciclo', chooseCycleDesc: 'Selecciona cómo quieres pagar {{plan}}.', monthly: 'Mensual', monthlyDesc: 'Cobro mensual, cancela cuando quieras.', annual: 'Anual', annualDesc: 'Pago anual único.', bestValue: 'Mejor valor', playBilling: 'Pago seguro con Google Play', stripeBilling: 'Pago con Stripe (web)', checkoutSuccess: '¡Suscripción completada!', checkoutError: 'Error al iniciar el pago.', backToPlans: 'Volver a planes' },
   onboarding: { step1Title: 'Control total', step1Desc: 'Gestiona gastos, tarjetas e ingresos en un solo lugar.', step2Title: 'Inteligencia artificial', step2Desc: 'Análisis financieros personalizados con Savi AI.', step3Title: 'Seguridad y planes', step3Desc: 'Tus datos protegidos con planes accesibles.', next: 'Siguiente', start: 'Empezar' },
+  errors: { GENERIC: 'Algo salió mal. Inténtalo de nuevo.', PLAY_PRODUCT_UNKNOWN: 'Producto no reconocido en Google Play.', PLAY_SUBSCRIPTION_INACTIVE: 'Esta suscripción no está activa en Google Play.', PLAY_PURCHASE_LINKED_TO_OTHER_ACCOUNT: 'Esta compra ya está vinculada a otra cuenta FinSavior.', PLAY_BILLING_NOT_CONFIGURED: 'Pagos por Google Play no disponibles por ahora.', PLAY_VERIFY_FAILED: 'No se pudo validar la compra en Google Play. Inténtalo de nuevo.', PLAY_MANAGED_IN_STORE: 'Las suscripciones de Google Play se gestionan en la Play Store.', SUBSCRIPTION_OTHER_PROVIDER: 'Ya tienes una suscripción activa con otro proveedor. Cancélala primero.' },
 };
 
 const fr = {
@@ -206,6 +228,7 @@ const fr = {
   account: { settings: 'Paramètres du compte', language: "Langue de l'app", changePassword: 'Changer le mot de passe', viewPlans: 'Voir les plans', managePlaySubscription: 'Gérer sur Play Store', cancelSubscription: "Annuler l'abonnement", reactivateSubscription: "Réactiver l'abonnement", playSubscriptionHint: 'Les abonnements Android sont gérés sur Google Play.' },
   plans: { title: 'Plans FinSavior', subtitle: 'Choisissez le plan idéal pour votre parcours financier.', current: 'PLAN ACTUEL', upgrade: 'PASSER À CE PLAN', free: 'PLAN GRATUIT', popular: 'Populaire', trial: '7 jours gratuits', perMonth: '/mois', perYear: '/an', orYearly: 'ou {{price}}/an (Économisez !)', trialNote: "* L'essai gratuit s'applique à la première souscription.", chooseCycle: 'Choisir le cycle', chooseCycleDesc: 'Sélectionnez la facturation pour {{plan}}.', monthly: 'Mensuel', monthlyDesc: 'Facturation mensuelle.', annual: 'Annuel', annualDesc: 'Paiement annuel unique.', bestValue: 'Meilleure offre', playBilling: 'Paiement sécurisé via Google Play', stripeBilling: 'Paiement via Stripe (web)', checkoutSuccess: 'Abonnement terminé !', checkoutError: 'Impossible de démarrer le paiement.', backToPlans: 'Retour aux plans' },
   onboarding: { step1Title: 'Contrôle total', step1Desc: 'Gérez dépenses, cartes et revenus au même endroit.', step2Title: 'Intelligence artificielle', step2Desc: 'Analyses financières personnalisées avec Savi AI.', step3Title: 'Sécurité et plans', step3Desc: 'Vos données protégées avec des plans abordables.', next: 'Suivant', start: 'Commencer' },
+  errors: { GENERIC: 'Une erreur est survenue. Réessayez.', PLAY_PRODUCT_UNKNOWN: 'Produit non reconnu sur Google Play.', PLAY_SUBSCRIPTION_INACTIVE: "Cet abonnement n'est pas actif sur Google Play.", PLAY_PURCHASE_LINKED_TO_OTHER_ACCOUNT: 'Cet achat est déjà lié à un autre compte FinSavior.', PLAY_BILLING_NOT_CONFIGURED: 'Paiements Google Play indisponibles pour le moment.', PLAY_VERIFY_FAILED: "Impossible de valider l'achat sur Google Play. Réessayez.", PLAY_MANAGED_IN_STORE: 'Les abonnements Google Play se gèrent dans le Play Store.', SUBSCRIPTION_OTHER_PROVIDER: 'Vous avez déjà un abonnement actif chez un autre fournisseur. Annulez-le d\'abord.' },
 };
 
 const zhCN = {
@@ -216,6 +239,7 @@ const zhCN = {
   account: { settings: '账户设置', language: '应用语言', changePassword: '修改密码', viewPlans: '查看计划', managePlaySubscription: '在 Play 商店管理订阅', cancelSubscription: '取消订阅', reactivateSubscription: '重新激活订阅', playSubscriptionHint: 'Android 订阅请在 Google Play 商店管理。' },
   plans: { title: 'FinSavior 计划', subtitle: '选择最适合您的财务计划。', current: '当前计划', upgrade: '切换到此计划', free: '免费计划', popular: '热门', trial: '7天免费试用', perMonth: '/月', perYear: '/年', orYearly: '或 {{price}}/年（省钱！）', trialNote: '* 免费试用仅适用于首次订阅。', chooseCycle: '选择周期', chooseCycleDesc: '选择 {{plan}} 的计费方式。', monthly: '月付', monthlyDesc: '按月计费，随时取消。', annual: '年付', annualDesc: '一次性年付。', bestValue: '最划算', playBilling: '通过 Google Play 安全支付', stripeBilling: '通过 Stripe 支付（网页）', checkoutSuccess: '订阅完成！', checkoutError: '无法开始结账。', backToPlans: '返回计划' },
   onboarding: { step1Title: '全面掌控', step1Desc: '在一个地方管理支出、卡片和收入。', step2Title: '人工智能', step2Desc: 'Savi AI 提供个性化财务分析。', step3Title: '安全与计划', step3Desc: '数据安全，计划实惠。', next: '下一步', start: '开始' },
+  errors: { GENERIC: '出了点问题，请重试。', PLAY_PRODUCT_UNKNOWN: 'Google Play 无法识别该产品。', PLAY_SUBSCRIPTION_INACTIVE: '该订阅在 Google Play 上未激活。', PLAY_PURCHASE_LINKED_TO_OTHER_ACCOUNT: '该购买已绑定到另一个 FinSavior 账户。', PLAY_BILLING_NOT_CONFIGURED: 'Google Play 支付暂不可用。', PLAY_VERIFY_FAILED: '无法在 Google Play 验证购买，请重试。', PLAY_MANAGED_IN_STORE: 'Google Play 订阅请在 Play 商店管理。', SUBSCRIPTION_OTHER_PROVIDER: '您已有其他渠道的有效订阅，请先取消。' },
 };
 
 const ja = {
@@ -226,6 +250,7 @@ const ja = {
   account: { settings: 'アカウント設定', language: 'アプリの言語', changePassword: 'パスワード変更', viewPlans: 'プランを見る', managePlaySubscription: 'Play ストアで管理', cancelSubscription: 'サブスク解除', reactivateSubscription: 'サブスク再開', playSubscriptionHint: 'AndroidのサブスクはGoogle Playで管理します。' },
   plans: { title: 'FinSaviorプラン', subtitle: '最適なプランをお選びください。', current: '現在のプラン', upgrade: 'このプランに変更', free: '無料プラン', popular: '人気', trial: '7日間無料', perMonth: '/月', perYear: '/年', orYearly: 'または {{price}}/年（お得！）', trialNote: '* 無料トライアルは初回のみ。', chooseCycle: '請求サイクル', chooseCycleDesc: '{{plan}} の請求方法を選択。', monthly: '月額', monthlyDesc: '月額請求、いつでも解約。', annual: '年額', annualDesc: '年一括払い。', bestValue: 'お得', playBilling: 'Google Playで安全に決済', stripeBilling: 'Stripe決済（Web）', checkoutSuccess: '登録完了！', checkoutError: '決済を開始できませんでした。', backToPlans: 'プランに戻る' },
   onboarding: { step1Title: '完全コントロール', step1Desc: '支出・カード・収入を一元管理。', step2Title: 'AI', step2Desc: 'Savi AIによるパーソナル分析。', step3Title: 'セキュリティとプラン', step3Desc: 'データ保護と手頃なプラン。', next: '次へ', start: '始める' },
+  errors: { GENERIC: 'エラーが発生しました。もう一度お試しください。', PLAY_PRODUCT_UNKNOWN: 'Google Playで認識されない商品です。', PLAY_SUBSCRIPTION_INACTIVE: 'このサブスクはGoogle Playで有効ではありません。', PLAY_PURCHASE_LINKED_TO_OTHER_ACCOUNT: 'この購入は別のFinSaviorアカウントに紐づいています。', PLAY_BILLING_NOT_CONFIGURED: 'Google Play決済は現在利用できません。', PLAY_VERIFY_FAILED: 'Google Playで購入を確認できませんでした。再試行してください。', PLAY_MANAGED_IN_STORE: 'Google PlayのサブスクはPlayストアで管理します。', SUBSCRIPTION_OTHER_PROVIDER: '別のプロバイダーで有効なサブスクがあります。先に解約してください。' },
 };
 
 const de = {
@@ -236,6 +261,7 @@ const de = {
   account: { settings: 'Kontoeinstellungen', language: 'App-Sprache', changePassword: 'Passwort ändern', viewPlans: 'Pläne ansehen', managePlaySubscription: 'Im Play Store verwalten', cancelSubscription: 'Abo kündigen', reactivateSubscription: 'Abo reaktivieren', playSubscriptionHint: 'Android-Abos werden im Google Play Store verwaltet.' },
   plans: { title: 'FinSavior Pläne', subtitle: 'Wählen Sie den passenden Plan.', current: 'AKTUELLER PLAN', upgrade: 'ZU DIESEM PLAN WECHSELN', free: 'KOSTENLOS', popular: 'Beliebt', trial: '7 Tage gratis', perMonth: '/Monat', perYear: '/Jahr', orYearly: 'oder {{price}}/Jahr (Sparen!)', trialNote: '* Gratis-Test nur bei erstem Abo.', chooseCycle: 'Abrechnungszyklus', chooseCycleDesc: 'Abrechnung für {{plan}} wählen.', monthly: 'Monatlich', monthlyDesc: 'Monatliche Abrechnung.', annual: 'Jährlich', annualDesc: 'Einmalige Jahreszahlung.', bestValue: 'Bester Wert', playBilling: 'Sichere Zahlung via Google Play', stripeBilling: 'Zahlung via Stripe (Web)', checkoutSuccess: 'Abo abgeschlossen!', checkoutError: 'Checkout konnte nicht gestartet werden.', backToPlans: 'Zurück zu Plänen' },
   onboarding: { step1Title: 'Volle Kontrolle', step1Desc: 'Ausgaben, Karten und Einkommen an einem Ort.', step2Title: 'Künstliche Intelligenz', step2Desc: 'Personalisierte Analysen mit Savi AI.', step3Title: 'Sicherheit & Pläne', step3Desc: 'Geschützte Daten, faire Preise.', next: 'Weiter', start: 'Loslegen' },
+  errors: { GENERIC: 'Etwas ist schiefgelaufen. Bitte erneut versuchen.', PLAY_PRODUCT_UNKNOWN: 'Produkt bei Google Play nicht erkannt.', PLAY_SUBSCRIPTION_INACTIVE: 'Dieses Abo ist bei Google Play nicht aktiv.', PLAY_PURCHASE_LINKED_TO_OTHER_ACCOUNT: 'Dieser Kauf ist bereits mit einem anderen FinSavior-Konto verknüpft.', PLAY_BILLING_NOT_CONFIGURED: 'Google-Play-Zahlungen derzeit nicht verfügbar.', PLAY_VERIFY_FAILED: 'Kauf konnte bei Google Play nicht bestätigt werden. Bitte erneut versuchen.', PLAY_MANAGED_IN_STORE: 'Google-Play-Abos werden im Play Store verwaltet.', SUBSCRIPTION_OTHER_PROVIDER: 'Sie haben bereits ein aktives Abo bei einem anderen Anbieter. Kündigen Sie es zuerst.' },
 };
 
 const it = {
@@ -246,6 +272,7 @@ const it = {
   account: { settings: 'Impostazioni account', language: "Lingua dell'app", changePassword: 'Cambia password', viewPlans: 'Vedi piani', managePlaySubscription: 'Gestisci su Play Store', cancelSubscription: 'Annulla abbonamento', reactivateSubscription: 'Riattiva abbonamento', playSubscriptionHint: 'Gli abbonamenti Android si gestiscono su Google Play.' },
   plans: { title: 'Piani FinSavior', subtitle: 'Scegli il piano ideale per te.', current: 'PIANO ATTUALE', upgrade: 'PASSA A QUESTO PIANO', free: 'PIANO GRATUITO', popular: 'Popolare', trial: '7 giorni gratis', perMonth: '/mese', perYear: '/anno', orYearly: 'o {{price}}/anno (Risparmia!)', trialNote: '* Prova gratuita solo al primo abbonamento.', chooseCycle: 'Scegli il ciclo', chooseCycleDesc: 'Seleziona la fatturazione per {{plan}}.', monthly: 'Mensile', monthlyDesc: 'Fatturazione mensile.', annual: 'Annuale', annualDesc: 'Pagamento annuale unico.', bestValue: 'Miglior valore', playBilling: 'Pagamento sicuro via Google Play', stripeBilling: 'Pagamento via Stripe (web)', checkoutSuccess: 'Abbonamento completato!', checkoutError: 'Impossibile avviare il checkout.', backToPlans: 'Torna ai piani' },
   onboarding: { step1Title: 'Controllo totale', step1Desc: 'Gestisci spese, carte e entrate in un unico posto.', step2Title: 'Intelligenza artificiale', step2Desc: 'Analisi personalizzate con Savi AI.', step3Title: 'Sicurezza e piani', step3Desc: 'Dati protetti e piani accessibili.', next: 'Avanti', start: 'Inizia' },
+  errors: { GENERIC: 'Qualcosa è andato storto. Riprova.', PLAY_PRODUCT_UNKNOWN: 'Prodotto non riconosciuto su Google Play.', PLAY_SUBSCRIPTION_INACTIVE: 'Questo abbonamento non è attivo su Google Play.', PLAY_PURCHASE_LINKED_TO_OTHER_ACCOUNT: 'Questo acquisto è già collegato a un altro account FinSavior.', PLAY_BILLING_NOT_CONFIGURED: 'Pagamenti Google Play al momento non disponibili.', PLAY_VERIFY_FAILED: "Impossibile convalidare l'acquisto su Google Play. Riprova.", PLAY_MANAGED_IN_STORE: 'Gli abbonamenti Google Play si gestiscono nel Play Store.', SUBSCRIPTION_OTHER_PROVIDER: 'Hai già un abbonamento attivo con un altro provider. Annullalo prima.' },
 };
 
 const ko = {
@@ -256,6 +283,7 @@ const ko = {
   account: { settings: '계정 설정', language: '앱 언어', changePassword: '비밀번호 변경', viewPlans: '플랜 보기', managePlaySubscription: 'Play 스토어에서 관리', cancelSubscription: '구독 취소', reactivateSubscription: '구독 재활성화', playSubscriptionHint: 'Android 구독은 Google Play에서 관리합니다.' },
   plans: { title: 'FinSavior 플랜', subtitle: '재정 여정에 맞는 플랜을 선택하세요.', current: '현재 플랜', upgrade: '이 플랜으로 변경', free: '무료 플랜', popular: '인기', trial: '7일 무료', perMonth: '/월', perYear: '/년', orYearly: '또는 {{price}}/년 (절약!)', trialNote: '* 무료 체험은 첫 구독에만 적용됩니다.', chooseCycle: '결제 주기', chooseCycleDesc: '{{plan}} 결제 방식을 선택하세요.', monthly: '월간', monthlyDesc: '월별 결제, 언제든 취소.', annual: '연간', annualDesc: '연 1회 결제.', bestValue: '최고 가치', playBilling: 'Google Play 안전 결제', stripeBilling: 'Stripe 결제 (웹)', checkoutSuccess: '구독 완료!', checkoutError: '결제를 시작할 수 없습니다.', backToPlans: '플랜으로 돌아가기' },
   onboarding: { step1Title: '완벽한 통제', step1Desc: '지출, 카드, 수입을 한곳에서 관리.', step2Title: '인공지능', step2Desc: 'Savi AI 맞춤 재정 분석.', step3Title: '보안과 플랜', step3Desc: '데이터 보호와 합리적인 가격.', next: '다음', start: '시작' },
+  errors: { GENERIC: '문제가 발생했습니다. 다시 시도해 주세요.', PLAY_PRODUCT_UNKNOWN: 'Google Play에서 인식할 수 없는 상품입니다.', PLAY_SUBSCRIPTION_INACTIVE: '이 구독은 Google Play에서 활성 상태가 아닙니다.', PLAY_PURCHASE_LINKED_TO_OTHER_ACCOUNT: '이 구매는 이미 다른 FinSavior 계정에 연결되어 있습니다.', PLAY_BILLING_NOT_CONFIGURED: 'Google Play 결제를 지금은 사용할 수 없습니다.', PLAY_VERIFY_FAILED: 'Google Play에서 구매를 확인할 수 없습니다. 다시 시도해 주세요.', PLAY_MANAGED_IN_STORE: 'Google Play 구독은 Play 스토어에서 관리합니다.', SUBSCRIPTION_OTHER_PROVIDER: '다른 제공업체의 활성 구독이 있습니다. 먼저 취소해 주세요.' },
 };
 
 const hi = {
@@ -266,6 +294,7 @@ const hi = {
   account: { settings: 'खाता सेटिंग्स', language: 'ऐप भाषा', changePassword: 'पासवर्ड बदलें', viewPlans: 'प्लान देखें', managePlaySubscription: 'Play Store में प्रबंधित करें', cancelSubscription: 'सदस्यता रद्द', reactivateSubscription: 'सदस्यता पुनः सक्रिय', playSubscriptionHint: 'Android सदस्यता Google Play में प्रबंधित होती है।' },
   plans: { title: 'FinSavior प्लान', subtitle: 'अपनी वित्तीय यात्रा के लिए सही प्लान चुनें।', current: 'वर्तमान प्लान', upgrade: 'इस प्लान पर स्विच करें', free: 'मुफ़्त प्लान', popular: 'लोकप्रिय', trial: '7 दिन मुफ़्त', perMonth: '/माह', perYear: '/वर्ष', orYearly: 'या {{price}}/वर्ष (बचत!)', trialNote: '* मुफ़्त ट्रायल केवल पहली सदस्यता पर।', chooseCycle: 'बिलिंग चक्र', chooseCycleDesc: '{{plan}} के लिए बिलिंग चुनें।', monthly: 'मासिक', monthlyDesc: 'मासिक बिलिंग, कभी भी रद्द।', annual: 'वार्षिक', annualDesc: 'एक बार वार्षिक भुगतान।', bestValue: 'सर्वोत्तम मूल्य', playBilling: 'Google Play सुरक्षित भुगतान', stripeBilling: 'Stripe भुगतान (वेब)', checkoutSuccess: 'सदस्यता पूर्ण!', checkoutError: 'चेकआउट शुरू नहीं हो सका।', backToPlans: 'प्लान पर वापस' },
   onboarding: { step1Title: 'पूर्ण नियंत्रण', step1Desc: 'खर्च, कार्ड और आय एक जगह।', step2Title: 'कृत्रिम बुद्धिमत्ता', step2Desc: 'Savi AI से व्यक्तिगत विश्लेषण।', step3Title: 'सुरक्षा और प्लान', step3Desc: 'सुरक्षित डेटा, किफायती प्लान।', next: 'आगे', start: 'शुरू करें' },
+  errors: { GENERIC: 'कुछ गलत हुआ। पुनः प्रयास करें।', PLAY_PRODUCT_UNKNOWN: 'Google Play पर उत्पाद पहचाना नहीं गया।', PLAY_SUBSCRIPTION_INACTIVE: 'यह सदस्यता Google Play पर सक्रिय नहीं है।', PLAY_PURCHASE_LINKED_TO_OTHER_ACCOUNT: 'यह खरीद पहले से दूसरे FinSavior खाते से जुड़ी है।', PLAY_BILLING_NOT_CONFIGURED: 'Google Play भुगतान अभी उपलब्ध नहीं है।', PLAY_VERIFY_FAILED: 'Google Play पर खरीद सत्यापित नहीं हो सकी। पुनः प्रयास करें।', PLAY_MANAGED_IN_STORE: 'Google Play सदस्यताएँ Play Store में प्रबंधित होती हैं।', SUBSCRIPTION_OTHER_PROVIDER: 'आपकी दूसरे प्रदाता से सक्रिय सदस्यता है। पहले उसे रद्द करें।' },
 };
 
 const ar = {
@@ -276,6 +305,7 @@ const ar = {
   account: { settings: 'إعدادات الحساب', language: 'لغة التطبيق', changePassword: 'تغيير كلمة المرور', viewPlans: 'عرض الباقات', managePlaySubscription: 'إدارة في Play Store', cancelSubscription: 'إلغاء الاشتراك', reactivateSubscription: 'إعادة تفعيل الاشتراك', playSubscriptionHint: 'اشتراكات Android تُدار في Google Play.' },
   plans: { title: 'باقات FinSavior', subtitle: 'اختر الباقة المناسبة لرحلتك المالية.', current: 'الباقة الحالية', upgrade: 'التبديل لهذه الباقة', free: 'باقة مجانية', popular: 'شائع', trial: '7 أيام مجاناً', perMonth: '/شهر', perYear: '/سنة', orYearly: 'أو {{price}}/سنة (وفر!)', trialNote: '* التجربة المجانية للاشتراك الأول فقط.', chooseCycle: 'دورة الفوترة', chooseCycleDesc: 'اختر طريقة الدفع لـ {{plan}}.', monthly: 'شهري', monthlyDesc: 'فوترة شهرية، إلغاء في أي وقت.', annual: 'سنوي', annualDesc: 'دفعة سنوية واحدة.', bestValue: 'أفضل قيمة', playBilling: 'دفع آمن عبر Google Play', stripeBilling: 'دفع عبر Stripe (ويب)', checkoutSuccess: 'اكتمل الاشتراك!', checkoutError: 'تعذر بدء الدفع.', backToPlans: 'العودة للباقات' },
   onboarding: { step1Title: 'تحكم كامل', step1Desc: 'أدر مصروفاتك وبطاقاتك ودخلك في مكان واحد.', step2Title: 'ذكاء اصطناعي', step2Desc: 'تحليلات مالية مخصصة مع Savi AI.', step3Title: 'الأمان والباقات', step3Desc: 'بياناتك محمية وباقات مناسبة.', next: 'التالي', start: 'ابدأ' },
+  errors: { GENERIC: 'حدث خطأ ما. حاول مرة أخرى.', PLAY_PRODUCT_UNKNOWN: 'منتج غير معروف في Google Play.', PLAY_SUBSCRIPTION_INACTIVE: 'هذا الاشتراك غير نشط في Google Play.', PLAY_PURCHASE_LINKED_TO_OTHER_ACCOUNT: 'هذه العملية مرتبطة بحساب FinSavior آخر.', PLAY_BILLING_NOT_CONFIGURED: 'مدفوعات Google Play غير متاحة حالياً.', PLAY_VERIFY_FAILED: 'تعذر التحقق من الشراء في Google Play. حاول مجدداً.', PLAY_MANAGED_IN_STORE: 'اشتراكات Google Play تُدار في متجر Play.', SUBSCRIPTION_OTHER_PROVIDER: 'لديك اشتراك نشط مع مزود آخر. ألغه أولاً.' },
 };
 
 const id = {
@@ -286,6 +316,7 @@ const id = {
   account: { settings: 'Pengaturan Akun', language: 'Bahasa aplikasi', changePassword: 'Ubah Kata Sandi', viewPlans: 'Lihat Paket', managePlaySubscription: 'Kelola di Play Store', cancelSubscription: 'Batalkan Langganan', reactivateSubscription: 'Aktifkan Kembali', playSubscriptionHint: 'Langganan Android dikelola di Google Play.' },
   plans: { title: 'Paket FinSavior', subtitle: 'Pilih paket terbaik untuk perjalanan finansial Anda.', current: 'PAKET SAAT INI', upgrade: 'GANTI KE PAKET INI', free: 'PAKET GRATIS', popular: 'Populer', trial: '7 Hari Gratis', perMonth: '/bulan', perYear: '/tahun', orYearly: 'atau {{price}}/tahun (Hemat!)', trialNote: '* Uji coba gratis hanya untuk langganan pertama.', chooseCycle: 'Pilih siklus', chooseCycleDesc: 'Pilih penagihan untuk {{plan}}.', monthly: 'Bulanan', monthlyDesc: 'Tagihan bulanan, batalkan kapan saja.', annual: 'Tahunan', annualDesc: 'Pembayaran tahunan sekali.', bestValue: 'Nilai Terbaik', playBilling: 'Pembayaran aman via Google Play', stripeBilling: 'Pembayaran via Stripe (web)', checkoutSuccess: 'Langganan selesai!', checkoutError: 'Gagal memulai pembayaran.', backToPlans: 'Kembali ke paket' },
   onboarding: { step1Title: 'Kontrol Penuh', step1Desc: 'Kelola pengeluaran, kartu, dan pemasukan di satu tempat.', step2Title: 'Kecerdasan Buatan', step2Desc: 'Analisis finansial personal dengan Savi AI.', step3Title: 'Keamanan & Paket', step3Desc: 'Data terlindungi dengan paket terjangkau.', next: 'Berikutnya', start: 'Mulai' },
+  errors: { GENERIC: 'Terjadi kesalahan. Silakan coba lagi.', PLAY_PRODUCT_UNKNOWN: 'Produk tidak dikenali di Google Play.', PLAY_SUBSCRIPTION_INACTIVE: 'Langganan ini tidak aktif di Google Play.', PLAY_PURCHASE_LINKED_TO_OTHER_ACCOUNT: 'Pembelian ini sudah terhubung ke akun FinSavior lain.', PLAY_BILLING_NOT_CONFIGURED: 'Pembayaran Google Play sedang tidak tersedia.', PLAY_VERIFY_FAILED: 'Tidak dapat memvalidasi pembelian di Google Play. Coba lagi.', PLAY_MANAGED_IN_STORE: 'Langganan Google Play dikelola di Play Store.', SUBSCRIPTION_OTHER_PROVIDER: 'Anda sudah punya langganan aktif dari penyedia lain. Batalkan dulu.' },
 };
 
 export const resources = {

@@ -6,6 +6,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { useTranslation } from 'react-i18next';
 import { paymentService } from '../services/paymentService';
 import { googlePlayBillingService } from '../services/googlePlayBillingService';
+import { translateApiError } from '../utils/apiError';
 import { UserProfile } from '../types';
 
 const planFamily = (planType?: string) => {
@@ -261,8 +262,7 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
       }
     } catch (error: any) {
       console.error('Checkout error detail:', error);
-      const msg = error.message || t('plans.checkoutError');
-      alert(msg);
+      alert(translateApiError(error, t('plans.checkoutError')));
     } finally {
       setLoading(false);
     }
