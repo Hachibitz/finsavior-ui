@@ -153,6 +153,12 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('A foto deve ter no máximo 5MB', 'error');
+      e.target.value = '';
+      return;
+    }
+
     setIsLoading(true);
     try {
       const formData = new FormData();

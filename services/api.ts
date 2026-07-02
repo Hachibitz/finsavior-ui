@@ -32,6 +32,7 @@ export const clearTokens = () => {
   localStorage.removeItem('refreshToken');
   localStorage.removeItem('rememberMe');
   localStorage.removeItem('auth_provider');
+  localStorage.removeItem('user_email');
   sessionStorage.removeItem('accessToken');
   sessionStorage.removeItem('refreshToken');
 };
@@ -92,33 +93,8 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
     const isRefreshableStatus = response.status === 401;
 
     if (isRefreshableStatus && !isAuthRoute) {
-      const clone = response.clone();
-      try {
-        const errorData = await clone.json();
-        const msg = (errorData.msg || errorData.message || '').toLowerCase();
-        
-        // If it's a plan limit error, don't try to refresh
-        const isPlanLimit = response.status === 403 && (
-          msg.includes('limite') || 
-          msg.includes('upgrade') || 
-          msg.includes('fscoins') || 
-          msg.includes('moedas') || 
-          msg.includes('insuficiente') ||
-          msg.includes('saldo')
-        );
-
-        if (isPlanLimit) {
-          const error = new Error(errorData.msg || errorData.message || 'Limite atingido') as any;
-          error.status = response.status;
-          error.data = errorData;
-          throw error;
-        }
-      } catch (e: any) {
-        if (e.status === 403) throw e; // Re-throw plan limit error
-        // Otherwise ignore parse error and proceed to refresh attempt
-      }
-
-  // Proceed with refresh logic
+      // Plan-limit errors arrive as 403 and never reach this branch;
+      // any 401 here is a genuine expired/invalid token, so go refresh.
       if (!isRefreshing && !(options as any)._retry) {
         isRefreshing = true;
         try {

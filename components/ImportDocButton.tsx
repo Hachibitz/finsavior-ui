@@ -62,6 +62,12 @@ const ImportDocButton: React.FC<ImportDocButtonProps> = ({
       return;
     }
 
+    if (file.size > 10 * 1024 * 1024) {
+      alert('O arquivo deve ter no máximo 10MB.');
+      e.target.value = '';
+      return;
+    }
+
     processUpload(file);
     // Reset input
     e.target.value = '';

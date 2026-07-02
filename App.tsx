@@ -199,7 +199,7 @@ const App: React.FC = () => {
     const checkAuth = async () => {
       try {
         const redirectResult = await googleAuthService.handleRedirectResult();
-        if (redirectResult?.loggedIn) {
+        if (redirectResult && 'loggedIn' in redirectResult && redirectResult.loggedIn) {
           setIsLoggedIn(true);
           setIsCheckingAuth(false);
           return;

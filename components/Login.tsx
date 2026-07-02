@@ -79,15 +79,8 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
     
     setGoogleLoading(true);
     try {
-      // Get the ID token from Firebase again or use the one from the previous step
-      // The googleAuthService.signIn() already returned the result which includes the token
-      // but we need to pass it to register-google.
-      
-      // Re-run sign-in to get a fresh token if needed, or we could have stored it.
-      // Let's assume we can just call registerWithGoogle with the token.
-      // We need to modify googleAuthService to return the token or use it directly.
-      
-      const idToken = await googleAuthService.getCurrentIdToken();
+      // Re-acquire a fresh idToken from the active Firebase session (never persisted).
+      const idToken = await googleAuthService.waitForCurrentIdToken();
       if (!idToken) throw new Error('Token do Google não encontrado.');
 
       await authService.registerWithGoogle(idToken);

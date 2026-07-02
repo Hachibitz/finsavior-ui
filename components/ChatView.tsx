@@ -317,6 +317,7 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
             <input 
               type="text" 
               value={input}
+              maxLength={2000}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}
               placeholder="Digite sua dúvida financeira..."

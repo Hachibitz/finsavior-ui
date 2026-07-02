@@ -118,6 +118,7 @@ const SupportView: React.FC<SupportViewProps> = ({ profile, onBack }) => {
                 <input 
                   type="text" 
                   value={form.name}
+                  maxLength={100}
                   onChange={e => setForm({...form, name: e.target.value})}
                   className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white focus:outline-none focus:border-primary transition-all"
                   placeholder="Seu nome"
@@ -187,6 +188,7 @@ const SupportView: React.FC<SupportViewProps> = ({ profile, onBack }) => {
               </label>
               <textarea 
                 value={form.message}
+                maxLength={4000}
                 onChange={e => setForm({...form, message: e.target.value})}
                 className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white focus:outline-none focus:border-primary transition-all min-h-[150px] resize-none"
                 placeholder="Como podemos ajudar?"

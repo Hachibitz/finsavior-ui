@@ -227,14 +227,17 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
 
       console.log('Starting checkout for plan:', planType);
       const userEmail = profile?.email || localStorage.getItem('user_email') || '';
-      console.log('Using email for checkout:', userEmail);
       const shouldUseHostedCheckout = Capacitor.isNativePlatform();
-      
+
       const session = await paymentService.createCheckoutSession(planType, userEmail, shouldUseHostedCheckout);
-      console.log('Checkout session created:', session);
-      
+
+      // Only ever redirect to Stripe-owned domains — protects against a
+      // compromised/misbehaving backend response turning into an open redirect.
+      const isTrustedCheckoutUrl = (url: string) =>
+        /^https:\/\/([a-z0-9-]+\.)?stripe\.com\//i.test(url);
+
       if (shouldUseHostedCheckout && session.url) {
-        console.log('Opening hosted checkout in system browser:', session.url);
+        if (!isTrustedCheckoutUrl(session.url)) throw new Error('URL de checkout inválida');
         await Browser.open({
           url: session.url,
           presentationStyle: 'fullscreen',
@@ -255,7 +258,7 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
 
         setEmbeddedCheckout(checkout);
       } else if (session.url) {
-        console.log('Redirecting to checkout URL:', session.url);
+        if (!isTrustedCheckoutUrl(session.url)) throw new Error('URL de checkout inválida');
         window.location.href = session.url;
       } else {
         throw new Error('Resposta do servidor não contém clientSecret ou URL');
