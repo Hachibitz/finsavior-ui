@@ -1,3 +1,5 @@
+import { LOCALE_STORAGE_KEY } from '../i18n';
+
 const BASE_URL = import.meta.env.PROD 
   ? 'https://www.finsavior.com.br/api' 
   : 'http://localhost:8085/api';
@@ -81,6 +83,9 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
   if (!(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
   }
+
+  const locale = localStorage.getItem(LOCALE_STORAGE_KEY) || 'pt-BR';
+  headers.set('Accept-Language', locale);
 
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     ...options,

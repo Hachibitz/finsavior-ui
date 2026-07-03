@@ -13,6 +13,9 @@ export function translateApiError(error: any, fallback?: string): string {
     if (i18n.exists(key)) {
       return i18n.t(key);
     }
+    if (error?.data?.msg) {
+      return error.data.msg;
+    }
   }
-  return error?.message || fallback || i18n.t('errors.GENERIC');
+  return error?.data?.msg || error?.message || fallback || i18n.t('errors.GENERIC');
 }

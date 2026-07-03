@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import Layout from './components/Layout';
 import DebitsView from './components/DebitsView';
 import CardsView from './components/CardsView';
@@ -32,11 +33,15 @@ import { categoryService } from './services/categoryService';
 import { api } from './services/api';
 import MonthContext from './contexts/MonthContext';
 import { useToast } from './contexts/ToastContext';
+import { formatMonthYear } from './i18n/localeFormat';
+import { translateApiError } from './utils/apiError';
 import { Notification } from './types/notifications';
 import { admobService } from './services/admobService';
 
+const INSUFFICIENT_DATA_SENTINEL = '__INSUFFICIENT_DATA__';
+
 const App: React.FC = () => {
-  const INSUFFICIENT_DATA_MESSAGE = 'Adicione pelo menos uma receita e uma despesa para que a Savi possa analisar seu perfil financeiro e dar dicas personalizadas!';
+  const { t, i18n } = useTranslation();
 
   // Onboarding logic: show only once per session
   const [showOnboarding, setShowOnboarding] = useState(() => {
@@ -107,11 +112,10 @@ const App: React.FC = () => {
   const prevMonth = () => changeMonth(-1);
   const nextMonth = () => changeMonth(1);
 
-  const displayLabel = (() => {
-    const [y, m] = selectedMonth.split('-').map(Number);
-    const d = new Date(y, m - 1, 1);
-    return d.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
-  })();
+  const displayLabel = useMemo(
+    () => formatMonthYear(selectedMonth),
+    [selectedMonth, i18n.language]
+  );
   
   // Navigation & Modal State from Notifications
   const [insightModalOpen, setInsightModalOpen] = useState(false);
@@ -294,8 +298,8 @@ const App: React.FC = () => {
       
       if (!lastPrompt || (Date.now() - parseInt(lastPrompt, 10)) >= oneDay) {
         addNotification({
-          title: 'Integração WhatsApp',
-          message: 'Habilite o WhatsApp para adicionar despesas por áudio ou texto de onde estiver!',
+          title: t('notifications.whatsappTitle'),
+          message: t('notifications.whatsappMsg'),
           type: 'ai',
           actionUrl: 'whatsapp'
         });
@@ -403,7 +407,7 @@ const App: React.FC = () => {
       const hasExpense = filteredBills.length > 0 || filteredCardTransactions.length > 0;
 
       if (!hasIncome || !hasExpense) {
-        setAiInsights(prev => ({ ...prev, [month]: INSUFFICIENT_DATA_MESSAGE }));
+        setAiInsights(prev => ({ ...prev, [month]: INSUFFICIENT_DATA_SENTINEL }));
         setLoadingInsight(false);
         return;
       }
@@ -414,8 +418,8 @@ const App: React.FC = () => {
       
       // Notify about new insight
       addNotification({
-        title: 'Novo Savi Insight!',
-        message: `Savi gerou uma nova análise para ${month}. Confira no seu dashboard.`,
+        title: t('notifications.newInsightTitle'),
+        message: t('notifications.newInsightMsg', { month: formatMonthYear(month) }),
         type: 'ai',
         actionUrl: 'summary',
         actionData: { openInsight: true }
@@ -423,7 +427,7 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Error fetching insight:', error);
       if (!aiInsights[month]) {
-        setAiInsights(prev => ({ ...prev, [month]: 'Mantenha o foco nos seus objetivos financeiros!' }));
+        setAiInsights(prev => ({ ...prev, [month]: t('dashboard.keepFocus') }));
       }
     } finally {
       setLoadingInsight(false);
@@ -469,7 +473,7 @@ const App: React.FC = () => {
 
     const lastBalance = lastAnalyzedBalance[selectedMonth];
     const currentInsight = aiInsights[selectedMonth];
-    const isInsufficient = currentInsight === INSUFFICIENT_DATA_MESSAGE;
+    const isInsufficient = currentInsight === INSUFFICIENT_DATA_SENTINEL;
     
     const hasIncome = currentIncome > 0;
     const hasExpense = currentExpense > 0;
@@ -479,7 +483,7 @@ const App: React.FC = () => {
       if (hasSufficientData) {
         fetchInsight(selectedMonth);
       } else if (!isInsufficient) {
-        setAiInsights(prev => ({ ...prev, [selectedMonth]: INSUFFICIENT_DATA_MESSAGE }));
+        setAiInsights(prev => ({ ...prev, [selectedMonth]: INSUFFICIENT_DATA_SENTINEL }));
       }
     } else if (lastBalance !== undefined && hasSufficientData) {
       const change = Math.abs(currentForecast - lastBalance) / (Math.abs(lastBalance) || 1);
@@ -496,10 +500,10 @@ const App: React.FC = () => {
     try {
       const saved = await categoryService.createCategory(newCategory);
       setCategories(prev => [...prev, saved]);
-      showToast('Categoria adicionada!', 'success');
+      showToast(t('toasts.categoryAdded'), 'success');
     } catch (error) {
       console.error('Error adding category:', error);
-      showToast('Erro ao adicionar categoria', 'error');
+      showToast(translateApiError(error, t('toasts.categoryAddError')), 'error');
     }
   };
 
@@ -507,10 +511,10 @@ const App: React.FC = () => {
     try {
       const saved = await categoryService.updateCategory(updatedCategory);
       setCategories(prev => prev.map(c => c.id === saved.id ? saved : c));
-      showToast('Categoria atualizada!', 'success');
+      showToast(t('toasts.categoryUpdated'), 'success');
     } catch (error) {
       console.error('Error updating category:', error);
-      showToast('Erro ao atualizar categoria', 'error');
+      showToast(translateApiError(error, t('toasts.categoryUpdateError')), 'error');
     }
   };
 
@@ -518,10 +522,10 @@ const App: React.FC = () => {
     try {
       await categoryService.deleteCategory(id);
       setCategories(prev => prev.filter(c => c.id !== id));
-      showToast('Categoria excluída!', 'success');
+      showToast(t('toasts.categoryDeleted'), 'success');
     } catch (error) {
       console.error('Error deleting category:', error);
-      showToast('Erro ao excluir categoria', 'error');
+      showToast(translateApiError(error, t('toasts.categoryDeleteError')), 'error');
     }
   };
 
@@ -535,11 +539,11 @@ const App: React.FC = () => {
     try {
       const saved = await billService.updateBill(updatedBill);
       setBills(prev => prev.map(b => b.id === saved.id ? saved : b));
-      showToast('Conta atualizada!', 'success');
+      showToast(t('toasts.billUpdated'), 'success');
       return saved;
     } catch (error: any) {
       console.error('Error updating bill:', error);
-      showToast(error?.message || 'Erro ao atualizar conta', 'error');
+      showToast(translateApiError(error, t('toasts.billUpdateError')), 'error');
       throw error;
     }
   };
@@ -552,10 +556,10 @@ const App: React.FC = () => {
       } else {
         setBills(bills.filter(b => b.id !== id));
       }
-      showToast(deleteAll ? 'Todas as parcelas foram excluídas!' : 'Conta excluída!', 'success');
+      showToast(deleteAll ? t('toasts.billDeleteAll') : t('toasts.billDeleted'), 'success');
     } catch (error) {
       console.error('Error deleting bill:', error);
-      showToast('Erro ao excluir conta', 'error');
+      showToast(translateApiError(error, t('toasts.billDeleteError')), 'error');
     }
   };
 
@@ -564,10 +568,10 @@ const App: React.FC = () => {
     try {
       const saved = await cardService.createCard(newCard);
       setCards(prev => [...prev, saved]);
-      showToast('Cartão adicionado!', 'success');
+      showToast(t('toasts.cardAdded'), 'success');
     } catch (error) {
       console.error('Error adding card:', error);
-      showToast('Erro ao adicionar cartão', 'error');
+      showToast(translateApiError(error, t('toasts.cardAddError')), 'error');
     }
   };
 
@@ -575,10 +579,10 @@ const App: React.FC = () => {
     try {
       const saved = await cardService.updateCard(updatedCard);
       setCards(prev => prev.map(c => c.id === saved.id ? saved : c));
-      showToast('Cartão atualizado!', 'success');
+      showToast(t('toasts.cardUpdated'), 'success');
     } catch (error) {
       console.error('Error updating card:', error);
-      showToast('Erro ao atualizar cartão', 'error');
+      showToast(translateApiError(error, t('toasts.cardUpdateError')), 'error');
     }
   };
 
@@ -586,10 +590,10 @@ const App: React.FC = () => {
     try {
       await cardService.deleteCard(id);
       setCards(prev => prev.filter(c => c.id !== id));
-      showToast('Cartão excluído!', 'success');
+      showToast(t('toasts.cardDeleted'), 'success');
     } catch (error) {
       console.error('Error deleting card:', error);
-      showToast('Erro ao excluir cartão', 'error');
+      showToast(translateApiError(error, t('toasts.cardDeleteError')), 'error');
     }
   };
 
@@ -598,14 +602,14 @@ const App: React.FC = () => {
       const saved = await billService.createBill(newTransaction, (newTransaction.billTable as any) || 'CREDIT_CARD', (newTransaction.billType as any) || 'EXPENSE');
       if (newTransaction.billTable === 'PAYMENT_CARD') {
         fetchBills(); // Refresh bills if it's a payment
-        showToast('Pagamento registrado!', 'success');
+        showToast(t('toasts.paymentRegistered'), 'success');
       } else {
         setCardTransactions([saved as any, ...cardTransactions]);
-        showToast('Transação adicionada!', 'success');
+        showToast(t('toasts.transactionAdded'), 'success');
       }
     } catch (error: any) {
       console.error('Error adding card transaction:', error);
-      showToast(error?.message || 'Erro ao adicionar transação', 'error');
+      showToast(translateApiError(error, t('toasts.transactionAddError')), 'error');
     }
   };
 
@@ -617,10 +621,10 @@ const App: React.FC = () => {
         billType: 'EXPENSE'
       } as any);
       setCardTransactions(prev => prev.map(t => t.id === saved.id ? saved as any : t));
-      showToast('Transação atualizada!', 'success');
+      showToast(t('toasts.transactionUpdated'), 'success');
     } catch (error: any) {
       console.error('Error updating card transaction:', error);
-      showToast(error?.message || 'Erro ao atualizar transação', 'error');
+      showToast(translateApiError(error, t('toasts.transactionUpdateError')), 'error');
     }
   };
 
@@ -632,10 +636,10 @@ const App: React.FC = () => {
       } else {
         setCardTransactions(prev => prev.filter(t => t.id !== id));
       }
-      showToast(deleteAll ? 'Todas as parcelas foram excluídas!' : 'Transação excluída!', 'success');
+      showToast(deleteAll ? t('toasts.transactionDeleteAll') : t('toasts.transactionDeleted'), 'success');
     } catch (error) {
       console.error('Error deleting card transaction:', error);
-      showToast('Erro ao excluir transação', 'error');
+      showToast(translateApiError(error, t('toasts.transactionDeleteError')), 'error');
     }
   };
 
@@ -664,12 +668,12 @@ const App: React.FC = () => {
       };
       
       setAssets(prev => prev.map(a => a.id === updatedAsset.id ? updatedAsset : a));
-      showToast('Renda atualizada!', 'success');
+      showToast(t('toasts.incomeUpdated'), 'success');
       setIsAssetEditModalOpen(false);
       setSelectedAsset(null);
     } catch (error: any) {
       console.error('Error updating asset:', error);
-      showToast(error?.message || 'Erro ao atualizar renda', 'error');
+      showToast(translateApiError(error, t('toasts.incomeUpdateError')), 'error');
     }
   };
 
@@ -686,18 +690,18 @@ const App: React.FC = () => {
       if (!selectedAsset) return;
       await billService.deleteBill(selectedAsset.id);
       setAssets(prev => prev.filter(a => a.id !== selectedAsset.id));
-      showToast('Renda excluída!', 'success');
+      showToast(t('toasts.incomeDeleted'), 'success');
       setIsAssetDeleteConfirmOpen(false);
       setSelectedAsset(null);
     } catch (error) {
       console.error('Error deleting asset:', error);
-      showToast('Erro ao excluir renda', 'error');
+      showToast(translateApiError(error, t('toasts.incomeDeleteError')), 'error');
     }
   };
 
   const handleImportInvoice = (file: File) => {
     // Mock import logic
-    showToast(`Importando arquivo: ${file.name}. Processamento de IA iniciado...`, 'success');
+    showToast(t('toasts.importStarted', { name: file.name }), 'success');
     // In a real app, this would send file to backend
   };
 
@@ -759,7 +763,7 @@ const App: React.FC = () => {
             cardTransactions={filteredCardTransactions}
             categories={categories}
             selectedMonth={selectedMonth}
-            aiTip={aiInsights[selectedMonth]}
+            aiTip={aiInsights[selectedMonth] === INSUFFICIENT_DATA_SENTINEL ? t('dashboard.addDataForInsight') : aiInsights[selectedMonth]}
             loadingTip={loadingInsight}
             onRefreshInsight={() => fetchInsight(selectedMonth, true)}
             onAddNotification={addNotification}
@@ -825,7 +829,7 @@ const App: React.FC = () => {
             cardTransactions={filteredCardTransactions}
             categories={categories}
             selectedMonth={selectedMonth}
-            aiTip={aiInsights[selectedMonth]}
+            aiTip={aiInsights[selectedMonth] === INSUFFICIENT_DATA_SENTINEL ? t('dashboard.addDataForInsight') : aiInsights[selectedMonth]}
             loadingTip={loadingInsight}
             onRefreshInsight={() => fetchInsight(selectedMonth, true)}
             profile={profile}
@@ -947,17 +951,17 @@ const App: React.FC = () => {
                 type: (newRecord.category === 'others' ? 'other' : newRecord.category) as any
               };
               setAssets([newAsset, ...assets]);
-              if (showToast) showToast('Renda adicionada!', 'success');
+              if (showToast) showToast(t('toasts.incomeAdded'), 'success');
             } else {
               setBills([newRecord, ...bills]);
-              if (showToast) showToast('Registro adicionado!', 'success');
+              if (showToast) showToast(t('toasts.recordAdded'), 'success');
             }
             
             setIsFormOpen(false);
             setFormForcedType(undefined);
             setVoiceBillData(null);
           } catch (error: any) {
-            (showToast || (() => {}))(error?.message || 'Erro ao criar registro', 'error');
+            (showToast || (() => {}))(translateApiError(error, t('toasts.createRecordError')), 'error');
           }
         }}
         categories={categories.filter(cat => {
@@ -1062,7 +1066,7 @@ const App: React.FC = () => {
             setFormForcedType(undefined); 
             setIsFormOpen(true);
             
-            showToast(`Registro "${data.billName}" detectado! Verifique os dados.`, 'success');
+            showToast(t('toasts.voiceDetected', { name: data.billName }), 'success');
             fetchBills();
             fetchAssets();
             fetchCardTransactions();

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CardTransaction, Category, CreditCard, UserProfile, Transaction, Bill } from '../types';
 import { Plus, CreditCard as CardIcon, Calendar, ArrowRight, UploadCloud, ChevronRight, X, Check, FileText, Mic, Settings, Edit2, Trash2, MoreVertical } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
@@ -6,6 +7,7 @@ import ImportDocButton from './ImportDocButton';
 import { useToast } from '../contexts/ToastContext';
 import TransactionForm from './TransactionForm';
 import { billService } from '../services/billService';
+import { formatCurrency } from '../i18n/localeFormat';
 
 interface CardsViewProps {
   transactions: CardTransaction[];
@@ -36,6 +38,7 @@ const CardsView: React.FC<CardsViewProps> = ({
   onImportInvoice, onRefresh, onRefreshCoins, onNavigateToPlans, profile,
   selectedMonth
 }) => {
+  const { t } = useTranslation();
   const { showToast } = useToast();
   const [activeCardId, setActiveCardId] = useState<string>(cards[0]?.id || '');
   const [localTransactions, setLocalTransactions] = useState<CardTransaction[]>([]);
@@ -113,7 +116,7 @@ const CardsView: React.FC<CardsViewProps> = ({
 
   const handleAddCardClick = () => {
     if (cards.length >= 25) {
-      showToast('Você atingiu o limite máximo de 25 cartões.', 'info');
+      showToast(t('cards.maxCards'), 'info');
       return;
     }
     setIsAddCardOpen(true);
@@ -169,15 +172,15 @@ const CardsView: React.FC<CardsViewProps> = ({
               <CardIcon size={24} />
             </div>
             <div>
-              <h4 className="font-bold text-white">Comandos de Voz?</h4>
-              <p className="text-slate-400 text-xs">Assine o Premium para comandos de voz ilimitados, WhatsApp e relatórios avançados.</p>
+              <h4 className="font-bold text-white">{t('cards.voiceBannerTitle')}</h4>
+              <p className="text-slate-400 text-xs">{t('cards.voiceBannerDesc')}</p>
             </div>
           </div>
           <button 
             onClick={onNavigateToPlans}
             className="px-4 py-2 bg-white text-slate-900 font-bold rounded-xl text-xs hover:scale-105 transition-all relative z-10 whitespace-nowrap"
           >
-            Ver Planos
+            {t('cards.voiceBannerCTA')}
           </button>
         </div>
       )}
@@ -229,12 +232,12 @@ const CardsView: React.FC<CardsViewProps> = ({
             </div>
             
             <div className="z-10">
-                <p className="text-white/70 text-xs font-medium uppercase tracking-wider mb-1">Fatura Atual</p>
+                <p className="text-white/70 text-xs font-medium uppercase tracking-wider mb-1">{t('cards.currentInvoice')}</p>
                 <div className="flex flex-col">
-                    <h2 className="text-3xl font-bold text-white tracking-tight">R$ {remainingBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h2>
+                    <h2 className="text-3xl font-bold text-white tracking-tight">{formatCurrency(remainingBalance)}</h2>
                     {totalPaid > 0 && (
                         <p className="text-emerald-300 text-[10px] font-bold uppercase mt-1">
-                            PAGO: R$ {totalPaid.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            {t('cards.paid')}: {formatCurrency(totalPaid)}
                         </p>
                     )}
                 </div>
@@ -242,11 +245,11 @@ const CardsView: React.FC<CardsViewProps> = ({
 
             <div className="flex justify-between items-end z-10">
                 <div>
-                <p className="text-xs text-white/70 uppercase">Título</p>
+                <p className="text-xs text-white/70 uppercase">{t('cards.title')}</p>
                 <p className="text-sm font-medium text-white tracking-wide truncate max-w-[150px]">{activeCard.name}</p>
                 </div>
                 <div className="flex flex-col items-end">
-                <p className="text-xs text-white/70 uppercase">Vencimento</p>
+                <p className="text-xs text-white/70 uppercase">{t('cards.dueDate')}</p>
                 <div className="flex items-center gap-1 text-white font-medium">
                     <Calendar size={12} />
                     <span>{activeCard.dueDateStr}</span>
@@ -258,7 +261,7 @@ const CardsView: React.FC<CardsViewProps> = ({
       ) : (
           <div onClick={handleAddCardClick} className="h-56 w-full max-w-sm mx-auto border-2 border-dashed border-slate-700 rounded-3xl flex flex-col items-center justify-center text-slate-500 hover:text-white hover:border-primary hover:bg-slate-800/50 cursor-pointer transition-all">
               <Plus size={48} />
-              <p className="font-bold mt-2">Adicionar Cartão</p>
+              <p className="font-bold mt-2">{t('cards.addCard')}</p>
           </div>
       )}
 
@@ -268,14 +271,14 @@ const CardsView: React.FC<CardsViewProps> = ({
             className="bg-surface border border-slate-700 hover:bg-slate-800 text-white py-4 rounded-2xl font-medium transition-all shadow-lg flex flex-col items-center justify-center gap-2 group"
             onClick={() => {
               if (!activeCard) {
-                showToast('Selecione um cartão para pagar a fatura', 'info');
+                showToast(t('cards.selectCardToPay'), 'info');
                 return;
               }
               setIsPaymentModalOpen(true);
             }}
          >
             <span className="text-emerald-400 group-hover:scale-110 transition-transform"><Check size={24} /></span>
-            <span className="text-xs font-bold">Pagar Fatura</span>
+            <span className="text-xs font-bold">{t('cards.payInvoice')}</span>
          </button>
 
          <button 
@@ -283,7 +286,7 @@ const CardsView: React.FC<CardsViewProps> = ({
             onClick={() => setIsExpenseModalOpen(true)}
          >
             <span className="text-rose-400 group-hover:scale-110 transition-transform"><Plus size={24} /></span>
-            <span className="text-xs font-bold">Nova Despesa</span>
+            <span className="text-xs font-bold">{t('cards.newExpense')}</span>
          </button>
 
          <ImportDocButton 
@@ -297,7 +300,7 @@ const CardsView: React.FC<CardsViewProps> = ({
             className="bg-surface border border-slate-700 hover:bg-slate-800 text-white py-4 rounded-2xl font-medium transition-all shadow-lg flex flex-col items-center justify-center gap-2 group"
          >
             <span className="text-blue-400 group-hover:scale-110 transition-transform"><UploadCloud size={24} /></span>
-            <span className="text-xs font-bold">Importar</span>
+            <span className="text-xs font-bold">{t('cards.import')}</span>
          </ImportDocButton>
       </div>
 
@@ -307,52 +310,52 @@ const CardsView: React.FC<CardsViewProps> = ({
           <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm z-10 flex items-center justify-center rounded-3xl">
             <div className="flex flex-col items-center gap-3">
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-              <p className="text-xs font-bold text-white uppercase tracking-widest">Atualizando...</p>
+              <p className="text-xs font-bold text-white uppercase tracking-widest">{t('cards.updating')}</p>
             </div>
           </div>
         )}
         <div className="flex items-center justify-between mb-6">
-          <h3 className="font-bold text-white text-lg">Últimos Lançamentos</h3>
+          <h3 className="font-bold text-white text-lg">{t('cards.recentEntries')}</h3>
           <button className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-all">
             <Plus size={18} />
           </button>
         </div>
 
         <div className="relative border-l border-slate-700 ml-3 space-y-6">
-          {activeTransactions.length > 0 ? activeTransactions.map((t, idx) => {
-            const category = categories.find(c => c.id === t.category);
+          {activeTransactions.length > 0 ? activeTransactions.map((tx) => {
+            const category = categories.find(c => c.id === tx.category);
             return (
-              <div key={t.id} className="relative pl-8 group">
+              <div key={tx.id} className="relative pl-8 group">
                 {/* Timeline Dot */}
                 <div className="absolute -left-[5px] top-1 w-2.5 h-2.5 rounded-full bg-slate-600 border border-slate-900 group-hover:bg-primary group-hover:scale-125 transition-all"></div>
                 
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <h4 className="font-semibold text-slate-200 text-sm group-hover:text-primary transition-colors">{t.description}</h4>
+                    <h4 className="font-semibold text-slate-200 text-sm group-hover:text-primary transition-colors">{tx.description}</h4>
                     <div className="flex items-center gap-2 mt-1">
                        <span className="text-[10px] text-slate-400 uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700">
-                          {t.billType === 'PAYMENT' ? 'Pagamento' : (category?.name || t.category || 'Outros')}
+                          {tx.billType === 'PAYMENT' ? t('cards.payment') : (category?.name || tx.category || t('cards.other'))}
                        </span>
-                       {t.billType === 'PAYMENT' && (
+                       {tx.billType === 'PAYMENT' && (
                          <span className="text-[10px] text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">
-                           Pagamento Efetuado
+                           {t('cards.paymentDone')}
                          </span>
                        )}
-                       {t.installments && (
+                       {tx.installments && (
                          <span className="text-[10px] text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full">
-                           {t.installments.current}/{t.installments.total}
+                           {tx.installments.current}/{tx.installments.total}
                          </span>
                        )}
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1">
-                    <span className={`font-bold text-sm ${t.billType === 'PAYMENT' ? 'text-emerald-400' : 'text-white'}`}>
-                      {t.billType === 'PAYMENT' ? '-' : ''}R$ {t.amount.toFixed(2)}
+                    <span className={`font-bold text-sm ${tx.billType === 'PAYMENT' ? 'text-emerald-400' : 'text-white'}`}>
+                      {tx.billType === 'PAYMENT' ? '-' : ''}{formatCurrency(tx.amount)}
                     </span>
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button 
                         onClick={() => {
-                          setSelectedTransaction(t);
+                          setSelectedTransaction(tx);
                           setIsEditExpenseModalOpen(true);
                         }}
                         className="p-1 text-slate-400 hover:text-white transition-colors"
@@ -361,7 +364,7 @@ const CardsView: React.FC<CardsViewProps> = ({
                       </button>
                       <button 
                         onClick={() => {
-                          setSelectedTransaction(t);
+                          setSelectedTransaction(tx);
                           setIsDeleteExpenseConfirmOpen(true);
                         }}
                         className="p-1 text-slate-400 hover:text-rose-400 transition-colors"
@@ -374,7 +377,7 @@ const CardsView: React.FC<CardsViewProps> = ({
               </div>
             );
           }) : (
-              <p className="text-slate-500 text-sm pl-8">Nenhum lançamento neste cartão.</p>
+              <p className="text-slate-500 text-sm pl-8">{t('cards.noEntries')}</p>
           )}
         </div>
       </div>
@@ -447,18 +450,18 @@ const CardsView: React.FC<CardsViewProps> = ({
           setIsDeleteExpenseConfirmOpen(false);
           setSelectedTransaction(null);
         }}
-        title="Excluir Transação"
-        message={selectedTransaction?.installments && selectedTransaction.installments.total > 1 ? "Esta transação faz parte de um parcelamento. Deseja excluir apenas esta parcela ou todas as parcelas futuras?" : "Tem certeza que deseja excluir esta transação do cartão? Esta ação não pode ser desfeita."}
+        title={t('cards.deleteTransaction')}
+        message={selectedTransaction?.installments && selectedTransaction.installments.total > 1 ? t('cards.deleteTransactionInstallments') : t('cards.deleteTransactionMsg')}
         showCheckbox={!!selectedTransaction?.installments && selectedTransaction.installments.total > 1}
-        checkboxLabel="Excluir todas as parcelas"
+        checkboxLabel={t('confirm.deleteAllInstallments')}
       />
 
       <ConfirmationModal 
         isOpen={isDeleteCardConfirmOpen}
         onClose={() => setIsDeleteCardConfirmOpen(false)}
         onConfirm={() => handleDeleteCardConfirm()}
-        title="Excluir Cartão"
-        message={`Tem certeza que deseja excluir o cartão "${activeCard?.name}"? Todas as transações vinculadas a ele serão afetadas.`}
+        title={t('cards.deleteCard')}
+        message={t('cards.deleteCardMsg', { name: activeCard?.name })}
       />
 
       {/* Add Card Modal */}
@@ -466,15 +469,15 @@ const CardsView: React.FC<CardsViewProps> = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
            <div className="bg-surface w-full max-w-sm rounded-3xl border border-slate-700 shadow-2xl p-6 animate-scale-in">
                <div className="flex justify-between items-center mb-6">
-                   <h3 className="text-xl font-bold text-white">Adicionar Cartão</h3>
+                   <h3 className="text-xl font-bold text-white">{t('cards.addCardTitle')}</h3>
                    <button onClick={() => setIsAddCardOpen(false)} className="text-slate-400 hover:text-white"><X /></button>
                </div>
                <form onSubmit={handleAddCardSubmit} className="space-y-4">
                     <div>
-                        <label className="text-xs text-slate-400 uppercase font-bold">Nome do Cartão</label>
+                        <label className="text-xs text-slate-400 uppercase font-bold">{t('cards.cardName')}</label>
                         <input 
                            type="text" 
-                           placeholder="Ex: Nubank, Inter..." 
+                           placeholder={t('cards.cardNamePlaceholder')} 
                            className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white mt-1 focus:border-primary outline-none"
                            value={newCardName}
                            onChange={(e) => setNewCardName(e.target.value)}
@@ -482,7 +485,7 @@ const CardsView: React.FC<CardsViewProps> = ({
                         />
                     </div>
                     <div>
-                        <label className="text-xs text-slate-400 uppercase font-bold">Estilo / Cor</label>
+                        <label className="text-xs text-slate-400 uppercase font-bold">{t('cards.cardStyle')}</label>
                         <div className="grid grid-cols-4 gap-2 mt-2">
                             {[
                                 'from-slate-800 to-slate-900',
@@ -503,7 +506,7 @@ const CardsView: React.FC<CardsViewProps> = ({
                         </div>
                     </div>
                     <button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-xl mt-4 transition-colors">
-                        Salvar Cartão
+                        {t('cards.saveCard')}
                     </button>
                 </form>
            </div>
@@ -515,15 +518,15 @@ const CardsView: React.FC<CardsViewProps> = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
            <div className="bg-surface w-full max-w-sm rounded-3xl border border-slate-700 shadow-2xl p-6 animate-scale-in">
                <div className="flex justify-between items-center mb-6">
-                   <h3 className="text-xl font-bold text-white">Editar Cartão</h3>
+                   <h3 className="text-xl font-bold text-white">{t('cards.editCardTitle')}</h3>
                    <button onClick={() => setIsEditCardOpen(false)} className="text-slate-400 hover:text-white"><X /></button>
                </div>
                <form onSubmit={handleEditCardSubmit} className="space-y-4">
                     <div>
-                        <label className="text-xs text-slate-400 uppercase font-bold">Nome do Cartão</label>
+                        <label className="text-xs text-slate-400 uppercase font-bold">{t('cards.cardName')}</label>
                         <input 
                            type="text" 
-                           placeholder="Ex: Nubank, Inter..." 
+                           placeholder={t('cards.cardNamePlaceholder')} 
                            className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white mt-1 focus:border-primary outline-none"
                            value={newCardName}
                            onChange={(e) => setNewCardName(e.target.value)}
@@ -531,7 +534,7 @@ const CardsView: React.FC<CardsViewProps> = ({
                         />
                     </div>
                     <div>
-                        <label className="text-xs text-slate-400 uppercase font-bold">Estilo / Cor</label>
+                        <label className="text-xs text-slate-400 uppercase font-bold">{t('cards.cardStyle')}</label>
                         <div className="grid grid-cols-4 gap-2 mt-2">
                             {[
                                 'from-slate-800 to-slate-900',
@@ -561,10 +564,10 @@ const CardsView: React.FC<CardsViewProps> = ({
                         className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
                       >
                         <Trash2 size={18} />
-                        Excluir
+                        {t('common.delete')}
                       </button>
                       <button type="submit" className="bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-xl transition-colors">
-                          Salvar
+                          {t('common.save')}
                       </button>
                     </div>
                 </form>

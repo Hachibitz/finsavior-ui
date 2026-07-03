@@ -1,3 +1,17 @@
+import { appContentByLocale } from './appContent.ts';
+
+function deepMerge<T extends Record<string, unknown>>(base: T, patch: Record<string, unknown>): T {
+  const out = { ...base } as Record<string, unknown>;
+  for (const [key, value] of Object.entries(patch)) {
+    if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+      out[key] = deepMerge((base[key] as Record<string, unknown>) || {}, value as Record<string, unknown>);
+    } else {
+      out[key] = value;
+    }
+  }
+  return out as T;
+}
+
 /** Core UI strings — extend as more screens are migrated to i18n. */
 const ptBR = {
   common: {
@@ -319,20 +333,27 @@ const id = {
   errors: { GENERIC: 'Terjadi kesalahan. Silakan coba lagi.', PLAY_PRODUCT_UNKNOWN: 'Produk tidak dikenali di Google Play.', PLAY_SUBSCRIPTION_INACTIVE: 'Langganan ini tidak aktif di Google Play.', PLAY_PURCHASE_LINKED_TO_OTHER_ACCOUNT: 'Pembelian ini sudah terhubung ke akun FinSavior lain.', PLAY_BILLING_NOT_CONFIGURED: 'Pembayaran Google Play sedang tidak tersedia.', PLAY_VERIFY_FAILED: 'Tidak dapat memvalidasi pembelian di Google Play. Coba lagi.', PLAY_MANAGED_IN_STORE: 'Langganan Google Play dikelola di Play Store.', SUBSCRIPTION_OTHER_PROVIDER: 'Anda sudah punya langganan aktif dari penyedia lain. Batalkan dulu.' },
 };
 
-export const resources = {
-  'pt-BR': { translation: ptBR },
-  'en-US': { translation: enUS },
-  es: { translation: es },
-  fr: { translation: fr },
-  'zh-CN': { translation: zhCN },
-  ja: { translation: ja },
-  de: { translation: de },
-  it: { translation: it },
-  ko: { translation: ko },
-  hi: { translation: hi },
-  ar: { translation: ar },
-  id: { translation: id },
+const baseByLocale: Record<string, object> = {
+  'pt-BR': ptBR,
+  'en-US': enUS,
+  es,
+  fr,
+  'zh-CN': zhCN,
+  ja,
+  de,
+  it,
+  ko,
+  hi,
+  ar,
+  id,
 };
+
+export const resources = Object.fromEntries(
+  Object.entries(baseByLocale).map(([locale, base]) => [
+    locale,
+    { translation: deepMerge(base as Record<string, unknown>, (appContentByLocale[locale] || {}) as Record<string, unknown>) },
+  ])
+) as typeof baseByLocale extends Record<infer K, unknown> ? Record<K & string, { translation: object }> : never;
 
 export type AppLocale = keyof typeof resources;
 

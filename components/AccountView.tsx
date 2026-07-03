@@ -93,11 +93,11 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
       formData.append('username', profileForm.username);
       
       await userService.updateProfile(formData);
-      showToast('Perfil atualizado com sucesso!', 'success');
+      showToast(t('toasts.profileUpdated'), 'success');
       onRefreshProfile();
       setIsEditingProfile(false);
     } catch (error: any) {
-      showToast(error?.message || 'Erro ao atualizar perfil', 'error');
+      showToast(translateApiError(error, t('toasts.profileUpdateError')), 'error');
     } finally {
       setIsLoading(false);
     }
@@ -106,7 +106,7 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      showToast('As senhas não coincidem', 'error');
+      showToast(t('toasts.passwordMismatch'), 'error');
       return;
     }
     setIsLoading(true);
@@ -116,11 +116,11 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
         currentPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword,
       });
-      showToast('Senha alterada com sucesso!', 'success');
+      showToast(t('toasts.passwordChanged'), 'success');
       setIsChangingPassword(false);
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (error: any) {
-      showToast(error?.message || 'Erro ao alterar senha', 'error');
+      showToast(translateApiError(error, t('toasts.passwordChangeError')), 'error');
     } finally {
       setIsLoading(false);
     }
@@ -129,7 +129,7 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
   const handleDeleteAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (deleteForm.confirmText !== 'EXCLUIR') {
-      showToast('Por favor, digite EXCLUIR para confirmar', 'error');
+      showToast(t('toasts.deleteConfirmText'), 'error');
       return;
     }
     setIsLoading(true);
@@ -139,11 +139,11 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
         password: deleteForm.password,
         confirmation: true,
       });
-      showToast('Sua conta será excluída em breve', 'success');
+      showToast(t('toasts.accountDeleteScheduled'), 'success');
       // In a real app, we would logout here
       window.location.reload();
     } catch (error: any) {
-      showToast(error?.message || 'Erro ao excluir conta', 'error');
+      showToast(translateApiError(error, t('toasts.accountDeleteError')), 'error');
     } finally {
       setIsLoading(false);
     }
@@ -154,7 +154,7 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      showToast('A foto deve ter no máximo 5MB', 'error');
+      showToast(t('toasts.photoTooLarge'), 'error');
       e.target.value = '';
       return;
     }
@@ -166,10 +166,10 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
       formData.append('name', file.name);
       
       await userService.uploadProfilePicture(formData);
-      showToast('Foto de perfil atualizada!', 'success');
+      showToast(t('toasts.photoUpdated'), 'success');
       onRefreshProfile();
     } catch (error: any) {
-      showToast(error?.message || 'Erro ao enviar foto', 'error');
+      showToast(translateApiError(error, t('toasts.photoUpdateError')), 'error');
     } finally {
       setIsLoading(false);
     }
@@ -179,11 +179,11 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
     setIsLoading(true);
     try {
       await paymentService.cancelSubscription(false); // Recurring cancellation (end of period)
-      showToast('Sua assinatura foi cancelada e não será renovada.', 'success');
+      showToast(t('toasts.subscriptionCanceled'), 'success');
       setIsCancelingSubscription(false);
       onRefreshProfile();
     } catch (error: any) {
-      showToast(translateApiError(error, 'Erro ao cancelar assinatura'), 'error');
+      showToast(translateApiError(error, t('toasts.subscriptionCancelError')), 'error');
     } finally {
       setIsLoading(false);
     }
@@ -193,10 +193,10 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
     setIsLoading(true);
     try {
       await paymentService.reactivateSubscription();
-      showToast('Sua assinatura foi reativada com sucesso!', 'success');
+      showToast(t('toasts.subscriptionReactivated'), 'success');
       onRefreshProfile();
     } catch (error: any) {
-      showToast(translateApiError(error, 'Erro ao reativar assinatura'), 'error');
+      showToast(translateApiError(error, t('toasts.subscriptionReactivateError')), 'error');
     } finally {
       setIsLoading(false);
     }
@@ -211,7 +211,7 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
     if (!agentNumber) return;
     navigator.clipboard.writeText(agentNumber);
     setCopied(true);
-    showToast('Número copiado!', 'success');
+    showToast(t('toasts.numberCopied'), 'success');
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -308,8 +308,8 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
                   <Key size={20} />
                 </div>
                 <div className="text-left">
-                  <p className="text-sm font-bold text-white">Alterar Senha</p>
-                  <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Mantenha sua conta segura</p>
+                  <p className="text-sm font-bold text-white">{t('account.changePassword')}</p>
+                  <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">{t('account.keepSecure')}</p>
                 </div>
               </div>
               <ChevronRight size={18} className="text-slate-600" />
@@ -326,8 +326,8 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
                   <CreditCard size={20} />
                 </div>
                 <div className="text-left">
-                  <p className="text-sm font-bold text-white">Ver Planos</p>
-                  <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Explore recursos premium</p>
+                  <p className="text-sm font-bold text-white">{t('account.viewPlans')}</p>
+                  <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">{t('account.explorePremium')}</p>
                 </div>
               </div>
               <ChevronRight size={18} className="text-slate-600" />
@@ -544,7 +544,7 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
                 disabled={isLoading}
                 className="w-full py-4 bg-primary text-white rounded-2xl font-bold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
               >
-                {isLoading ? <Loader2 className="animate-spin" size={18} /> : 'Salvar Alterações'}
+                {isLoading ? <Loader2 className="animate-spin" size={18} /> : t('account.saveChanges')}
               </button>
             </form>
           </div>
@@ -556,7 +556,7 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
           <div className="bg-slate-900 w-full max-w-md rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden animate-slide-up">
             <div className="p-6 border-b border-white/5 flex justify-between items-center">
-              <h3 className="text-xl font-black text-white tracking-tight">Alterar Senha</h3>
+              <h3 className="text-xl font-black text-white tracking-tight">{t('account.changePassword')}</h3>
               <button onClick={() => setIsChangingPassword(false)} className="p-2 text-slate-400 hover:text-white rounded-full transition-all">
                 <X size={24} />
               </button>
@@ -703,7 +703,7 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
                 disabled={isLoading}
                 className="w-full py-4 bg-rose-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-rose-500/20 hover:bg-rose-600 transition-all flex items-center justify-center gap-2"
               >
-                {isLoading ? <Loader2 className="animate-spin" size={18} /> : 'Confirmar Exclusão'}
+                {isLoading ? <Loader2 className="animate-spin" size={18} /> : t('account.confirmDelete')}
               </button>
             </form>
           </div>

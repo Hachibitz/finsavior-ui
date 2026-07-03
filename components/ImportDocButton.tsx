@@ -1,9 +1,12 @@
 import React, { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FileText, Loader2, AlertCircle, Coins, CreditCard, Wallet } from 'lucide-react';
 import { aiService } from '../services/aiService';
 import { coinService } from '../services/coinService';
 import { DocumentType, TableType, AiBillExtractionDTO } from '../types';
 import DocReviewModal from './DocReviewModal';
+import { useToast } from '../contexts/ToastContext';
+import { translateApiError } from '../utils/apiError';
 
 interface ImportDocButtonProps {
   docType: DocumentType;
@@ -28,6 +31,8 @@ const ImportDocButton: React.FC<ImportDocButtonProps> = ({
   children,
   className
 }) => {
+  const { t } = useTranslation();
+  const { showToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
@@ -58,12 +63,12 @@ const ImportDocButton: React.FC<ImportDocButtonProps> = ({
     if (!file) return;
 
     if (file.type !== 'application/pdf') {
-      alert('Apenas arquivos PDF são aceitos no momento.');
+      showToast(t('import.pdfOnly'), 'error');
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      alert('O arquivo deve ter no máximo 10MB.');
+      showToast(t('import.maxSize'), 'error');
       e.target.value = '';
       return;
     }
@@ -75,7 +80,7 @@ const ImportDocButton: React.FC<ImportDocButtonProps> = ({
 
   const processUpload = async (file: File, filePassword?: string, isUsingCoins: boolean = false) => {
     setLoading(true);
-    setLoadingMessage(filePassword ? 'Desbloqueando e lendo documento...' : 'Lendo documento com IA...');
+    setLoadingMessage(filePassword ? t('import.unlocking') : t('import.reading'));
     
     try {
       const bills = await aiService.uploadDocument(file, docType, isUsingCoins, filePassword, cardId, targetDate);
@@ -93,12 +98,12 @@ const ImportDocButton: React.FC<ImportDocButtonProps> = ({
         setShowPasswordPrompt(true);
       } else if (err.status === 412 || errorMessage.includes('Limite de importações')) {
         setPendingFile(file);
-        setLimitError(errorMessage || 'Limite de importações do plano atingido.');
+        setLimitError(errorMessage || t('import.limitReached'));
         setShowLimitAlert(true);
       } else if ((err.status === 400 || err.status === 412) && (errorMessage.includes('Saldo insuficiente') || errorMessage.includes('Insufficient FSCoins'))) {
         setShowCoinAlert(true);
       } else {
-        alert('Falha ao processar o documento. Verifique se é um PDF válido.');
+        showToast(translateApiError(err, t('import.processFailed')), 'error');
       }
     } finally {
       setLoading(false);
@@ -125,7 +130,7 @@ const ImportDocButton: React.FC<ImportDocButtonProps> = ({
 
   const handleWatchAd = async () => {
     setLoading(true);
-    setLoadingMessage('Carregando anúncio...');
+    setLoadingMessage(t('import.loadingAd'));
     try {
       // Mocking ad reward since AdMob isn't available in web preview
       await coinService.earnCoins();
@@ -133,10 +138,10 @@ const ImportDocButton: React.FC<ImportDocButtonProps> = ({
       const balance = await coinService.getBalance();
       setUserCoins(balance);
       setShowCoinAlert(false);
-      alert('Você ganhou 10 moedas!');
+      showToast(t('import.adReward'), 'success');
     } catch (e) {
       console.error('Error earning coins:', e);
-      alert('Falha ao carregar anúncio.');
+      showToast(t('import.adFailed'), 'error');
     } finally {
       setLoading(false);
     }
@@ -148,7 +153,7 @@ const ImportDocButton: React.FC<ImportDocButtonProps> = ({
         onClick={handleButtonClick}
         disabled={loading}
         className={className || "w-10 h-10 rounded-full glass-card flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/10 transition-all relative group"}
-        title="Importar Fatura PDF"
+        title={t('import.importPdf')}
       >
         {loading ? (
           <Loader2 className="animate-spin" size={20} />
@@ -175,7 +180,7 @@ const ImportDocButton: React.FC<ImportDocButtonProps> = ({
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-surface p-8 rounded-3xl border border-white/10 shadow-2xl flex flex-col items-center max-w-xs text-center">
             <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-6" />
-            <h3 className="text-xl font-bold text-white mb-2">Processando</h3>
+            <h3 className="text-xl font-bold text-white mb-2">{t('import.processing')}</h3>
             <p className="text-slate-400 text-sm">{loadingMessage}</p>
           </div>
         </div>
@@ -188,15 +193,15 @@ const ImportDocButton: React.FC<ImportDocButtonProps> = ({
             <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mb-6">
               <AlertCircle size={32} />
             </div>
-            <h3 className="text-2xl font-black text-white mb-2">PDF Protegido</h3>
-            <p className="text-slate-400 mb-6">Este arquivo exige uma senha para ser lido (ex: os primeiros dígitos do seu CPF).</p>
+            <h3 className="text-2xl font-black text-white mb-2">{t('import.protectedPdf')}</h3>
+            <p className="text-slate-400 mb-6">{t('import.protectedPdfDesc')}</p>
             
             <form onSubmit={handlePasswordSubmit} className="space-y-4">
               <input 
                 type="password" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Senha do PDF"
+                placeholder={t('import.pdfPassword')}
                 autoFocus
                 className="w-full bg-slate-900 border border-slate-700 rounded-2xl py-4 px-6 text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
@@ -206,13 +211,13 @@ const ImportDocButton: React.FC<ImportDocButtonProps> = ({
                   onClick={() => setShowPasswordPrompt(false)}
                   className="flex-1 py-4 rounded-2xl font-bold text-slate-400 hover:text-white transition-all"
                 >
-                  Cancelar
+                  {t('common.cancel')}
                 </button>
                 <button 
                   type="submit"
                   className="flex-1 py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 transition-all active:scale-95"
                 >
-                  Continuar
+                  {t('common.continue')}
                 </button>
               </div>
             </form>
@@ -227,8 +232,8 @@ const ImportDocButton: React.FC<ImportDocButtonProps> = ({
             <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-6 mx-auto">
               <CreditCard size={32} />
             </div>
-            <h3 className="text-2xl font-black text-white mb-2">Limite Atingido</h3>
-            <p className="text-slate-400 mb-8">{limitError} Você pode usar moedas para importar agora ou assinar o Premium.</p>
+            <h3 className="text-2xl font-black text-white mb-2">{t('import.limitTitle')}</h3>
+            <p className="text-slate-400 mb-8">{t('import.limitDesc', { msg: limitError })}</p>
             
             <div className="space-y-3">
               <button 
@@ -236,7 +241,7 @@ const ImportDocButton: React.FC<ImportDocButtonProps> = ({
                 className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-2"
               >
                 <Coins size={20} />
-                Usar {importCost} FSCoins
+                {t('import.useCoins', { count: importCost })}
               </button>
               <button 
                 onClick={() => {
@@ -245,13 +250,13 @@ const ImportDocButton: React.FC<ImportDocButtonProps> = ({
                 }}
                 className="w-full py-4 bg-white/5 text-white rounded-2xl font-bold hover:bg-white/10 transition-all"
               >
-                Ver Planos Premium
+                {t('layout.premiumPlans')}
               </button>
               <button 
                 onClick={() => setShowLimitAlert(false)}
                 className="w-full py-4 text-slate-500 font-bold hover:text-white transition-all"
               >
-                Agora não
+                {t('import.notNow')}
               </button>
             </div>
           </div>
@@ -265,21 +270,21 @@ const ImportDocButton: React.FC<ImportDocButtonProps> = ({
             <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mb-6 mx-auto">
               <Coins size={32} />
             </div>
-            <h3 className="text-2xl font-black text-white mb-2">Saldo Insuficiente</h3>
-            <p className="text-slate-400 mb-8">Você precisa de {importCost} moedas. Seu saldo atual é {userCoins}.</p>
+            <h3 className="text-2xl font-black text-white mb-2">{t('import.insufficientBalance')}</h3>
+            <p className="text-slate-400 mb-8">{t('import.insufficientDesc', { cost: importCost, balance: userCoins })}</p>
             
             <div className="space-y-3">
               <button 
                 onClick={handleWatchAd}
                 className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-2"
               >
-                Assistir Vídeo (+10 Moedas)
+                {t('import.watchAd')}
               </button>
               <button 
                 onClick={() => setShowCoinAlert(false)}
                 className="w-full py-4 text-slate-500 font-bold hover:text-white transition-all"
               >
-                Fechar
+                {t('common.close')}
               </button>
             </div>
           </div>

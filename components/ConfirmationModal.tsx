@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertTriangle, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -19,14 +20,19 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   onConfirm, 
   title, 
   message, 
-  confirmText = "Excluir", 
-  cancelText = "Cancelar",
+  confirmText, 
+  cancelText,
   showCheckbox = false,
-  checkboxLabel = "Excluir todas as parcelas"
+  checkboxLabel,
 }) => {
+  const { t } = useTranslation();
   const [checkboxValue, setCheckboxValue] = React.useState(false);
 
   if (!isOpen) return null;
+
+  const resolvedConfirm = confirmText ?? t('confirm.deleteDefault');
+  const resolvedCancel = cancelText ?? t('confirm.cancelDefault');
+  const resolvedCheckbox = checkboxLabel ?? t('confirm.deleteAllInstallments');
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
@@ -48,7 +54,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                 className="w-5 h-5 rounded border-slate-700 bg-slate-800 text-primary focus:ring-primary focus:ring-offset-slate-900"
               />
               <label htmlFor="modal-checkbox" className="text-sm text-slate-300 font-medium cursor-pointer select-none">
-                {checkboxLabel}
+                {resolvedCheckbox}
               </label>
             </div>
           )}
@@ -61,7 +67,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
               }}
               className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-semibold transition-colors"
             >
-              {cancelText}
+              {resolvedCancel}
             </button>
             <button 
               onClick={() => {
@@ -71,7 +77,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
               }}
               className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-semibold transition-colors"
             >
-              {confirmText}
+              {resolvedConfirm}
             </button>
           </div>
         </div>
