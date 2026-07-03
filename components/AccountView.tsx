@@ -128,8 +128,9 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
 
   const handleDeleteAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (deleteForm.confirmText !== 'EXCLUIR') {
-      showToast(t('toasts.deleteConfirmText'), 'error');
+    const confirmWord = t('account.deleteConfirmWord');
+    if (deleteForm.confirmText !== confirmWord) {
+      showToast(t('toasts.deleteConfirmText', { word: confirmWord }), 'error');
       return;
     }
     setIsLoading(true);
@@ -284,7 +285,7 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
             onClick={() => setIsEditingProfile(true)}
             className="px-6 py-3 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-bold text-sm transition-all border border-white/10"
           >
-            Editar Perfil
+            {t('account.editProfile')}
           </button>
         </div>
       </div>
@@ -385,8 +386,8 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
                         <CheckCircle2 size={20} />
                       </div>
                       <div className="text-left">
-                        <p className="text-sm font-bold text-white">Reativar Assinatura</p>
-                        <p className="text-[10px] text-emerald-500/70 font-medium uppercase tracking-wider">Sua assinatura expira em breve</p>
+                        <p className="text-sm font-bold text-white">{t('account.reactivateTitle')}</p>
+                        <p className="text-[10px] text-emerald-500/70 font-medium uppercase tracking-wider">{t('account.reactivateHint')}</p>
                       </div>
                     </div>
                     {isLoading ? <Loader2 className="animate-spin text-emerald-500" size={18} /> : <ChevronRight size={18} className="text-slate-600" />}
@@ -401,8 +402,8 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
                         <X size={20} />
                       </div>
                       <div className="text-left">
-                        <p className="text-sm font-bold text-white">Cancelar Assinatura</p>
-                        <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Interromper renovação automática</p>
+                        <p className="text-sm font-bold text-white">{t('account.cancelTitle')}</p>
+                        <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">{t('account.cancelHint')}</p>
                       </div>
                     </div>
                     <ChevronRight size={18} className="text-slate-600" />
@@ -415,7 +416,7 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
           {/* WhatsApp Integration Info */}
           {profile?.isWhatsappEnabled && (
             <div className="space-y-4">
-              <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] ml-4">Integração WhatsApp</h3>
+              <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] ml-4">{t('account.whatsappIntegration')}</h3>
               <div className="glass-card rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
@@ -423,11 +424,11 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
                       <MessageCircle size={24} />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-white">Agente FinSavior</p>
+                      <p className="text-sm font-bold text-white">{t('account.agentName')}</p>
                       {isLoadingAgent ? (
                         <div className="h-6 w-32 bg-white/5 animate-pulse rounded-md mt-1" />
                       ) : (
-                        <p className="text-lg font-mono font-bold text-emerald-400 tracking-tight">{agentNumber || 'Carregando...'}</p>
+                        <p className="text-lg font-mono font-bold text-emerald-400 tracking-tight">{agentNumber || t('account.loading')}</p>
                       )}
                     </div>
                   </div>
@@ -450,7 +451,7 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
                 </div>
                 <div className="p-4 rounded-2xl bg-black/20 border border-white/5">
                   <p className="text-[10px] text-slate-400 leading-relaxed">
-                    Envie mensagens ou áudios para este número para registrar despesas e consultar seu saldo instantaneamente.
+                    {t('account.whatsappHint')}
                   </p>
                 </div>
               </div>
@@ -460,7 +461,7 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
 
         {/* Danger Zone */}
         <div className="space-y-6">
-          <h3 className="text-xs font-black text-rose-500/50 uppercase tracking-[0.2em] ml-4">Zona de Perigo</h3>
+          <h3 className="text-xs font-black text-rose-500/50 uppercase tracking-[0.2em] ml-4">{t('account.dangerZone')}</h3>
           
           <div className="glass-card rounded-3xl border border-rose-500/10 overflow-hidden bg-rose-500/5">
             <button 
@@ -472,8 +473,8 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
                   <Trash2 size={20} />
                 </div>
                 <div className="text-left">
-                  <p className="text-sm font-bold text-rose-500">Excluir Conta</p>
-                  <p className="text-[10px] text-rose-500/50 font-medium uppercase tracking-wider">Ação irreversível</p>
+                  <p className="text-sm font-bold text-rose-500">{t('account.deleteAccount')}</p>
+                  <p className="text-[10px] text-rose-500/50 font-medium uppercase tracking-wider">{t('account.irreversible')}</p>
                 </div>
               </div>
               <ChevronRight size={18} className="text-rose-500/30" />
@@ -486,9 +487,9 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
                 <AlertTriangle size={18} />
               </div>
               <div>
-                <p className="text-xs font-bold text-white mb-1">Privacidade de Dados</p>
+                <p className="text-xs font-bold text-white mb-1">{t('account.dataPrivacy')}</p>
                 <p className="text-[10px] text-slate-500 leading-relaxed">
-                  Ao excluir sua conta, todos os seus dados financeiros, históricos de transações e análises de IA serão removidos permanentemente de nossos servidores.
+                  {t('account.dataPrivacyDesc')}
                 </p>
               </div>
             </div>
@@ -501,7 +502,7 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
           <div className="bg-slate-900 w-full max-w-md rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden animate-slide-up">
             <div className="p-6 border-b border-white/5 flex justify-between items-center">
-              <h3 className="text-xl font-black text-white tracking-tight">Editar Perfil</h3>
+              <h3 className="text-xl font-black text-white tracking-tight">{t('account.editProfile')}</h3>
               <button onClick={() => setIsEditingProfile(false)} className="p-2 text-slate-400 hover:text-white rounded-full transition-all">
                 <X size={24} />
               </button>
@@ -509,7 +510,7 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
             <form onSubmit={handleProfileUpdate} className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nome</label>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('account.firstName')}</label>
                   <input 
                     type="text" 
                     value={profileForm.firstName}
@@ -519,7 +520,7 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Sobrenome</label>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('account.lastName')}</label>
                   <input 
                     type="text" 
                     value={profileForm.lastName}
@@ -530,7 +531,7 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Username</label>
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('account.username')}</label>
                 <input 
                   type="text" 
                   value={profileForm.username}
@@ -563,7 +564,7 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
             </div>
             <form onSubmit={handleChangePassword} className="p-6 space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Senha Atual</label>
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('account.currentPassword')}</label>
                 <input 
                   type="password" 
                   value={passwordForm.currentPassword}
@@ -573,7 +574,7 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nova Senha</label>
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('account.newPassword')}</label>
                 <input 
                   type="password" 
                   value={passwordForm.newPassword}
@@ -584,7 +585,7 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Confirmar Nova Senha</label>
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('account.confirmNewPassword')}</label>
                 <input 
                   type="password" 
                   value={passwordForm.confirmPassword}
@@ -598,7 +599,7 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
                 disabled={isLoading}
                 className="w-full py-4 bg-primary text-white rounded-2xl font-bold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
               >
-                {isLoading ? <Loader2 className="animate-spin" size={18} /> : 'Atualizar Senha'}
+                {isLoading ? <Loader2 className="animate-spin" size={18} /> : t('account.updatePassword')}
               </button>
             </form>
           </div>
@@ -612,7 +613,7 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
             <div className="p-6 border-b border-white/5 flex justify-between items-center">
               <div className="flex items-center gap-3 text-amber-500">
                 <AlertTriangle size={24} />
-                <h3 className="text-xl font-black tracking-tight">Cancelar Assinatura</h3>
+                <h3 className="text-xl font-black tracking-tight">{t('account.cancelSubscriptionTitle')}</h3>
               </div>
               <button onClick={() => setIsCancelingSubscription(false)} className="p-2 text-slate-400 hover:text-white rounded-full transition-all">
                 <X size={24} />
@@ -621,20 +622,20 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
             <div className="p-6 space-y-6">
               <div className="space-y-4">
                 <p className="text-sm text-slate-400 leading-relaxed">
-                  Tem certeza que deseja cancelar sua assinatura? Você perderá acesso aos recursos premium ao final do seu período de faturamento atual.
+                  {t('account.cancelSubscriptionDesc')}
                 </p>
                 <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
                   <div className="flex items-center gap-3 text-xs text-slate-300">
                     <CheckCircle2 size={14} className="text-emerald-500" />
-                    <span>Seu acesso continua até o fim do ciclo atual</span>
+                    <span>{t('account.cancelBenefit1')}</span>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-slate-300">
                     <CheckCircle2 size={14} className="text-emerald-500" />
-                    <span>Nenhuma nova cobrança será realizada</span>
+                    <span>{t('account.cancelBenefit2')}</span>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-slate-300">
                     <CheckCircle2 size={14} className="text-emerald-500" />
-                    <span>Você pode reativar a qualquer momento</span>
+                    <span>{t('account.cancelBenefit3')}</span>
                   </div>
                 </div>
               </div>
@@ -645,14 +646,14 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
                   disabled={isLoading}
                   className="w-full py-4 bg-rose-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-rose-500/20 hover:bg-rose-600 transition-all flex items-center justify-center gap-2"
                 >
-                  {isLoading ? <Loader2 className="animate-spin" size={18} /> : 'Confirmar Cancelamento'}
+                  {isLoading ? <Loader2 className="animate-spin" size={18} /> : t('account.confirmCancellation')}
                 </button>
                 <button 
                   onClick={() => setIsCancelingSubscription(false)}
                   disabled={isLoading}
                   className="w-full py-4 bg-white/5 text-white rounded-2xl font-bold text-sm hover:bg-white/10 transition-all"
                 >
-                  Manter minha assinatura
+                  {t('account.keepSubscription')}
                 </button>
               </div>
             </div>
@@ -667,7 +668,7 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
             <div className="p-6 border-b border-rose-500/10 flex justify-between items-center bg-rose-500/5">
               <div className="flex items-center gap-3 text-rose-500">
                 <AlertTriangle size={24} />
-                <h3 className="text-xl font-black tracking-tight">Excluir Conta</h3>
+                <h3 className="text-xl font-black tracking-tight">{t('account.deleteAccountTitle')}</h3>
               </div>
               <button onClick={() => setIsDeletingAccount(false)} className="p-2 text-slate-400 hover:text-white rounded-full transition-all">
                 <X size={24} />
@@ -675,10 +676,10 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
             </div>
             <form onSubmit={handleDeleteAccount} className="p-6 space-y-4">
               <p className="text-sm text-slate-400 leading-relaxed">
-                Esta ação é <span className="text-rose-500 font-bold">permanente</span>. Para confirmar, digite sua senha e a palavra <span className="text-white font-bold">EXCLUIR</span> abaixo.
+                {t('account.deleteAccountDesc')}
               </p>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Sua Senha</label>
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('account.yourPassword')}</label>
                 <input 
                   type="password" 
                   value={deleteForm.password}
@@ -688,12 +689,12 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Digite EXCLUIR</label>
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('account.typeDelete')}</label>
                 <input 
                   type="text" 
                   value={deleteForm.confirmText}
                   onChange={e => setDeleteForm({...deleteForm, confirmText: e.target.value})}
-                  placeholder="EXCLUIR"
+                  placeholder={t('account.deletePlaceholder')}
                   className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white focus:outline-none focus:border-rose-500 transition-all"
                   required
                 />

@@ -7,6 +7,7 @@ import { DocumentType, TableType, AiBillExtractionDTO } from '../types';
 import DocReviewModal from './DocReviewModal';
 import { useToast } from '../contexts/ToastContext';
 import { translateApiError } from '../utils/apiError';
+import { translateKnownBackendMessage } from '../utils/backendMessages';
 
 interface ImportDocButtonProps {
   docType: DocumentType;
@@ -91,16 +92,20 @@ const ImportDocButton: React.FC<ImportDocButtonProps> = ({
       onRefreshCoins();
     } catch (err: any) {
       console.error('Upload error:', err);
-      const errorMessage = err.message || '';
+      const errorMessage = err.message || err.data?.msg || '';
 
       if (errorMessage.includes('PASSWORD_REQUIRED')) {
         setPendingFile(file);
         setShowPasswordPrompt(true);
-      } else if (err.status === 412 || errorMessage.includes('Limite de importações')) {
+      } else if (err.status === 412) {
         setPendingFile(file);
-        setLimitError(errorMessage || t('import.limitReached'));
+        setLimitError(translateApiError(err, t('import.limitReached')));
         setShowLimitAlert(true);
-      } else if ((err.status === 400 || err.status === 412) && (errorMessage.includes('Saldo insuficiente') || errorMessage.includes('Insufficient FSCoins'))) {
+      } else if (
+        (err.status === 400 || err.status === 412) &&
+        (/insufficient fscoins/i.test(errorMessage) ||
+          translateKnownBackendMessage(errorMessage) === t('import.insufficientBalance'))
+      ) {
         setShowCoinAlert(true);
       } else {
         showToast(translateApiError(err, t('import.processFailed')), 'error');

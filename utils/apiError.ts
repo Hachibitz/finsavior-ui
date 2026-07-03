@@ -1,10 +1,10 @@
 import i18n from '../i18n';
+import { translateKnownBackendMessage } from './backendMessages';
 
 /**
  * Resolves an API error to a user-facing message in the current locale.
- * Backend errors carry a machine-readable `errorCode` (e.g. PLAY_VERIFY_FAILED)
- * that maps to the `errors.*` i18n namespace; the backend `msg` (Portuguese)
- * is only used as fallback for codes the frontend doesn't know yet.
+ * Backend errors may carry a machine-readable `errorCode` (e.g. PLAY_VERIFY_FAILED)
+ * or Portuguese `msg` text that maps to known i18n keys.
  */
 export function translateApiError(error: any, fallback?: string): string {
   const code = error?.errorCode || error?.data?.errorCode;
@@ -13,9 +13,17 @@ export function translateApiError(error: any, fallback?: string): string {
     if (i18n.exists(key)) {
       return i18n.t(key);
     }
-    if (error?.data?.msg) {
-      return error.data.msg;
-    }
   }
-  return error?.data?.msg || error?.message || fallback || i18n.t('errors.GENERIC');
+
+  const raw =
+    error?.data?.msg ||
+    error?.data?.message ||
+    error?.response?.data?.msg ||
+    error?.message;
+
+  if (typeof raw === 'string' && raw.trim()) {
+    return translateKnownBackendMessage(raw);
+  }
+
+  return fallback || i18n.t('errors.GENERIC');
 }

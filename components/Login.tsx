@@ -7,6 +7,7 @@ import TermsModal from './TermsModal';
 import PasswordRecoveryModal from './PasswordRecoveryModal';
 import LanguageSelector from './LanguageSelector';
 import { FinSaviorLogo } from './Logo';
+import { translateApiError } from '../utils/apiError';
 
 interface LoginProps {
   onLoginSuccess: () => void;
@@ -47,7 +48,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
       await authService.login(username, password, rememberMe);
       onLoginSuccess();
     } catch (err: any) {
-      setError(err.message || t('auth.loginFailed'));
+      setError(translateApiError(err, t('auth.loginFailed')));
     } finally {
       setLoading(false);
     }
@@ -68,7 +69,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
         onLoginSuccess();
       }
     } catch (err: any) {
-      setError(err.message || t('auth.googleFailed'));
+      setError(translateApiError(err, t('auth.googleFailed')));
     } finally {
       setGoogleLoading(false);
     }
@@ -79,20 +80,18 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
     
     setGoogleLoading(true);
     try {
-      // Re-acquire a fresh idToken from the active Firebase session (never persisted).
       const idToken = await googleAuthService.waitForCurrentIdToken();
-      if (!idToken) throw new Error('Token do Google não encontrado.');
+      if (!idToken) throw new Error(t('auth.googleTokenMissing'));
 
       await authService.registerWithGoogle(idToken);
       
-      // Store email if available
       if (googleUserData?.email) {
         localStorage.setItem('user_email', googleUserData.email);
       }
       
       onLoginSuccess();
     } catch (err: any) {
-      setError(err.message || 'Erro ao realizar cadastro via Google.');
+      setError(translateApiError(err, t('auth.googleRegisterFailed')));
       setShowGoogleRegisterModal(false);
     } finally {
       setGoogleLoading(false);
@@ -121,7 +120,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="w-full bg-slate-900/50 border border-slate-700 rounded-2xl py-4 pl-12 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                  placeholder="Seu usuário ou e-mail"
+                  placeholder={t('auth.usernamePlaceholder')}
                   required
                 />
               </div>
@@ -136,7 +135,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full bg-slate-900/50 border border-slate-700 rounded-2xl py-4 pl-12 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                  placeholder="Sua senha"
+                  placeholder={t('auth.passwordPlaceholder')}
                   required
                 />
               </div>
@@ -230,11 +229,12 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
         </div>
         
         <p className="text-center mt-8 text-slate-500 text-sm">
-          Não tem uma conta? <span 
+          {t('auth.noAccount')}{' '}
+          <span 
             onClick={onNavigateToRegister}
             className="text-primary font-bold cursor-pointer hover:underline"
           >
-            Cadastre-se
+            {t('auth.signUp')}
           </span>
         </p>
 
@@ -244,7 +244,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all text-xs font-bold uppercase tracking-widest"
           >
             <HelpCircle size={14} />
-            Precisa de Ajuda?
+            {t('auth.needHelp')}
           </button>
         </div>
       </div>
@@ -257,9 +257,9 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
               <div className="w-20 h-20 bg-primary/20 rounded-3xl flex items-center justify-center text-primary mx-auto mb-6 shadow-xl shadow-primary/20">
                 <ShieldCheck size={40} />
               </div>
-              <h3 className="text-2xl font-black text-white tracking-tight mb-2">Quase lá!</h3>
+              <h3 className="text-2xl font-black text-white tracking-tight mb-2">{t('auth.googleAlmostThere')}</h3>
               <p className="text-slate-400 text-sm">
-                Identificamos que você ainda não possui uma conta. Deseja criar uma agora usando seus dados do Google?
+                {t('auth.googleRegisterPrompt')}
               </p>
               
               <div className="mt-6 p-4 bg-white/5 rounded-2xl flex items-center gap-4 text-left border border-white/5">
@@ -286,21 +286,21 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
                     className="mt-1 w-4 h-4 rounded border-white/10 bg-slate-900 text-primary focus:ring-primary focus:ring-offset-slate-950"
                   />
                   <label htmlFor="google-agreement" className="text-xs text-slate-400 leading-relaxed">
-                    Declaro que li e aceito os{' '}
+                    {t('auth.termsPrefix')}{' '}
                     <button 
                       type="button" 
                       onClick={() => { setTermsType('terms'); setShowTermsModal(true); }}
                       className="text-primary hover:underline font-bold"
                     >
-                      Termos e Condições
+                      {t('auth.termsLink')}
                     </button>
-                    {' '}e{' '}
+                    {' '}{t('auth.termsAnd')}{' '}
                     <button 
                       type="button" 
                       onClick={() => { setTermsType('privacy'); setShowTermsModal(true); }}
                       className="text-primary hover:underline font-bold"
                     >
-                      Política de Privacidade
+                      {t('auth.privacyLink')}
                     </button>.
                   </label>
                 </div>
@@ -318,7 +318,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
                     <Loader2 className="animate-spin" size={18} />
                   ) : (
                     <>
-                      <span>Criar Minha Conta</span>
+                      <span>{t('auth.createAccount')}</span>
                       <ArrowRight size={18} />
                     </>
                   )}
@@ -328,7 +328,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, onOpenSupport, onNavigate
                   onClick={() => setShowGoogleRegisterModal(false)}
                   className="w-full py-2 text-slate-500 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest"
                 >
-                  Cancelar
+                  {t('common.cancel')}
                 </button>
               </div>
             </div>

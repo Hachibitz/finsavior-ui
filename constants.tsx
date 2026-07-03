@@ -3,35 +3,40 @@ import {
   ShoppingBag, Coffee, Home, Car, Utensils, Briefcase, Zap, HeartPulse, Gamepad2, Plane, Smartphone, GraduationCap, ShieldCheck
 } from 'lucide-react';
 import React from 'react';
+import { SYSTEM_CATEGORY_IDS } from './utils/categoryLabel';
 
-export const DEFAULT_CATEGORIES: Category[] = [
-  // Expenses
-  { id: 'housing', name: 'Moradia', icon: 'home', color: '#3b82f6' }, // Blue
-  { id: 'food', name: 'Alimentação', icon: 'utensils', color: '#f59e0b' }, // Amber
-  { id: 'energy', name: 'Energia', icon: 'zap', color: '#eab308' }, // Yellow
-  { id: 'water', name: 'Água', icon: 'coffee', color: '#06b6d4' }, // Cyan
-  { id: 'internet', name: 'Internet', icon: 'smartphone', color: '#6366f1' }, // Indigo
-  { id: 'transport', name: 'Transporte', icon: 'car', color: '#ef4444' }, // Red
-  { id: 'health', name: 'Saúde', icon: 'heart-pulse', color: '#10b981' }, // Emerald
-  { id: 'education', name: 'Educação', icon: 'graduation-cap', color: '#8b5cf6' }, // Violet
-  { id: 'personal_care', name: 'Cuidados Pessoais', icon: 'heart-pulse', color: '#ec4899' }, // Pink
-  { id: 'entertainment', name: 'Lazer', icon: 'gamepad-2', color: '#f97316' }, // Orange
-  { id: 'insurance', name: 'Seguro', icon: 'shield-check', color: '#64748b' }, // Slate
-  { id: 'pets', name: 'Pets', icon: 'heart-pulse', color: '#f43f5e' }, // Rose
-  { id: 'subscriptions', name: 'Assinaturas', icon: 'smartphone', color: '#4f46e5' }, // Indigo darker
-  { id: 'shopping', name: 'Compras', icon: 'shopping-bag', color: '#db2777' }, // Pink darker
-  { id: 'services', name: 'Serviços', icon: 'smartphone', color: '#6366f1' },
-  { id: 'utilities', name: 'Utilidades', icon: 'zap', color: '#eab308' },
-  
-  // Income
-  { id: 'salary', name: 'Salário', icon: 'briefcase', color: '#16a34a' }, // Green
-  { id: 'freelance', name: 'Freelance', icon: 'briefcase', color: '#0d9488' }, // Teal
-  { id: 'projects', name: 'Projetos', icon: 'briefcase', color: '#0891b2' }, // Cyan darker
-  { id: 'investments', name: 'Investimentos', icon: 'zap', color: '#ca8a04' }, // Yellow darker
-  { id: 'savings', name: 'Poupança', icon: 'home', color: '#2563eb' }, // Blue darker
-  
-  { id: 'others', name: 'Outras', icon: 'coffee', color: '#475569' }, // Slate darker
+export { SYSTEM_CATEGORY_IDS };
+
+const DEFAULT_CATEGORY_DEFS: Omit<Category, 'name'>[] = [
+  { id: 'housing', icon: 'home', color: '#3b82f6' },
+  { id: 'food', icon: 'utensils', color: '#f59e0b' },
+  { id: 'energy', icon: 'zap', color: '#eab308' },
+  { id: 'water', icon: 'coffee', color: '#06b6d4' },
+  { id: 'internet', icon: 'smartphone', color: '#6366f1' },
+  { id: 'transport', icon: 'car', color: '#ef4444' },
+  { id: 'health', icon: 'heart-pulse', color: '#10b981' },
+  { id: 'education', icon: 'graduation-cap', color: '#8b5cf6' },
+  { id: 'personal_care', icon: 'heart-pulse', color: '#ec4899' },
+  { id: 'entertainment', icon: 'gamepad-2', color: '#f97316' },
+  { id: 'insurance', icon: 'shield-check', color: '#64748b' },
+  { id: 'pets', icon: 'heart-pulse', color: '#f43f5e' },
+  { id: 'subscriptions', icon: 'smartphone', color: '#4f46e5' },
+  { id: 'shopping', icon: 'shopping-bag', color: '#db2777' },
+  { id: 'services', icon: 'smartphone', color: '#6366f1' },
+  { id: 'utilities', icon: 'zap', color: '#eab308' },
+  { id: 'salary', icon: 'briefcase', color: '#16a34a' },
+  { id: 'freelance', icon: 'briefcase', color: '#0d9488' },
+  { id: 'projects', icon: 'briefcase', color: '#0891b2' },
+  { id: 'investments', icon: 'zap', color: '#ca8a04' },
+  { id: 'savings', icon: 'home', color: '#2563eb' },
+  { id: 'others', icon: 'coffee', color: '#475569' },
 ];
+
+/** Placeholder seed until `/categories` loads; display via getCategoryLabel(). */
+export const DEFAULT_CATEGORIES: Category[] = DEFAULT_CATEGORY_DEFS.map((c) => ({
+  ...c,
+  name: c.id,
+}));
 
 export const AVAILABLE_ICONS = [
   'home', 'utensils', 'car', 'shopping-bag', 'gamepad-2', 'heart-pulse', 

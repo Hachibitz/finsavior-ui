@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { X, Check } from 'lucide-react';
 import { Category, Transaction, CreditCard, FixedBillGenerationStrategy } from '../types';
 import { billDateToYYYYMM } from '../utils/billDate';
+import { getCategoryLabel } from '../utils/categoryLabel';
 
 interface TransactionFormProps {
   isOpen: boolean;
@@ -319,7 +320,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                       className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-4 py-3 appearance-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                     >
                       {categories.map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        <option key={cat.id} value={cat.id}>{getCategoryLabel(cat, t)}</option>
                       ))}
                     </select>
                  </div>

@@ -109,7 +109,8 @@ const VoiceFab: React.FC<VoiceFabProps> = ({
           setIsRecording(true);
           console.log('Gravação iniciada com sucesso.');
         } else {
-          throw new Error('Falha ao iniciar gravação (retorno falso)');
+          showToast(t('voice.startRecordingError'), 'error');
+          return;
         }
       } else {
         showToast(t('voice.audioPermissionFailed'), 'error');

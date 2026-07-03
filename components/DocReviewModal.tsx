@@ -6,6 +6,7 @@ import { billService } from '../services/billService';
 import { yyyyMMToBillDate } from '../utils/billDate';
 import { useToast } from '../contexts/ToastContext';
 import { translateApiError } from '../utils/apiError';
+import { getCategoryLabel } from '../utils/categoryLabel';
 
 interface DocReviewModalProps {
   extractedBills: AiBillExtractionDTO[];
@@ -158,7 +159,7 @@ const DocReviewModal: React.FC<DocReviewModalProps> = ({
                       />
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-xs text-slate-500 uppercase font-bold tracking-widest">{bill.possibleDate || t('import.noDate')}</span>
-                        <span className="text-xs text-primary font-bold px-2 py-0.5 bg-primary/10 rounded-full">{bill.billCategory}</span>
+                        <span className="text-xs text-primary font-bold px-2 py-0.5 bg-primary/10 rounded-full">{getCategoryLabel(bill.billCategory || 'others', t)}</span>
                       </div>
                     </div>
 

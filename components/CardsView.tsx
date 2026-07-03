@@ -8,6 +8,7 @@ import { useToast } from '../contexts/ToastContext';
 import TransactionForm from './TransactionForm';
 import { billService } from '../services/billService';
 import { formatCurrency } from '../i18n/localeFormat';
+import { getCategoryLabel } from '../utils/categoryLabel';
 
 interface CardsViewProps {
   transactions: CardTransaction[];
@@ -334,7 +335,7 @@ const CardsView: React.FC<CardsViewProps> = ({
                     <h4 className="font-semibold text-slate-200 text-sm group-hover:text-primary transition-colors">{tx.description}</h4>
                     <div className="flex items-center gap-2 mt-1">
                        <span className="text-[10px] text-slate-400 uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700">
-                          {tx.billType === 'PAYMENT' ? t('cards.payment') : (category?.name || tx.category || t('cards.other'))}
+                          {tx.billType === 'PAYMENT' ? t('cards.payment') : getCategoryLabel(category || tx.category || 'others', t)}
                        </span>
                        {tx.billType === 'PAYMENT' && (
                          <span className="text-[10px] text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">

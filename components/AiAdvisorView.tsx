@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AiAnalysis, Bill, CardTransaction, Asset, UserProfile, AiAdviceDTO } from '../types';
-import { MOCK_AI_ANALYSES } from '../constants';
+import { getCategoryLabel } from '../utils/categoryLabel';
 import { BrainCircuit, Sparkles, MessageSquare, ChevronRight, Play, X, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { aiAdviceService } from '../services/aiAdviceService';

@@ -1,4 +1,5 @@
 import { writeFileSync } from 'fs';
+import { ptBRPhase2, enUSPhase2, applyPhase2 } from './app-content-phase2.mjs';
 
 const ptBR = {
   common: {
@@ -176,7 +177,7 @@ const ptBR = {
     voiceDetected: 'Registro "{{name}}" detectado! Verifique os dados.',
     profileUpdated: 'Perfil atualizado com sucesso!', profileUpdateError: 'Erro ao atualizar perfil',
     passwordMismatch: 'As senhas não coincidem', passwordChanged: 'Senha alterada com sucesso!',
-    passwordChangeError: 'Erro ao alterar senha', deleteConfirmText: 'Por favor, digite EXCLUIR para confirmar',
+    passwordChangeError: 'Erro ao alterar senha', deleteConfirmText: 'Por favor, digite {{word}} para confirmar',
     accountDeleteScheduled: 'Sua conta será excluída em breve', accountDeleteError: 'Erro ao excluir conta',
     photoTooLarge: 'A foto deve ter no máximo 5MB', photoUpdated: 'Foto de perfil atualizada!',
     photoUpdateError: 'Erro ao enviar foto', subscriptionCanceled: 'Sua assinatura foi cancelada e não será renovada.',
@@ -373,7 +374,7 @@ const enUS = {
     voiceDetected: 'Record "{{name}}" detected! Please verify the data.',
     profileUpdated: 'Profile updated successfully!', profileUpdateError: 'Error updating profile',
     passwordMismatch: 'Passwords do not match', passwordChanged: 'Password changed successfully!',
-    passwordChangeError: 'Error changing password', deleteConfirmText: 'Please type DELETE to confirm',
+    passwordChangeError: 'Error changing password', deleteConfirmText: 'Please type {{word}} to confirm',
     accountDeleteScheduled: 'Your account will be deleted shortly', accountDeleteError: 'Error deleting account',
     photoTooLarge: 'Photo must be at most 5MB', photoUpdated: 'Profile photo updated!',
     photoUpdateError: 'Error uploading photo', subscriptionCanceled: 'Your subscription was canceled and will not renew.',
@@ -393,6 +394,9 @@ const enUS = {
     explorePremium: 'Explore premium features', saveChanges: 'Save Changes', confirmDelete: 'Confirm Deletion',
   },
 };
+
+applyPhase2(ptBR, ptBRPhase2);
+applyPhase2(enUS, enUSPhase2);
 
 // Machine-translate helper for remaining locales (real translations per language)
 const localeMap = {

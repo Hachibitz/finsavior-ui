@@ -25,6 +25,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { getCategoryIcon } from '../constants';
+import { getCategoryLabel } from '../utils/categoryLabel';
 import { formatCurrency, formatMonthShort, formatShortDate } from '../i18n/localeFormat';
 import { translateApiError } from '../utils/apiError';
 import { aiAdviceService } from '../services/aiAdviceService';
@@ -209,12 +210,12 @@ const SummaryView: React.FC<SummaryViewProps> = ({
     return Object.entries(totals).map(([catId, value]) => {
       const cat = categories.find(c => c.id === catId || c.name.toLowerCase() === catId.toLowerCase());
       return {
-        name: cat?.name || catId,
+        name: getCategoryLabel(cat || catId, t),
         value,
         color: cat?.color || '#64748b'
       };
     }).sort((a, b) => b.value - a.value);
-  }, [allExpenses, categories]);
+  }, [allExpenses, categories, t]);
 
   const totalSavings = useMemo(() => {
     return assets.filter(a => a.type === 'savings').reduce((acc, a) => acc + a.amount, 0);

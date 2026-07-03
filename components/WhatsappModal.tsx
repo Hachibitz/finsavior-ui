@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, MessageCircle, ShieldCheck, AlertCircle, Loader2, CheckCircle2, Edit2, Trash2, AlertTriangle, ExternalLink, Copy, Check } from 'lucide-react';
+import { X, MessageCircle, ShieldCheck, Loader2, CheckCircle2, Edit2, Trash2, AlertTriangle, ExternalLink, Copy, Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { UserProfile } from '../types';
 import { userService } from '../services/userService';
 import { whatsappService } from '../services/whatsappService';
 import { useToast } from '../contexts/ToastContext';
+import { translateApiError } from '../utils/apiError';
 
 interface WhatsappModalProps {
   isOpen: boolean;
@@ -20,6 +22,7 @@ const WhatsappModal: React.FC<WhatsappModalProps> = ({
   onRefreshProfile,
   onNavigateToPlans
 }) => {
+  const { t } = useTranslation();
   const { showToast } = useToast();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -49,7 +52,6 @@ const WhatsappModal: React.FC<WhatsappModalProps> = ({
 
   useEffect(() => {
     if (profile?.phoneNumber) {
-      // Remove the "+" prefix if it exists to avoid double display in input
       setPhoneNumber(profile.phoneNumber.replace(/^\+/, ''));
     } else {
       setPhoneNumber('');
@@ -59,23 +61,21 @@ const WhatsappModal: React.FC<WhatsappModalProps> = ({
   }, [profile, isOpen]);
 
   const validatePhoneNumber = (num: string) => {
-    // Basic validation: only digits, between 10 and 15 characters
     const digitsOnly = num.replace(/\D/g, '');
     return digitsOnly.length >= 10 && digitsOnly.length <= 15;
   };
 
   const handleEnable = async () => {
     if (!phoneNumber || !validatePhoneNumber(phoneNumber)) {
-      showToast('Por favor, insira um número de telefone válido (com DDI e DDD).', 'error');
+      showToast(t('whatsappModal.invalidPhone'), 'error');
       return;
     }
 
     setIsLoading(true);
     try {
-      // Ensure we send the number with the "+" prefix as expected by backend
       const formattedNumber = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
       await userService.enableWhatsapp({ isEnabled: true, phoneNumber: formattedNumber });
-      showToast('Integração com WhatsApp configurada com sucesso!', 'success');
+      showToast(t('whatsappModal.enabledSuccess'), 'success');
       onRefreshProfile();
       setIsEditing(false);
       if (!profile?.isWhatsappEnabled) onClose();
@@ -90,7 +90,7 @@ const WhatsappModal: React.FC<WhatsappModalProps> = ({
     setIsLoading(true);
     try {
       await userService.disableWhatsapp();
-      showToast('Integração com WhatsApp desabilitada.', 'success');
+      showToast(t('whatsappModal.disabledSuccess'), 'success');
       onRefreshProfile();
       setShowConfirmDisable(false);
       onClose();
@@ -105,7 +105,7 @@ const WhatsappModal: React.FC<WhatsappModalProps> = ({
     if (!agentNumber) return;
     navigator.clipboard.writeText(agentNumber);
     setCopied(true);
-    showToast('Número copiado para a área de transferência!', 'success');
+    showToast(t('whatsappModal.numberCopied'), 'success');
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -117,9 +117,10 @@ const WhatsappModal: React.FC<WhatsappModalProps> = ({
 
   const handleError = (error: any) => {
     console.error('WhatsApp integration error:', error);
-    const errorMessage = error.response?.data?.msg || error.message || 'Erro ao processar integração.';
-    
-    if (errorMessage.includes('apenas para usuários de planos pagos')) {
+    const code = error?.errorCode || error?.data?.errorCode || error?.response?.data?.errorCode;
+    const errorMessage = translateApiError(error, t('whatsappModal.integrationError'));
+
+    if (code === 'WHATSAPP_PAID_ONLY') {
       showToast(errorMessage, 'info');
       onNavigateToPlans();
       onClose();
@@ -143,9 +144,9 @@ const WhatsappModal: React.FC<WhatsappModalProps> = ({
                 <MessageCircle size={24} />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-white">WhatsApp</h3>
+                <h3 className="text-xl font-bold text-white">{t('whatsappModal.title')}</h3>
                 <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">
-                  {isEnabled ? 'Gerenciar Integração' : 'Integração Inteligente'}
+                  {isEnabled ? t('whatsappModal.manageIntegration') : t('whatsappModal.smartIntegration')}
                 </p>
               </div>
             </div>
@@ -162,22 +163,22 @@ const WhatsappModal: React.FC<WhatsappModalProps> = ({
                     <CheckCircle2 size={40} />
                   </div>
                   <div>
-                    <h4 className="text-lg font-bold text-white">WhatsApp Ativo</h4>
-                    <p className="text-sm text-slate-400">Sua conta está vinculada ao número:</p>
+                    <h4 className="text-lg font-bold text-white">{t('whatsappModal.activeTitle')}</h4>
+                    <p className="text-sm text-slate-400">{t('whatsappModal.linkedTo')}</p>
                     <p className="text-xl font-black text-emerald-400 mt-1">{profile?.phoneNumber}</p>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <h4 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Como usar o Agente</h4>
+                  <h4 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] ml-1">{t('whatsappModal.howToUse')}</h4>
                   <div className="p-5 rounded-2xl bg-slate-900 border border-white/5 space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Número do Agente</p>
+                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">{t('whatsappModal.agentNumber')}</p>
                         {isLoadingAgent ? (
                           <div className="h-6 w-32 bg-white/5 animate-pulse rounded-md" />
                         ) : (
-                          <p className="text-lg font-mono font-bold text-white tracking-tight">{agentNumber || 'Carregando...'}</p>
+                          <p className="text-lg font-mono font-bold text-white tracking-tight">{agentNumber || t('whatsappModal.loading')}</p>
                         )}
                       </div>
                       <div className="flex gap-2">
@@ -185,7 +186,7 @@ const WhatsappModal: React.FC<WhatsappModalProps> = ({
                           onClick={copyToClipboard}
                           disabled={!agentNumber}
                           className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all disabled:opacity-50"
-                          title="Copiar número"
+                          title={t('whatsappModal.copyNumber')}
                         >
                           {copied ? <Check size={18} className="text-emerald-500" /> : <Copy size={18} />}
                         </button>
@@ -193,7 +194,7 @@ const WhatsappModal: React.FC<WhatsappModalProps> = ({
                           onClick={openWhatsApp}
                           disabled={!agentNumber}
                           className="p-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 transition-all disabled:opacity-50"
-                          title="Abrir no WhatsApp"
+                          title={t('whatsappModal.openWhatsApp')}
                         >
                           <ExternalLink size={18} />
                         </button>
@@ -205,15 +206,15 @@ const WhatsappModal: React.FC<WhatsappModalProps> = ({
                     <div className="space-y-3">
                       <div className="flex gap-3">
                         <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-black shrink-0">1</div>
-                        <p className="text-xs text-slate-400 leading-relaxed">Salve o número acima nos seus contatos como <span className="text-white font-bold italic">FinSavior Agente</span>.</p>
+                        <p className="text-xs text-slate-400 leading-relaxed">{t('whatsappModal.step1')}</p>
                       </div>
                       <div className="flex gap-3">
                         <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-black shrink-0">2</div>
-                        <p className="text-xs text-slate-400 leading-relaxed">Envie uma mensagem como: <span className="text-white font-bold italic">"Gastei 50 reais com pizza ontem"</span>.</p>
+                        <p className="text-xs text-slate-400 leading-relaxed">{t('whatsappModal.step2')}</p>
                       </div>
                       <div className="flex gap-3">
                         <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-black shrink-0">3</div>
-                        <p className="text-xs text-slate-400 leading-relaxed">Ou envie um áudio e nossa IA processará a transação automaticamente.</p>
+                        <p className="text-xs text-slate-400 leading-relaxed">{t('whatsappModal.step3')}</p>
                       </div>
                     </div>
                   </div>
@@ -224,14 +225,14 @@ const WhatsappModal: React.FC<WhatsappModalProps> = ({
                     onClick={() => setIsEditing(true)}
                     className="py-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold hover:bg-white/10 transition-all flex items-center justify-center gap-2"
                   >
-                    <Edit2 size={18} /> Alterar Número
+                    <Edit2 size={18} /> {t('whatsappModal.changeNumber')}
                   </button>
                   <button 
                     onClick={() => setShowConfirmDisable(true)}
                     disabled={isLoading}
                     className="py-4 rounded-2xl bg-danger/10 border border-danger/20 text-danger font-bold hover:bg-danger/20 transition-all flex items-center justify-center gap-2"
                   >
-                    <Trash2 size={18} /> Desativar
+                    <Trash2 size={18} /> {t('whatsappModal.disable')}
                   </button>
                 </div>
               </div>
@@ -244,13 +245,13 @@ const WhatsappModal: React.FC<WhatsappModalProps> = ({
                         <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0 mt-0.5">
                           <CheckCircle2 size={12} />
                         </div>
-                        <p className="text-sm text-slate-300">Adicione despesas enviando mensagens de áudio ou texto.</p>
+                        <p className="text-sm text-slate-300">{t('whatsappModal.benefit1')}</p>
                       </div>
                       <div className="flex items-start gap-3">
                         <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center shrink-0 mt-0.5">
                           <CheckCircle2 size={12} />
                         </div>
-                        <p className="text-sm text-slate-300">Consulte seu saldo e faturas em tempo real.</p>
+                        <p className="text-sm text-slate-300">{t('whatsappModal.benefit2')}</p>
                       </div>
                     </div>
                   )}
@@ -259,14 +260,14 @@ const WhatsappModal: React.FC<WhatsappModalProps> = ({
                     <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-4">
                       <ShieldCheck className="text-amber-500 shrink-0" size={20} />
                       <div>
-                        <h4 className="text-sm font-bold text-amber-500 mb-1">Recurso Premium</h4>
-                        <p className="text-xs text-slate-400 leading-relaxed">A integração com WhatsApp está disponível apenas nos planos pagos. Faça o upgrade para liberar!</p>
+                        <h4 className="text-sm font-bold text-amber-500 mb-1">{t('whatsappModal.premiumFeature')}</h4>
+                        <p className="text-xs text-slate-400 leading-relaxed">{t('whatsappModal.premiumDesc')}</p>
                       </div>
                     </div>
                   )}
 
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Número do WhatsApp</label>
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">{t('whatsappModal.phoneLabel')}</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
                         <span className="text-sm font-bold">+</span>
@@ -280,7 +281,7 @@ const WhatsappModal: React.FC<WhatsappModalProps> = ({
                         autoFocus
                       />
                     </div>
-                    <p className="text-[10px] text-slate-500 ml-1 italic">* Inclua o DDI (ex: 55 para Brasil) e o DDD.</p>
+                    <p className="text-[10px] text-slate-500 ml-1 italic">{t('whatsappModal.phoneHint')}</p>
                   </div>
                 </div>
 
@@ -293,7 +294,7 @@ const WhatsappModal: React.FC<WhatsappModalProps> = ({
                     {isLoading ? (
                       <Loader2 className="animate-spin" size={20} />
                     ) : (
-                      <>{isEnabled ? 'Salvar Alterações' : 'Habilitar Integração'}</>
+                      <>{isEnabled ? t('whatsappModal.saveChanges') : t('whatsappModal.enableIntegration')}</>
                     )}
                   </button>
                   
@@ -302,7 +303,7 @@ const WhatsappModal: React.FC<WhatsappModalProps> = ({
                       onClick={onNavigateToPlans}
                       className="w-full py-4 rounded-2xl bg-primary text-white font-bold hover:bg-primary/90 transition-all active:scale-95 shadow-lg shadow-primary/20"
                     >
-                      Fazer Upgrade Agora
+                      {t('whatsappModal.upgradeNow')}
                     </button>
                   )}
 
@@ -310,7 +311,7 @@ const WhatsappModal: React.FC<WhatsappModalProps> = ({
                     onClick={() => isEnabled ? setIsEditing(false) : onClose()}
                     className="w-full py-3 text-slate-500 text-sm font-medium hover:text-white transition-colors"
                   >
-                    {isEnabled ? 'Cancelar' : 'Talvez mais tarde'}
+                    {isEnabled ? t('common.cancel') : t('whatsappModal.maybeLater')}
                   </button>
                 </div>
               </div>
@@ -319,7 +320,6 @@ const WhatsappModal: React.FC<WhatsappModalProps> = ({
         </div>
       </div>
 
-      {/* Confirmation Modal for Disabling */}
       {showConfirmDisable && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
           <div className="bg-surface w-full max-w-sm rounded-3xl border border-white/10 shadow-2xl animate-scale-in overflow-hidden">
@@ -327,9 +327,9 @@ const WhatsappModal: React.FC<WhatsappModalProps> = ({
               <div className="w-16 h-16 bg-danger/10 text-danger rounded-full flex items-center justify-center mx-auto mb-4">
                 <AlertTriangle size={32} />
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">Desativar WhatsApp?</h3>
+              <h3 className="text-xl font-bold text-white mb-2">{t('whatsappModal.disableTitle')}</h3>
               <p className="text-slate-400 text-sm mb-8 leading-relaxed">
-                Você não poderá mais adicionar despesas ou consultar seu saldo através do WhatsApp. Tem certeza?
+                {t('whatsappModal.disableDesc')}
               </p>
               
               <div className="flex gap-3">
@@ -337,14 +337,14 @@ const WhatsappModal: React.FC<WhatsappModalProps> = ({
                   onClick={() => setShowConfirmDisable(false)}
                   className="flex-1 py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-bold transition-all"
                 >
-                  Cancelar
+                  {t('common.cancel')}
                 </button>
                 <button 
                   onClick={handleDisable}
                   disabled={isLoading}
                   className="flex-1 py-4 bg-danger hover:bg-danger/90 text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-danger/20"
                 >
-                  {isLoading ? <Loader2 className="animate-spin" size={20} /> : 'Sim, Desativar'}
+                  {isLoading ? <Loader2 className="animate-spin" size={20} /> : t('whatsappModal.confirmDisable')}
                 </button>
               </div>
             </div>
