@@ -9,6 +9,7 @@ import { paymentService } from '../services/paymentService';
 import { googlePlayBillingService } from '../services/googlePlayBillingService';
 import { translateApiError } from '../utils/apiError';
 import { formatCurrency } from '../i18n/localeFormat';
+import { useToast } from '../contexts/ToastContext';
 import { UserProfile } from '../types';
 
 const planFamily = (planType?: string) => {
@@ -66,15 +67,28 @@ interface PlansViewProps {
 
 const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
   const { t, i18n } = useTranslation();
+  const { showToast } = useToast();
   const usePlayBilling = googlePlayBillingService.isAndroidNative();
   const [loading, setLoading] = useState(false);
   const [checkoutActive, setCheckoutActive] = useState(false);
-  const [stripeInstance, setStripeInstance] = useState<any>(null);
   const [embeddedCheckout, setEmbeddedCheckout] = useState<any>(null);
   const [selectedPlanGroup, setSelectedPlanGroup] = useState<any>(null);
   const [showChoiceModal, setShowChoiceModal] = useState(false);
+  const [showSwitchProviderModal, setShowSwitchProviderModal] = useState(false);
+  const [pendingPlanType, setPendingPlanType] = useState<string | null>(null);
 
   const currentPlanDs = profile?.plan?.planDs || 'FREE';
+  const subscriptionProvider = profile?.plan?.subscriptionProvider;
+  const subscriptionStatus = profile?.plan?.subscriptionStatus;
+  const hasPaidPlan = Boolean(profile?.plan && profile.plan.planDs !== 'FREE');
+  const hasBlockingSubscription = hasPaidPlan && subscriptionStatus !== 'INACTIVE';
+  const isStripeManagedOnPlayBilling =
+    usePlayBilling && subscriptionProvider === 'STRIPE' && hasBlockingSubscription;
+  const isGooglePlayManagedOnWeb =
+    !usePlayBilling && subscriptionProvider === 'GOOGLE_PLAY' && hasBlockingSubscription;
+  const canUpdateStripeInPlace =
+    !usePlayBilling && subscriptionProvider === 'STRIPE' && hasBlockingSubscription;
+  const isProviderSwitchBlocked = isGooglePlayManagedOnWeb;
 
   const plans = useMemo(() => buildPlans(t), [t, i18n.language]);
 
@@ -102,6 +116,10 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
 
   const handlePlanClick = (planGroup: typeof groupedPlans[number]) => {
     if (planGroup.name === 'FREE') return;
+    if (isProviderSwitchBlocked) {
+      showToast(t('plans.providerSwitchBlocked'), 'info');
+      return;
+    }
     
     const isCurrent =
       planFamily(planGroup.monthly?.type) === planFamily(currentPlanDs) ||
@@ -110,6 +128,34 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
 
     setSelectedPlanGroup(planGroup);
     setShowChoiceModal(true);
+  };
+
+  const continuePlayBilling = async (planType: string) => {
+    const restored = await googlePlayBillingService.restorePendingSubscription(planType);
+    if (restored) {
+      showToast(t('plans.restorePlaySuccess'), 'success');
+      window.location.reload();
+      return;
+    }
+
+    await googlePlayBillingService.purchaseSubscription(planType);
+    showToast(t('plans.checkoutSuccess'), 'success');
+    window.location.reload();
+  };
+
+  const handleSwitchToPlayBilling = async () => {
+    if (!pendingPlanType) return;
+
+    setLoading(true);
+    setShowSwitchProviderModal(false);
+    try {
+      await continuePlayBilling(pendingPlanType);
+    } catch (error) {
+      showToast(translateApiError(error, t('plans.checkoutError')), 'error');
+    } finally {
+      setLoading(false);
+      setPendingPlanType(null);
+    }
   };
 
   useEffect(() => {
@@ -147,14 +193,29 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
     setLoading(true);
     try {
       if (usePlayBilling) {
-        await googlePlayBillingService.purchaseSubscription(planType);
-        alert(t('plans.checkoutSuccess'));
-        window.location.reload();
+        if (isStripeManagedOnPlayBilling) {
+          setPendingPlanType(planType);
+          setShowSwitchProviderModal(true);
+          return;
+        }
+        await continuePlayBilling(planType);
         return;
       }
 
       const userEmail = profile?.email || localStorage.getItem('user_email') || '';
       const shouldUseHostedCheckout = Capacitor.isNativePlatform();
+
+      if (isGooglePlayManagedOnWeb) {
+        showToast(t('plans.switchFromPlayDesc'), 'info');
+        return;
+      }
+
+      if (canUpdateStripeInPlace) {
+        await paymentService.updateSubscription(planType, userEmail);
+        alert(t('plans.updateSuccess'));
+        window.location.reload();
+        return;
+      }
 
       const session = await paymentService.createCheckoutSession(planType, userEmail, shouldUseHostedCheckout);
 
@@ -170,7 +231,6 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
       } else if (session.clientSecret) {
         const stripe = await loadStripe(STRIPE_PUBLIC_KEY);
         if (!stripe) throw new Error(t('plans.stripeLoadFailed'));
-        setStripeInstance(stripe);
         setCheckoutActive(true);
 
         const checkout = await stripe.initEmbeddedCheckout({
@@ -224,6 +284,21 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
           <p className="text-xs text-emerald-400 mt-2">{t('plans.playBilling')}</p>
         )}
       </div>
+
+      {isGooglePlayManagedOnWeb && (
+        <div className="glass-card rounded-3xl border border-amber-500/20 bg-amber-500/5 p-6 space-y-4">
+          <div>
+            <h3 className="text-sm font-bold text-amber-400">{t('plans.switchProviderTitle')}</h3>
+            <p className="text-sm text-slate-300 mt-2">{t('plans.switchFromPlayDesc')}</p>
+          </div>
+          <button
+            onClick={() => googlePlayBillingService.openPlaySubscriptionManagement()}
+            className="px-4 py-3 rounded-2xl bg-amber-500 text-white font-bold text-sm hover:bg-amber-400 transition-all"
+          >
+            {t('account.managePlaySubscription')}
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6">
         {groupedPlans.map((group) => {
@@ -284,10 +359,12 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
 
               <button 
                 onClick={() => handlePlanClick(group)}
-                disabled={isCurrent || loading}
+                disabled={isCurrent || loading || isProviderSwitchBlocked}
                 className={`w-full py-3 rounded-xl font-bold text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${
                   isCurrent 
                     ? 'bg-primary/10 text-primary border border-primary/20 cursor-default' 
+                    : isProviderSwitchBlocked
+                      ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
                     : isPro
                       ? 'bg-gradient-to-r from-primary to-purple-600 text-white shadow-lg shadow-primary/20 hover:shadow-primary/40'
                       : 'bg-slate-800 text-slate-400 border border-slate-700 cursor-default'
@@ -295,6 +372,8 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
               >
                 {loading && selectedPlanGroup?.name === group.name ? (
                   <Loader2 className="animate-spin" size={18} />
+                ) : isProviderSwitchBlocked ? (
+                  t('plans.manageCurrentProvider')
                 ) : isCurrent ? (
                   t('plans.current')
                 ) : isPro ? (
@@ -355,6 +434,40 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
                 {t('common.cancel')}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showSwitchProviderModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="glass-card w-full max-w-sm rounded-3xl border border-amber-500/20 p-8 animate-scale-in">
+            <h3 className="text-xl font-bold text-white mb-3 text-center">{t('plans.switchProviderTitle')}</h3>
+            <p className="text-slate-300 text-sm text-center mb-6">
+              {t('plans.switchFromStripeDesc')}
+            </p>
+
+            <button
+              onClick={handleSwitchToPlayBilling}
+              disabled={loading}
+              className="w-full py-3 rounded-2xl bg-amber-500 text-white font-bold text-sm hover:bg-amber-400 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+            >
+              {loading ? <Loader2 className="animate-spin" size={18} /> : t('plans.continueWithGooglePlay')}
+            </button>
+
+            <p className="text-xs text-slate-500 text-center mt-6 leading-relaxed">
+              {t('plans.switchFromStripeRefundNote')}
+            </p>
+
+            <button
+              onClick={() => {
+                setShowSwitchProviderModal(false);
+                setPendingPlanType(null);
+              }}
+              disabled={loading}
+              className="w-full py-3 text-slate-500 text-sm font-medium hover:text-white transition-colors mt-4"
+            >
+              {t('common.cancel')}
+            </button>
           </div>
         </div>
       )}

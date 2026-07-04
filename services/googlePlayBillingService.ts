@@ -57,6 +57,48 @@ export const googlePlayBillingService = {
     return sku;
   },
 
+  async verifyPurchase(productId: string, purchaseToken: string): Promise<void> {
+    await api.post('/payment/google-play/verify-subscription', {
+      productId,
+      purchaseToken,
+      packageName: 'br.com.finsavior',
+    });
+    await NativePurchases.acknowledgePurchase({ purchaseToken });
+  },
+
+  async restorePendingSubscription(preferredPlanType?: string): Promise<boolean> {
+    if (!this.isAndroidNative()) return false;
+
+    await this.initialize();
+    const catalog = await this.getCatalog();
+    const preferredSku = preferredPlanType
+      ? this.resolvePlaySku(preferredPlanType, catalog)
+      : null;
+
+    const { purchases } = await NativePurchases.getPurchases({
+      productType: PURCHASE_TYPE.SUBS,
+    });
+
+    const candidates = preferredSku
+      ? (purchases ?? []).filter((purchase) => purchase.productIdentifier === preferredSku.productId)
+      : (purchases ?? []);
+
+    for (const purchase of candidates) {
+      const purchaseToken = purchase.purchaseToken;
+      const productId = purchase.productIdentifier;
+      if (!purchaseToken || !productId) continue;
+
+      try {
+        await this.verifyPurchase(productId, purchaseToken);
+        return true;
+      } catch (error) {
+        console.warn('Failed to restore Google Play purchase', error);
+      }
+    }
+
+    return false;
+  },
+
   async purchaseSubscription(planType: string): Promise<void> {
     await this.initialize();
     const catalog = await this.getCatalog();
@@ -74,13 +116,7 @@ export const googlePlayBillingService = {
       throw new Error('Token de compra não retornado pela Google Play');
     }
 
-    await api.post('/payment/google-play/verify-subscription', {
-      productId: sku.productId,
-      purchaseToken,
-      packageName: 'br.com.finsavior',
-    });
-
-    await NativePurchases.acknowledgePurchase({ purchaseToken });
+    await this.verifyPurchase(sku.productId, purchaseToken);
   },
 
   async openPlaySubscriptionManagement(): Promise<void> {
