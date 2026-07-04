@@ -76,6 +76,7 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
   const [showChoiceModal, setShowChoiceModal] = useState(false);
   const [showSwitchProviderModal, setShowSwitchProviderModal] = useState(false);
   const [pendingPlanType, setPendingPlanType] = useState<string | null>(null);
+  const [playBillingAvailable, setPlayBillingAvailable] = useState<boolean | null>(null);
 
   const currentPlanDs = profile?.plan?.planDs || 'FREE';
   const subscriptionProvider = profile?.plan?.subscriptionProvider;
@@ -131,6 +132,8 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
   };
 
   const continuePlayBilling = async (planType: string) => {
+    await googlePlayBillingService.ensureBillingAvailable();
+
     const restored = await googlePlayBillingService.restorePendingSubscription(planType);
     if (restored) {
       showToast(t('plans.restorePlaySuccess'), 'success');
@@ -157,6 +160,11 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
       setPendingPlanType(null);
     }
   };
+
+  useEffect(() => {
+    if (!usePlayBilling) return;
+    googlePlayBillingService.checkBillingSupported().then(setPlayBillingAvailable);
+  }, [usePlayBilling]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -280,10 +288,16 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
       <div className="text-center mb-8">
         <h1 className="text-3xl font-extrabold text-white mb-2">{t('plans.title')}</h1>
         <p className="text-slate-400">{t('plans.subtitle')}</p>
-        {usePlayBilling && (
+        {usePlayBilling && playBillingAvailable !== false && (
           <p className="text-xs text-emerald-400 mt-2">{t('plans.playBilling')}</p>
         )}
       </div>
+
+      {usePlayBilling && playBillingAvailable === false && (
+        <div className="glass-card rounded-3xl border border-amber-500/20 bg-amber-500/5 p-6">
+          <p className="text-sm text-amber-200">{t('errors.PLAY_BILLING_UNAVAILABLE')}</p>
+        </div>
+      )}
 
       {isGooglePlayManagedOnWeb && (
         <div className="glass-card rounded-3xl border border-amber-500/20 bg-amber-500/5 p-6 space-y-4">
