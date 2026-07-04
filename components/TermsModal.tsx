@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Shield, FileText, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { termsService } from '../services/termsService';
 import Markdown from 'react-markdown';
 
@@ -10,6 +11,7 @@ interface TermsModalProps {
 }
 
 const TermsModal: React.FC<TermsModalProps> = ({ isOpen, onClose, type }) => {
+  const { t } = useTranslation();
   const [content, setContent] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
@@ -24,14 +26,14 @@ const TermsModal: React.FC<TermsModalProps> = ({ isOpen, onClose, type }) => {
           setContent(data);
         } catch (error) {
           console.error('Error fetching terms/privacy:', error);
-          setContent('Erro ao carregar o conteúdo. Por favor, tente novamente mais tarde.');
+          setContent(t('termsModal.loadError'));
         } finally {
           setLoading(false);
         }
       };
       fetchContent();
     }
-  }, [isOpen, type]);
+  }, [isOpen, type, t]);
 
   if (!isOpen) return null;
 
@@ -46,9 +48,9 @@ const TermsModal: React.FC<TermsModalProps> = ({ isOpen, onClose, type }) => {
             </div>
             <div>
               <h3 className="text-2xl font-black text-white tracking-tight">
-                {type === 'terms' ? 'Termos e Condições' : 'Política de Privacidade'}
+                {type === 'terms' ? t('termsModal.termsTitle') : t('termsModal.privacyTitle')}
               </h3>
-              <p className="text-slate-400 text-xs uppercase font-bold tracking-widest mt-1">Última atualização: Março 2026</p>
+              <p className="text-slate-400 text-xs uppercase font-bold tracking-widest mt-1">{t('termsModal.lastUpdated')}</p>
             </div>
           </div>
           <button onClick={onClose} className="w-12 h-12 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all">
@@ -60,7 +62,7 @@ const TermsModal: React.FC<TermsModalProps> = ({ isOpen, onClose, type }) => {
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <Loader2 className="w-10 h-10 text-primary animate-spin" />
-              <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Carregando conteúdo...</p>
+              <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">{t('termsModal.loading')}</p>
             </div>
           ) : (
             <div className="prose prose-invert prose-slate max-w-none">
@@ -76,7 +78,7 @@ const TermsModal: React.FC<TermsModalProps> = ({ isOpen, onClose, type }) => {
             onClick={onClose}
             className="px-12 py-4 bg-primary text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95"
           >
-            Entendido
+            {t('termsModal.understood')}
           </button>
         </div>
       </div>

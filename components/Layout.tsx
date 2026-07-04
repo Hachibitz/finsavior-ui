@@ -8,9 +8,10 @@ import {
 import { UserProfile } from '../types';
 import { Notification } from '../types/notifications';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { enUS, ptBR, es as esLocale, fr as frLocale, zhCN, ja as jaLocale, de as deLocale, it as itLocale, ko as koLocale, arSA, id as idLocale } from 'date-fns/locale';
 import SearchModal from './SearchModal';
 import { FinSaviorLogo } from './Logo';
+import { useTranslation } from 'react-i18next';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -41,6 +42,22 @@ const Layout: React.FC<LayoutProps> = ({
   onOpenCoinStore,
   onOpenWhatsapp
 }) => {
+  const { t, i18n } = useTranslation();
+
+  const dateFnsLocale = (() => {
+    const lang = i18n.language || 'pt-BR';
+    if (lang === 'pt-BR') return ptBR;
+    if (lang === 'es') return esLocale;
+    if (lang === 'fr') return frLocale;
+    if (lang === 'zh-CN') return zhCN;
+    if (lang === 'ja') return jaLocale;
+    if (lang === 'de') return deLocale;
+    if (lang === 'it') return itLocale;
+    if (lang === 'ko') return koLocale;
+    if (lang === 'ar') return arSA;
+    if (lang === 'id') return idLocale;
+    return enUS;
+  })();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -68,12 +85,12 @@ const Layout: React.FC<LayoutProps> = ({
 
   // Modern Floating Dock Icons
   const navItems = [
-    { id: 'summary', label: 'Home', icon: LayoutDashboard },
-    { id: 'debits', label: 'Débitos', icon: Receipt },
-    { id: 'cards', label: 'Cartão', icon: CreditCard },
-    { id: 'assets', label: 'Rendas', icon: Wallet },
-    { id: 'goals', label: 'Metas', icon: Target },
-    { id: 'ai', label: 'IA', icon: BrainCircuit },
+    { id: 'summary', label: t('nav.summary'), icon: LayoutDashboard },
+    { id: 'debits', label: t('nav.debits'), icon: Receipt },
+    { id: 'cards', label: t('nav.cards'), icon: CreditCard },
+    { id: 'assets', label: t('nav.assets'), icon: Wallet },
+    { id: 'goals', label: t('nav.goals'), icon: Target },
+    { id: 'ai', label: t('nav.ai'), icon: BrainCircuit },
   ];
 
   return (
@@ -92,8 +109,8 @@ const Layout: React.FC<LayoutProps> = ({
                </div>
              </div>
              <div className="flex flex-col">
-               <span className="text-xs text-slate-400 font-medium">Bem vindo,</span>
-               <span className="text-sm font-bold text-white leading-tight">{profile?.name || profile?.firstName || 'Usuário'}</span>
+               <span className="text-xs text-slate-400 font-medium">{t('nav.welcome')}</span>
+               <span className="text-sm font-bold text-white leading-tight">{profile?.name || profile?.firstName || t('layout.defaultUser')}</span>
              </div>
           </div>
           
@@ -131,9 +148,9 @@ const Layout: React.FC<LayoutProps> = ({
             {isNotificationsOpen && (
               <div ref={notificationsRef} className="absolute top-16 right-4 w-80 max-h-[400px] bg-[#0b1121] border border-white/10 rounded-3xl shadow-2xl z-50 overflow-hidden flex flex-col animate-slide-up">
                 <div className="p-4 border-b border-white/5 flex justify-between items-center bg-white/5">
-                    <h3 className="font-bold text-white text-sm">Notificações</h3>
+                    <h3 className="font-bold text-white text-sm">{t('layout.notifications')}</h3>
                     {notifications.length > 0 && (
-                      <button onClick={onClearAll} className="text-[10px] font-bold text-slate-500 hover:text-danger uppercase tracking-widest transition-colors">Limpar Tudo</button>
+                      <button onClick={onClearAll} className="text-[10px] font-bold text-slate-500 hover:text-danger uppercase tracking-widest transition-colors">{t('layout.clearAll')}</button>
                     )}
                   </div>
                   <div className="flex-1 overflow-y-auto">
@@ -159,7 +176,7 @@ const Layout: React.FC<LayoutProps> = ({
                               <p className={`text-xs font-bold text-white mb-0.5 ${!n.read ? 'pr-2' : ''}`}>{n.title}</p>
                               <p className="text-[11px] text-slate-400 leading-tight mb-1">{n.message}</p>
                               <p className="text-[9px] text-slate-600 font-bold uppercase tracking-tighter">
-                                {format(new Date(n.timestamp), "HH:mm '•' dd MMM", { locale: ptBR })}
+                                {format(new Date(n.timestamp), "HH:mm '•' dd MMM", { locale: dateFnsLocale })}
                               </p>
                             </div>
                             {!n.read && (
@@ -171,7 +188,7 @@ const Layout: React.FC<LayoutProps> = ({
                     ) : (
                       <div className="py-12 text-center">
                         <Bell size={32} className="mx-auto text-slate-800 mb-2" />
-                        <p className="text-slate-500 text-xs">Nenhuma notificação por aqui.</p>
+                        <p className="text-slate-500 text-xs">{t('layout.noNotifications')}</p>
                       </div>
                     )}
                   </div>
@@ -216,12 +233,12 @@ const Layout: React.FC<LayoutProps> = ({
                   $
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Saldo FSCoins</span>
+                  <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">{t('layout.coinBalance')}</span>
                   <span className="text-lg font-black text-white leading-none">{profile?.coins || 0}</span>
                 </div>
               </div>
               <div className="text-[10px] font-black text-amber-500 uppercase tracking-widest bg-amber-500/20 px-2 py-1 rounded-md">
-                Loja
+                {t('layout.coinStore')}
               </div>
             </div>
             
@@ -233,7 +250,7 @@ const Layout: React.FC<LayoutProps> = ({
                 <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
                   <ShieldCheck size={20} /> 
                 </div>
-                <span className="font-medium">Planos Premium</span>
+                <span className="font-medium">{t('layout.premiumPlans')}</span>
               </button>
 
               <button 
@@ -244,9 +261,9 @@ const Layout: React.FC<LayoutProps> = ({
                   <MessageCircle size={20} />
                 </div>
                 <div className="flex flex-col items-start">
-                  <span className="font-medium">WhatsApp</span>
+                  <span className="font-medium">{t('layout.whatsapp')}</span>
                   {!profile?.isWhatsappEnabled && (
-                    <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-tighter animate-pulse">Configurar agora</span>
+                    <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-tighter animate-pulse">{t('layout.configureNow')}</span>
                   )}
                 </div>
                 {!profile?.isWhatsappEnabled && (
@@ -261,7 +278,7 @@ const Layout: React.FC<LayoutProps> = ({
                 <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-500 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
                   <Tags size={20} />
                 </div>
-                <span className="font-medium">Categorias</span>
+                <span className="font-medium">{t('nav.categories')}</span>
               </button>
 
               <button 
@@ -271,7 +288,7 @@ const Layout: React.FC<LayoutProps> = ({
                 <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
                   <User size={20} />
                 </div>
-                <span className="font-medium">Minha Conta</span>
+                <span className="font-medium">{t('nav.account')}</span>
               </button>
 
               <div className="h-px bg-white/10 my-6" />
@@ -282,7 +299,7 @@ const Layout: React.FC<LayoutProps> = ({
                   className="flex items-center justify-center gap-3 text-slate-300 hover:text-white p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-all group"
                 >
                   <HelpCircle size={20} className="text-primary group-hover:scale-110 transition-transform" /> 
-                  <span className="font-medium">Ajuda</span>
+                  <span className="font-medium">{t('nav.help')}</span>
                 </button>
 
                 <button 
@@ -290,7 +307,7 @@ const Layout: React.FC<LayoutProps> = ({
                   className="flex items-center justify-center gap-3 text-danger/80 hover:text-danger p-4 rounded-2xl bg-danger/5 hover:bg-danger/10 transition-all group"
                 >
                   <LogOut size={20} className="group-hover:scale-110 transition-transform" /> 
-                  <span className="font-medium">Sair</span>
+                  <span className="font-medium">{t('nav.logout')}</span>
                 </button>
               </div>
             </nav>

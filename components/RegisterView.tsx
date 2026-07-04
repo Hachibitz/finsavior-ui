@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { authService } from '../services/authService';
 import { useToast } from '../contexts/ToastContext';
+import { useTranslation } from 'react-i18next';
+import { parseSignupFieldErrors, translateKnownBackendMessage } from '../utils/backendMessages';
 import TermsModal from './TermsModal';
 
 interface RegisterViewProps {
@@ -22,6 +24,7 @@ interface RegisterViewProps {
 }
 
 const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSuccess }) => {
+  const { t } = useTranslation();
   const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -76,52 +79,24 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
     }
   };
 
-  const parseBackendErrors = (msg: string) => {
-    const errors: Record<string, string> = {};
-    if (!msg) return errors;
-    
-    const lines = msg.split(/[\n,]/).map(l => l.trim()).filter(l => l);
-    
-    lines.forEach(line => {
-      const lowerLine = line.toLowerCase();
-      if (lowerLine.includes('email já cadastrado') || lowerLine.includes('email inválido')) {
-        errors.email = line;
-      } else if (lowerLine.includes('usuário já cadastrado') || lowerLine.includes('usuário precisa ter') || lowerLine.includes('usuário não pode conter')) {
-        errors.username = line;
-      } else if (lowerLine.includes('nome precisa ter') || lowerLine.includes('nome não pode conter')) {
-        errors.firstName = line;
-      } else if (lowerLine.includes('sobrenome precisa ter') || lowerLine.includes('sobrenome não pode conter')) {
-        errors.lastName = line;
-      } else if (lowerLine.includes('emails não conferem')) {
-        errors.emailConfirmation = line;
-      } else if (lowerLine.includes('as senhas não coincidem')) {
-        errors.passwordConfirmation = line;
-      } else if (lowerLine.includes('critérios da senha não atendidos')) {
-        errors.password = line;
-      }
-    });
-    
-    return errors;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFieldErrors({});
     
     if (formData.email !== formData.emailConfirmation) {
-      showToast('Os e-mails não coincidem.', 'error');
-      setFieldErrors(prev => ({ ...prev, emailConfirmation: 'Os e-mails não coincidem.' }));
+      showToast(t('register.emailMismatch'), 'error');
+      setFieldErrors(prev => ({ ...prev, emailConfirmation: t('register.emailMismatch') }));
       return;
     }
     
     if (formData.password !== formData.passwordConfirmation) {
-      showToast('As senhas não coincidem.', 'error');
-      setFieldErrors(prev => ({ ...prev, passwordConfirmation: 'As senhas não coincidem.' }));
+      showToast(t('register.passwordMismatch'), 'error');
+      setFieldErrors(prev => ({ ...prev, passwordConfirmation: t('register.passwordMismatch') }));
       return;
     }
 
     if (!acceptedTerms) {
-      showToast('Você deve aceitar os termos e condições.', 'error');
+      showToast(t('register.mustAcceptTerms'), 'error');
       return;
     }
 
@@ -132,24 +107,23 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
         agreement: true
       });
       
-      // Store email for later use (e.g. checkout)
       localStorage.setItem('user_email', formData.email);
       
-      showToast('Cadastro realizado com sucesso!', 'success');
+      showToast(t('register.success'), 'success');
       onRegisterSuccess();
     } catch (error: any) {
       const errorMsg = error.data?.message || error.data?.msg || error.message || '';
       
       if (errorMsg) {
-        const parsedErrors = parseBackendErrors(errorMsg);
+        const parsedErrors = parseSignupFieldErrors(errorMsg);
         if (Object.keys(parsedErrors).length > 0) {
           setFieldErrors(parsedErrors);
-          showToast('Verifique os campos com erro.', 'error');
+          showToast(t('register.checkFields'), 'error');
         } else {
-          showToast(errorMsg, 'error');
+          showToast(translateKnownBackendMessage(errorMsg), 'error');
         }
       } else {
-        showToast('Erro ao realizar cadastro. Verifique os dados e tente novamente.', 'error');
+        showToast(t('register.genericError'), 'error');
       }
     } finally {
       setIsLoading(false);
@@ -181,7 +155,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
           className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-8 group"
         >
           <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-          <span className="text-sm font-bold uppercase tracking-widest">Voltar para Login</span>
+          <span className="text-sm font-bold uppercase tracking-widest">{t('register.backToLogin')}</span>
         </button>
 
         <div className="glass-card rounded-[2.5rem] p-8 md:p-12 border border-white/5 shadow-2xl">
@@ -189,18 +163,18 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
             <div className="w-20 h-20 bg-primary/20 rounded-3xl flex items-center justify-center text-primary mx-auto mb-6 shadow-xl shadow-primary/20">
               <ShieldCheck size={40} />
             </div>
-            <h1 className="text-4xl font-black text-white tracking-tighter mb-2">Crie sua conta</h1>
-            <p className="text-slate-400">Junte-se a milhares de pessoas que já controlam suas finanças com inteligência.</p>
+            <h1 className="text-4xl font-black text-white tracking-tighter mb-2">{t('register.title')}</h1>
+            <p className="text-slate-400">{t('register.subtitle')}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Personal Info */}
               <div className="space-y-4">
-                <h3 className="text-xs font-black text-primary uppercase tracking-widest mb-4">Informações Pessoais</h3>
+                <h3 className="text-xs font-black text-primary uppercase tracking-widest mb-4">{t('register.personalInfo')}</h3>
                 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nome</label>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('register.firstName')}</label>
                   <div className="relative group">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors" size={18} />
                     <input 
@@ -208,7 +182,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
                       name="firstName"
                       value={formData.firstName}
                       onChange={handleInputChange}
-                      placeholder="Seu nome"
+                      placeholder={t('register.firstNamePlaceholder')}
                       className={`w-full bg-slate-900/50 border rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all ${
                         fieldErrors.firstName ? 'border-rose-500/50 ring-1 ring-rose-500/20' : 'border-white/5'
                       }`}
@@ -219,7 +193,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Sobrenome</label>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('register.lastName')}</label>
                   <div className="relative group">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors" size={18} />
                     <input 
@@ -227,7 +201,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
                       name="lastName"
                       value={formData.lastName}
                       onChange={handleInputChange}
-                      placeholder="Seu sobrenome"
+                      placeholder={t('register.lastNamePlaceholder')}
                       className={`w-full bg-slate-900/50 border rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all ${
                         fieldErrors.lastName ? 'border-rose-500/50 ring-1 ring-rose-500/20' : 'border-white/5'
                       }`}
@@ -238,7 +212,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Usuário</label>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('register.username')}</label>
                   <div className="relative group">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors" size={18} />
                     <input 
@@ -246,7 +220,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
                       name="username"
                       value={formData.username}
                       onChange={handleInputChange}
-                      placeholder="nome_usuario"
+                      placeholder={t('register.usernamePlaceholder')}
                       className={`w-full bg-slate-900/50 border rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all ${
                         fieldErrors.username ? 'border-rose-500/50 ring-1 ring-rose-500/20' : 'border-white/5'
                       }`}
@@ -259,10 +233,10 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
 
               {/* Account Info */}
               <div className="space-y-4">
-                <h3 className="text-xs font-black text-primary uppercase tracking-widest mb-4">Dados de Acesso</h3>
+                <h3 className="text-xs font-black text-primary uppercase tracking-widest mb-4">{t('register.accessData')}</h3>
                 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">E-mail</label>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('register.email')}</label>
                   <div className="relative group">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors" size={18} />
                     <input 
@@ -270,7 +244,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
                       name="email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      placeholder="exemplo@email.com"
+                      placeholder={t('register.emailPlaceholder')}
                       className={`w-full bg-slate-900/50 border rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all ${
                         fieldErrors.email ? 'border-rose-500/50 ring-1 ring-rose-500/20' : 'border-white/5'
                       }`}
@@ -281,7 +255,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Confirmar E-mail</label>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('register.confirmEmail')}</label>
                   <div className="relative group">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors" size={18} />
                     <input 
@@ -289,7 +263,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
                       name="emailConfirmation"
                       value={formData.emailConfirmation}
                       onChange={handleInputChange}
-                      placeholder="Repita seu e-mail"
+                      placeholder={t('register.confirmEmailPlaceholder')}
                       className={`w-full bg-slate-900/50 border rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all ${
                         (formData.emailConfirmation && formData.email !== formData.emailConfirmation) || fieldErrors.emailConfirmation ? 'border-rose-500/50 ring-1 ring-rose-500/20' : 'border-white/5'
                       }`}
@@ -300,7 +274,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Senha</label>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('register.password')}</label>
                   <div className="relative group">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors" size={18} />
                     <input 
@@ -308,7 +282,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
                       name="password"
                       value={formData.password}
                       onChange={handleInputChange}
-                      placeholder="Sua senha forte"
+                      placeholder={t('register.passwordPlaceholder')}
                       className={`w-full bg-slate-900/50 border rounded-2xl py-4 pl-12 pr-12 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all ${
                         fieldErrors.password ? 'border-rose-500/50 ring-1 ring-rose-500/20' : 'border-white/5'
                       }`}
@@ -326,7 +300,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Confirmar Senha</label>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('register.confirmPassword')}</label>
                   <div className="relative group">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors" size={18} />
                     <input 
@@ -334,7 +308,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
                       name="passwordConfirmation"
                       value={formData.passwordConfirmation}
                       onChange={handleInputChange}
-                      placeholder="Repita sua senha"
+                      placeholder={t('register.confirmPasswordPlaceholder')}
                       className={`w-full bg-slate-900/50 border rounded-2xl py-4 pl-12 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all ${
                         (formData.passwordConfirmation && formData.password !== formData.passwordConfirmation) || fieldErrors.passwordConfirmation ? 'border-rose-500/50 ring-1 ring-rose-500/20' : 'border-white/5'
                       }`}
@@ -348,13 +322,13 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
 
             {/* Password Requirements */}
             <div className="bg-slate-900/80 rounded-2xl p-6 border border-white/5">
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Requisitos da Senha</p>
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">{t('register.passwordRequirements')}</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Requirement met={passwordCriteria.length} text="Pelo menos 8 caracteres" />
-                <Requirement met={passwordCriteria.upper} text="Letra maiúscula" />
-                <Requirement met={passwordCriteria.lower} text="Letra minúscula" />
-                <Requirement met={passwordCriteria.number} text="Um número" />
-                <Requirement met={passwordCriteria.special} text="Caractere especial (@$!%*?&)" />
+                <Requirement met={passwordCriteria.length} text={t('register.reqLength')} />
+                <Requirement met={passwordCriteria.upper} text={t('register.reqUpper')} />
+                <Requirement met={passwordCriteria.lower} text={t('register.reqLower')} />
+                <Requirement met={passwordCriteria.number} text={t('register.reqNumber')} />
+                <Requirement met={passwordCriteria.special} text={t('register.reqSpecial')} />
               </div>
             </div>
 
@@ -368,21 +342,21 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
                 className="mt-1 w-4 h-4 rounded border-white/10 bg-slate-900 text-primary focus:ring-primary focus:ring-offset-slate-950"
               />
               <label htmlFor="agreement" className="text-sm text-slate-400 leading-relaxed">
-                Declaro que li e aceito os{' '}
+                {t('auth.termsPrefix')}{' '}
                 <button 
                   type="button" 
                   onClick={() => { setTermsType('terms'); setShowTermsModal(true); }}
                   className="text-primary hover:underline font-bold"
                 >
-                  Termos e Condições
+                  {t('auth.termsLink')}
                 </button>
-                {' '}e{' '}
+                {' '}{t('auth.termsAnd')}{' '}
                 <button 
                   type="button" 
                   onClick={() => { setTermsType('privacy'); setShowTermsModal(true); }}
                   className="text-primary hover:underline font-bold"
                 >
-                  Política de Privacidade
+                  {t('auth.privacyLink')}
                 </button>.
               </label>
             </div>
@@ -400,7 +374,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  <span>Criar Minha Conta</span>
+                  <span>{t('register.createAccount')}</span>
                   <ArrowRight size={18} />
                 </>
               )}
@@ -408,12 +382,12 @@ const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin, onRegisterSu
           </form>
 
           <div className="mt-10 pt-10 border-t border-white/5 text-center">
-            <p className="text-slate-500 text-sm">Já possui uma conta?</p>
+            <p className="text-slate-500 text-sm">{t('register.hasAccount')}</p>
             <button 
               onClick={onBackToLogin}
               className="mt-2 text-white font-black hover:text-primary transition-colors uppercase tracking-widest text-xs"
             >
-              Fazer Login
+              {t('register.loginLink')}
             </button>
           </div>
         </div>

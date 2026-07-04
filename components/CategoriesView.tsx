@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Category } from '../types';
 import { getCategoryIcon, AVAILABLE_ICONS, AVAILABLE_COLORS } from '../constants';
+import { getCategoryLabel } from '../utils/categoryLabel';
 import { Plus, Edit2, Trash2, X, Check, Search } from 'lucide-react';
 
 interface CategoriesViewProps {
@@ -11,6 +13,7 @@ interface CategoriesViewProps {
 }
 
 const CategoriesView: React.FC<CategoriesViewProps> = ({ categories, onAdd, onEdit, onDelete }) => {
+  const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [search, setSearch] = useState('');
@@ -55,6 +58,7 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ categories, onAdd, onEd
   };
 
   const filteredCategories = categories.filter(c => 
+    getCategoryLabel(c, t).toLowerCase().includes(search.toLowerCase()) ||
     c.name.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -62,8 +66,8 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ categories, onAdd, onEd
     <div className="space-y-6 animate-fade-in pb-20">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-white">Categorias</h1>
-          <p className="text-slate-400 text-sm">Gerencie suas categorias personalizadas</p>
+          <h1 className="text-2xl font-bold text-white">{t('categories.title')}</h1>
+          <p className="text-slate-400 text-sm">{t('categories.subtitle')}</p>
         </div>
         <button 
           onClick={() => handleOpenModal()}
@@ -78,7 +82,7 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ categories, onAdd, onEd
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
         <input 
           type="text" 
-          placeholder="Buscar categorias..." 
+          placeholder={t('categories.searchPlaceholder')} 
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full bg-surface border border-slate-700/50 text-slate-200 pl-12 pr-4 py-3 rounded-xl focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
@@ -96,7 +100,7 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ categories, onAdd, onEd
               {getCategoryIcon(cat.icon, 24)}
             </div>
             
-            <span className="font-semibold text-white text-sm">{cat.name}</span>
+            <span className="font-semibold text-white text-sm">{getCategoryLabel(cat, t)}</span>
             
             {/* Action Overlay */}
             <div className="absolute inset-0 bg-black/80 flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
@@ -126,7 +130,7 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ categories, onAdd, onEd
           <div className="bg-surface w-full max-w-md rounded-3xl border border-slate-700 shadow-2xl overflow-hidden animate-slide-up">
             <div className="p-6 border-b border-slate-700/50 flex justify-between items-center bg-white/5">
               <h3 className="text-xl font-bold text-white">
-                {editingCategory ? 'Editar Categoria' : 'Nova Categoria'}
+                {editingCategory ? t('categories.editCategory') : t('categories.newCategory')}
               </h3>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white transition-colors">
                 <X size={24} />
@@ -135,19 +139,19 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ categories, onAdd, onEd
 
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               <div>
-                <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Nome</label>
+                <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">{t('categories.nameLabel')}</label>
                 <input 
                   type="text" 
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Ex: Assinaturas"
+                  placeholder={t('categories.namePlaceholder')}
                   className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Ícone</label>
+                <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">{t('categories.iconLabel')}</label>
                 <div className="grid grid-cols-6 gap-2">
                   {AVAILABLE_ICONS.map((iconName) => (
                     <button
@@ -167,7 +171,7 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ categories, onAdd, onEd
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Cor</label>
+                <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">{t('categories.colorLabel')}</label>
                 <div className="grid grid-cols-6 gap-3">
                   {AVAILABLE_COLORS.map((c) => (
                     <button
@@ -190,7 +194,7 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({ categories, onAdd, onEd
                 className="w-full py-3.5 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90 text-white rounded-xl font-bold text-lg shadow-lg shadow-primary/25 transition-all active:scale-95 flex items-center justify-center gap-2 mt-4"
               >
                 <Check size={20} />
-                Salvar Categoria
+                {t('categories.saveCategory')}
               </button>
             </form>
           </div>

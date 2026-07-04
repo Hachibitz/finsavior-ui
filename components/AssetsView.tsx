@@ -1,7 +1,8 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Asset } from '../types';
-import { Edit2, Trash2, Plus, Mic } from 'lucide-react';
-import { useToast } from '../contexts/ToastContext';
+import { Edit2, Trash2, Plus } from 'lucide-react';
+import { formatCurrency } from '../i18n/localeFormat';
 
 interface AssetsViewProps {
   assets: Asset[];
@@ -13,12 +14,13 @@ interface AssetsViewProps {
   onNavigateToPlans: () => void;
 }
 
-const AssetsView: React.FC<AssetsViewProps> = ({ assets, onAdd, onEdit, onDelete, onRefresh, onRefreshCoins, onNavigateToPlans }) => {
-  const { showToast } = useToast();
+const AssetsView: React.FC<AssetsViewProps> = ({ assets, onAdd, onEdit, onDelete }) => {
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-4 animate-fade-in pb-20">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold text-white">Minhas Rendas</h1>
+        <h1 className="text-2xl font-bold text-white">{t('assets.myIncome')}</h1>
       </div>
 
       <button 
@@ -26,7 +28,7 @@ const AssetsView: React.FC<AssetsViewProps> = ({ assets, onAdd, onEdit, onDelete
         className="w-full bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-4 rounded-2xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-2"
       >
         <Plus size={20} />
-        ADICIONAR RENDA
+        {t('assets.addIncome')}
       </button>
 
       <div className="space-y-3 mt-4">
@@ -37,9 +39,9 @@ const AssetsView: React.FC<AssetsViewProps> = ({ assets, onAdd, onEdit, onDelete
             <div className="flex justify-between items-start pl-3">
               <div>
                 <h3 className="font-bold text-white">{asset.description}</h3>
-                <p className="text-emerald-400 font-bold text-lg mt-1">R$ {asset.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                <p className="text-xs text-slate-400 mt-1 capitalize">Tipo: {asset.type}</p>
-                <p className="text-xs text-slate-500 mt-0.5">Valor líquido</p>
+                <p className="text-emerald-400 font-bold text-lg mt-1">{formatCurrency(asset.amount)}</p>
+                <p className="text-xs text-slate-400 mt-1 capitalize">{t('assets.type')}: {asset.type}</p>
+                <p className="text-xs text-slate-500 mt-0.5">{t('assets.netValue')}</p>
               </div>
 
               <div className="flex gap-2">

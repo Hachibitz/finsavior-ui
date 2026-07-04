@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AiAnalysis, Bill, CardTransaction, Asset, UserProfile, AiAdviceDTO } from '../types';
-import { MOCK_AI_ANALYSES } from '../constants';
+import { getCategoryLabel } from '../utils/categoryLabel';
 import { BrainCircuit, Sparkles, MessageSquare, ChevronRight, Play, X, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { aiAdviceService } from '../services/aiAdviceService';
 import { useToast } from '../contexts/ToastContext';
+import { translateApiError } from '../utils/apiError';
+import { formatMonthYear, formatShortDate } from '../i18n/localeFormat';
 import AiAnalysisModal from './AiAnalysisModal';
 import ChatView from './ChatView';
 import { SaviIcon } from './Logo';
@@ -30,6 +33,7 @@ const AiAdvisorView: React.FC<AiAdvisorViewProps> = ({
   selectedMonth,
   onRefreshCoins
 }) => {
+  const { t } = useTranslation();
   const [analyses, setAnalyses] = useState<AiAnalysis[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -71,16 +75,16 @@ const AiAdvisorView: React.FC<AiAdvisorViewProps> = ({
 
   const handleDeleteAnalysis = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!window.confirm('Tem certeza que deseja excluir esta análise?')) return;
+    if (!window.confirm(t('ai.deleteConfirm'))) return;
     
     setIsDeleting(id);
     try {
       await aiAdviceService.deleteAnalysis(id);
       setAnalyses(prev => prev.filter(a => a.id !== id));
-      showToast('Análise excluída com sucesso!', 'success');
+      showToast(t('ai.deleteSuccess'), 'success');
     } catch (error) {
       console.error('Error deleting analysis:', error);
-      showToast('Erro ao excluir análise', 'error');
+      showToast(translateApiError(error, t('ai.deleteError')), 'error');
     } finally {
       setIsDeleting(null);
     }
@@ -98,14 +102,14 @@ const AiAdvisorView: React.FC<AiAdvisorViewProps> = ({
       // Fetch the new analysis details immediately to show it
       const newAnalysis = await aiAdviceService.getAdviceById(result.id);
       
-      showToast('Relatório gerado com sucesso!', 'success');
+      showToast(t('ai.generateSuccess'), 'success');
       
       // Refresh list and open the new one
       await fetchAnalyses();
       setSelectedAnalysis(newAnalysis);
     } catch (error: any) {
       console.error('Error generating new analysis:', error);
-      showToast(error?.message || 'Erro ao gerar análise', 'error');
+      showToast(translateApiError(error, t('ai.generateError')), 'error');
     } finally {
       setIsGenerating(false);
     }
@@ -132,8 +136,8 @@ const AiAdvisorView: React.FC<AiAdvisorViewProps> = ({
            </div>
            <div className="absolute bottom-2 right-2 w-6 h-6 bg-emerald-500 border-4 border-background rounded-full"></div>
         </div>
-        <h1 className="text-4xl font-black text-white tracking-tight">Savi AI</h1>
-        <p className="text-slate-400 text-sm">Seu consultor financeiro pessoal</p>
+        <h1 className="text-4xl font-black text-white tracking-tight">{t('ai.title')}</h1>
+        <p className="text-slate-400 text-sm">{t('ai.subtitle')}</p>
       </div>
 
       {/* Main Actions */}
@@ -146,7 +150,7 @@ const AiAdvisorView: React.FC<AiAdvisorViewProps> = ({
            >
               {isGenerating && <div className="absolute inset-0 bg-blue-500/10 animate-pulse"></div>}
               <Sparkles size={18} className={`text-blue-400 ${isGenerating ? 'animate-spin' : 'group-hover:animate-bounce'}`} />
-              {isGenerating ? 'Processando dados...' : 'Gerar Nova Análise'}
+              {isGenerating ? t('ai.processing') : t('ai.generateNew')}
            </button>
         </div>
         
@@ -156,19 +160,19 @@ const AiAdvisorView: React.FC<AiAdvisorViewProps> = ({
               className="w-full bg-surface hover:bg-slate-800 text-white py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-3 group"
            >
               <SaviIcon className="w-8 h-8" />
-              Chat com Savi
+              {t('ai.chatWithSavi')}
            </button>
         </div>
       </div>
 
       {/* Analysis Stream */}
       <div className="flex-1 space-y-6 mt-4">
-        <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-2">Histórico de Insights</h2>
+        <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-2">{t('ai.historyTitle')}</h2>
         
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4" />
-            <p className="text-slate-500 text-sm">Carregando histórico...</p>
+            <p className="text-slate-500 text-sm">{t('ai.loadingHistory')}</p>
           </div>
         ) : analyses.length > 0 ? (
           analyses.map((analysis, index) => (
@@ -180,15 +184,15 @@ const AiAdvisorView: React.FC<AiAdvisorViewProps> = ({
                 <div className="flex justify-between items-start mb-4 border-b border-slate-800 pb-3">
                     <div className="flex items-center gap-2">
                       <BrainCircuit size={16} className="text-purple-400" />
-                      <span className="text-slate-300 font-semibold text-sm">Análise Mensal</span>
+                      <span className="text-slate-300 font-semibold text-sm">{t('ai.monthlyAnalysis')}</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-xs text-slate-500">{new Date(analysis.date).toLocaleDateString()}</span>
+                      <span className="text-xs text-slate-500">{formatShortDate(analysis.date)}</span>
                       <button 
                         onClick={(e) => handleDeleteAnalysis(e, analysis.id)}
                         disabled={isDeleting === analysis.id}
                         className="p-1.5 text-slate-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all"
-                        title="Excluir análise"
+                        title={t('ai.deleteAnalysis')}
                       >
                         {isDeleting === analysis.id ? (
                           <div className="w-4 h-4 border-2 border-rose-500/20 border-t-rose-500 rounded-full animate-spin" />
@@ -221,7 +225,7 @@ const AiAdvisorView: React.FC<AiAdvisorViewProps> = ({
                       onClick={() => setSelectedAnalysis(analysis)}
                       className="text-xs text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1 transition-colors"
                     >
-                      Ver Detalhes <ChevronRight size={14} />
+                      {t('ai.viewDetails')} <ChevronRight size={14} />
                     </button>
                 </div>
               </div>
@@ -230,8 +234,8 @@ const AiAdvisorView: React.FC<AiAdvisorViewProps> = ({
         ) : (
           <div className="text-center py-20 bg-slate-900/50 rounded-[2rem] border border-dashed border-slate-800">
             <MessageSquare size={40} className="mx-auto text-slate-800 mb-4" />
-            <p className="text-slate-500 text-sm">Nenhuma análise gerada ainda.</p>
-            <p className="text-slate-600 text-xs mt-1">Clique em "Gerar Nova Análise" para começar.</p>
+            <p className="text-slate-500 text-sm">{t('ai.noAnalysis')}</p>
+            <p className="text-slate-600 text-xs mt-1">{t('ai.noAnalysisHint')}</p>
           </div>
         )}
       </div>
@@ -246,8 +250,8 @@ const AiAdvisorView: React.FC<AiAdvisorViewProps> = ({
                   <BrainCircuit size={24} />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-black text-white tracking-tight">Relatório Savi</h3>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Análise Detalhada • {new Date(selectedAnalysis.date).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</p>
+                  <h3 className="text-2xl font-black text-white tracking-tight">{t('ai.reportTitle')}</h3>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('ai.detailedAnalysis')} • {formatMonthYear(selectedAnalysis.date.slice(0, 7))}</p>
                 </div>
               </div>
               <button onClick={handleCloseReport} className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-all">
@@ -284,7 +288,7 @@ const AiAdvisorView: React.FC<AiAdvisorViewProps> = ({
                 onClick={handleCloseReport}
                 className="px-8 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold text-sm transition-all"
                >
-                 Fechar Relatório
+                 {t('ai.closeReport')}
                </button>
             </div>
           </div>

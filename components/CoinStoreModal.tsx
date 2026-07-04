@@ -5,15 +5,16 @@ import {
   Play, 
   ShoppingBag, 
   Zap, 
-  CheckCircle2, 
   AlertCircle,
   Loader2,
   Smartphone
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { coinService } from '../services/coinService';
 import { admobService } from '../services/admobService';
 import { useToast } from '../contexts/ToastContext';
 import { Capacitor } from '@capacitor/core';
+import { formatCurrency } from '../i18n/localeFormat';
 
 interface CoinStoreModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ interface CoinStoreModalProps {
 }
 
 const CoinStoreModal: React.FC<CoinStoreModalProps> = ({ isOpen, onClose, currentCoins, onRefreshCoins }) => {
+  const { t } = useTranslation();
   const { showToast } = useToast();
   const [loading, setLoading] = useState<string | null>(null);
   const [isAndroid, setIsAndroid] = useState(false);
@@ -33,7 +35,6 @@ const CoinStoreModal: React.FC<CoinStoreModalProps> = ({ isOpen, onClose, curren
   });
 
   useEffect(() => {
-    // Simple check for Android/Capacitor
     setIsAndroid(Capacitor.getPlatform() === 'android');
 
     if (isOpen) {
@@ -53,7 +54,7 @@ const CoinStoreModal: React.FC<CoinStoreModalProps> = ({ isOpen, onClose, curren
 
   const handleEarnCoins = async () => {
     if (!isAndroid) {
-      showToast('Anúncios premiados estão disponíveis apenas no App Android.', 'error');
+      showToast(t('coinStore.adsAndroidOnly'), 'error');
       return;
     }
 
@@ -64,45 +65,38 @@ const CoinStoreModal: React.FC<CoinStoreModalProps> = ({ isOpen, onClose, curren
       if (reward && reward.amount) {
         await coinService.earnCoins();
         onRefreshCoins();
-        showToast(`Parabéns! Você ganhou ${reward.amount} FScoins.`, 'success');
+        showToast(t('coinStore.adReward', { amount: reward.amount }), 'success');
       } else {
-        showToast('Anúncio fechado sem recompensa.', 'error');
+        showToast(t('coinStore.adClosedNoReward'), 'error');
       }
     } catch (error) {
       console.error('AdMob Error:', error);
-      showToast('Erro ao carregar anúncio. Tente novamente mais tarde.', 'error');
+      showToast(t('coinStore.adLoadError'), 'error');
     } finally {
       setLoading(null);
     }
   };
 
   const handleBuyCoins = async (packageId: string, amount: number) => {
-    showToast('Funcionalidade disponível em breve!', 'info');
+    showToast(t('coinStore.purchaseSoon'), 'info');
     return;
     setLoading(packageId);
     try {
-      // Simulate payment processing
       await new Promise(resolve => setTimeout(resolve, 1500));
-      // In a real app, this would call a backend endpoint that verifies a Stripe payment
-      // For now, we'll just simulate success
-      showToast(`Compra de ${amount} FScoins realizada com sucesso!`, 'success');
+      showToast(t('coinStore.purchaseSuccess', { amount }), 'success');
       onRefreshCoins();
       onClose();
     } catch (error) {
-      showToast('Erro ao processar compra.', 'error');
+      showToast(t('coinStore.purchaseError'), 'error');
     } finally {
       setLoading(null);
     }
   };
 
-  const formatPrice = (price: number) => {
-    return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  };
-
   const packages = [
-    { id: 'pack_10', amount: 10, price: formatPrice(prices.beginner), label: 'Iniciante', icon: Coins, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-    { id: 'pack_50', amount: 50, price: formatPrice(prices.popular), label: 'Popular', icon: Zap, color: 'text-amber-400', bg: 'bg-amber-500/10', popular: true },
-    { id: 'pack_150', amount: 150, price: formatPrice(prices.economic), label: 'Econômico', icon: ShoppingBag, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+    { id: 'pack_10', amount: 10, price: formatCurrency(prices.beginner), label: t('coinStore.packBeginner'), icon: Coins, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+    { id: 'pack_50', amount: 50, price: formatCurrency(prices.popular), label: t('coinStore.packPopular'), icon: Zap, color: 'text-amber-400', bg: 'bg-amber-500/10', popular: true },
+    { id: 'pack_150', amount: 150, price: formatCurrency(prices.economic), label: t('coinStore.packEconomic'), icon: ShoppingBag, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
   ];
 
   return (
@@ -119,9 +113,9 @@ const CoinStoreModal: React.FC<CoinStoreModalProps> = ({ isOpen, onClose, curren
                 <Coins size={24} />
               </div>
               <div>
-                <h2 className="text-2xl font-black text-white tracking-tight">FSCoins Store</h2>
+                <h2 className="text-2xl font-black text-white tracking-tight">{t('coinStore.title')}</h2>
                 <div className="flex items-center gap-1.5 text-slate-400 text-xs font-bold uppercase tracking-widest">
-                  Saldo Atual: <span className="text-amber-500">{currentCoins}</span>
+                  {t('coinStore.currentBalance')} <span className="text-amber-500">{currentCoins}</span>
                 </div>
               </div>
             </div>
@@ -131,9 +125,8 @@ const CoinStoreModal: React.FC<CoinStoreModalProps> = ({ isOpen, onClose, curren
           </div>
 
           <div className="space-y-6 relative">
-            {/* Earn Section */}
             <div className="space-y-3">
-              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Ganhar Moedas</h3>
+              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('coinStore.earnSection')}</h3>
               <button 
                 onClick={handleEarnCoins}
                 disabled={loading !== null}
@@ -150,8 +143,8 @@ const CoinStoreModal: React.FC<CoinStoreModalProps> = ({ isOpen, onClose, curren
                     {loading === 'ad' ? <Loader2 className="animate-spin" size={24} /> : <Play size={24} fill="currentColor" />}
                   </div>
                   <div className="text-left">
-                    <p className="font-bold text-white">Assistir Anúncio</p>
-                    <p className="text-xs text-slate-400">Ganhe 10 FScoins por vídeo</p>
+                    <p className="font-bold text-white">{t('coinStore.watchAd')}</p>
+                    <p className="text-xs text-slate-400">{t('coinStore.earnPerVideo')}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -163,16 +156,15 @@ const CoinStoreModal: React.FC<CoinStoreModalProps> = ({ isOpen, onClose, curren
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500 text-white text-[10px] font-black uppercase tracking-widest shadow-lg">
                       <Smartphone size={12} />
-                      Apenas no Android
+                      {t('coinStore.androidOnly')}
                     </div>
                   </div>
                 )}
               </button>
             </div>
 
-            {/* Buy Section */}
             <div className="space-y-3">
-              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Comprar Pacotes</h3>
+              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('coinStore.buySection')}</h3>
               <div className="grid grid-cols-1 gap-3">
                 {packages.map((pkg) => (
                   <div key={pkg.id} className="relative group">
@@ -184,7 +176,7 @@ const CoinStoreModal: React.FC<CoinStoreModalProps> = ({ isOpen, onClose, curren
                     >
                       {pkg.popular && (
                         <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-primary text-white text-[9px] font-black uppercase tracking-widest shadow-lg">
-                          Mais Popular
+                          {t('coinStore.mostPopular')}
                         </div>
                       )}
                       <div className="flex items-center gap-4">
@@ -201,10 +193,9 @@ const CoinStoreModal: React.FC<CoinStoreModalProps> = ({ isOpen, onClose, curren
                       </div>
                     </button>
                     
-                    {/* Coming Soon Overlay */}
                     <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                       <span className="bg-primary text-white text-[10px] font-black uppercase tracking-[0.2em] px-4 py-2 rounded-full shadow-lg">
-                        Disponível em breve
+                        {t('coinStore.comingSoon')}
                       </span>
                     </div>
                   </div>
@@ -215,8 +206,7 @@ const CoinStoreModal: React.FC<CoinStoreModalProps> = ({ isOpen, onClose, curren
             <div className="p-4 rounded-2xl bg-white/5 border border-white/5 flex items-start gap-3">
               <AlertCircle size={16} className="text-slate-500 shrink-0 mt-0.5" />
               <p className="text-[10px] text-slate-500 leading-relaxed">
-                FSCoins são utilizadas para gerar análises de IA, transcrições e outras funcionalidades premium. 
-                Assinantes dos planos Premium e Elite recebem moedas mensais automaticamente.
+                {t('coinStore.footer')}
               </p>
             </div>
           </div>

@@ -1,4 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { formatMonthYear } from '../i18n/localeFormat';
 
 interface MonthContextValue {
   selectedMonth: string; // YYYY-MM
@@ -27,11 +29,11 @@ export const MonthProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const prevMonth = useCallback(() => changeMonth(-1), [changeMonth]);
   const nextMonth = useCallback(() => changeMonth(1), [changeMonth]);
 
-  const displayLabel = useMemo(() => {
-    const [y, m] = selectedMonth.split('-').map(Number);
-    const d = new Date(y, m - 1, 1);
-    return d.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
-  }, [selectedMonth]);
+  const { i18n } = useTranslation();
+  const displayLabel = useMemo(
+    () => formatMonthYear(selectedMonth),
+    [selectedMonth, i18n.language]
+  );
 
   return (
     <MonthContext.Provider value={{ selectedMonth, setSelectedMonth, prevMonth, nextMonth, displayLabel }}>

@@ -38,10 +38,11 @@ export const authService = {
     apiLogout(emitEvent);
   },
   
-  validateToken: async (token: string): Promise<boolean> => {
+  validateToken: async (_token: string): Promise<boolean> => {
     try {
-      // Endpoint from user's code: VALIDATE_TOKEN_SERVICE?token=${token}
-      return await api.get<boolean>(`/auth/validate-token?token=${token}`);
+      // Token goes in the Authorization header (attached automatically by the
+      // api client) — query strings leak into proxy logs and browser history.
+      return await api.get<boolean>('/auth/validate-token');
     } catch (error) {
       return false;
     }

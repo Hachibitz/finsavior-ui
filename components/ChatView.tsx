@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
+import { useTranslation } from 'react-i18next';
+import {
   Send, 
   ArrowLeft, 
   MoreVertical, 
@@ -19,6 +20,7 @@ import { aiChatService, ChatMessage } from '../services/aiChatService';
 import { coinService } from '../services/coinService';
 import { UserProfile } from '../types';
 import { useToast } from '../contexts/ToastContext';
+import { translateApiError } from '../utils/apiError';
 import ReactMarkdown from 'react-markdown';
 import VoiceFab from './VoiceFab';
 import { SaviIcon } from './Logo';
@@ -30,6 +32,7 @@ interface ChatViewProps {
 }
 
 const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) => {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -82,7 +85,7 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
 
     // Check coins if enabled
     if (isUsingCoins && coinsBalance < COIN_COST) {
-      showToast('Saldo de FSCoins insuficiente!', 'error');
+      showToast(t('chat.insufficientCoins'), 'error');
       return;
     }
 
@@ -106,10 +109,10 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
       }
     } catch (error: any) {
       console.error('Chat error:', error);
-      const errorMsg = error?.data?.msg || error?.message || 'Não foi possível processar sua pergunta agora.';
+      const errorMsg = translateApiError(error, t('chat.processError'));
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `${errorMsg} Tente novamente em instantes. 😕`
+        content: `${errorMsg} ${t('chat.tryAgain')}`
       }]);
       showToast(errorMsg, 'error');
     } finally {
@@ -118,15 +121,15 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
   };
 
   const handleClearHistory = async () => {
-    if (!window.confirm('Tem certeza que deseja limpar todo o histórico da conversa?')) return;
+    if (!window.confirm(t('chat.confirmClear'))) return;
     
     try {
       await aiChatService.clearChatHistory();
       setMessages([]);
       setShowMenu(false);
-      showToast('Histórico limpo com sucesso!', 'success');
+      showToast(t('chat.clearSuccess'), 'success');
     } catch (error) {
-      showToast('Erro ao limpar histórico.', 'error');
+      showToast(translateApiError(error, t('chat.clearError')), 'error');
     }
   };
 
@@ -149,10 +152,10 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
               <BrainCircuit size={20} />
             </div>
             <div>
-              <h2 className="text-lg font-black text-white tracking-tight leading-none">Savi Assistant</h2>
+              <h2 className="text-lg font-black text-white tracking-tight leading-none">{t('chat.title')}</h2>
               <div className="flex items-center gap-1.5 mt-1">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Online</span>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('chat.online')}</span>
               </div>
             </div>
           </div>
@@ -177,7 +180,7 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
                   className="w-full px-4 py-3 text-left text-sm text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 transition-colors"
                 >
                   <Trash2 size={16} />
-                  Limpar Histórico
+                  {t('chat.clearHistory')}
                 </button>
               </div>
             )}
@@ -193,7 +196,7 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
         {isLoadingHistory ? (
           <div className="flex flex-col items-center justify-center h-full gap-4 text-slate-500">
             <Loader2 size={32} className="animate-spin text-primary" />
-            <p className="text-sm font-medium">Carregando conversa...</p>
+            <p className="text-sm font-medium">{t('chat.loadingConversation')}</p>
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center max-w-sm mx-auto space-y-6">
@@ -201,13 +204,13 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
               <SaviIcon className="w-full h-full" />
             </div>
             <div>
-              <h3 className="text-xl font-black text-white mb-2">Olá! Eu sou a Savi.</h3>
+              <h3 className="text-xl font-black text-white mb-2">{t('chat.greeting')}</h3>
               <p className="text-slate-400 text-sm leading-relaxed">
-                Sua assistente financeira inteligente. Como posso ajudar com suas finanças hoje?
+                {t('chat.greetingDesc')}
               </p>
             </div>
             <div className="grid grid-cols-1 gap-2 w-full">
-              {['Como economizar este mês?', 'Qual meu saldo atual?', 'Analise meus gastos'].map(q => (
+              {[t('chat.sampleQ1'), t('chat.sampleQ2'), t('chat.sampleQ3')].map(q => (
                 <button 
                   key={q}
                   onClick={() => setInput(q)}
@@ -276,12 +279,12 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-bold text-white">Usar FSCoins</span>
+                <span className="text-xs font-bold text-white">{t('chat.useCoins')}</span>
                 <button onClick={() => setShowHelp(!showHelp)} className="text-slate-500 hover:text-white transition-colors">
                   <HelpCircle size={12} />
                 </button>
               </div>
-              <p className="text-[10px] text-slate-500">Custo: {COIN_COST} moedas por mensagem</p>
+              <p className="text-[10px] text-slate-500">{t('chat.coinsCost', { cost: COIN_COST })}</p>
             </div>
           </div>
           <button 
@@ -297,11 +300,9 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
             <button onClick={() => setShowHelp(false)} className="absolute top-2 right-2 text-slate-500 hover:text-white">
               <X size={14} />
             </button>
-            <h5 className="font-bold text-amber-500 uppercase tracking-widest text-[10px] mb-2">O que são FSCoins?</h5>
-            <p className="leading-relaxed">
-              FSCoins são a moeda virtual do FinSavior. Você pode usá-las para pagar por mensagens com a Savi quando seu limite mensal de plano for atingido.
-              <br /><br />
-              Custos: Chat: 10 moedas | Mensal: 10 moedas | Trimestral: 20 moedas | Anual: 50 moedas.
+            <h5 className="font-bold text-amber-500 uppercase tracking-widest text-[10px] mb-2">{t('chat.whatAreCoins')}</h5>
+            <p className="leading-relaxed whitespace-pre-line">
+              {t('chat.coinsHelp')}
             </p>
           </div>
         )}
@@ -317,9 +318,10 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
             <input 
               type="text" 
               value={input}
+              maxLength={2000}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Digite sua dúvida financeira..."
+              placeholder={t('chat.inputPlaceholder')}
               className="w-full bg-slate-800 border border-white/5 text-white pl-4 pr-12 py-4 rounded-2xl focus:outline-none focus:border-primary/50 transition-all text-sm"
             />
             <button 

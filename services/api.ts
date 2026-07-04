@@ -1,3 +1,5 @@
+import { LOCALE_STORAGE_KEY } from '../i18n';
+
 const BASE_URL = import.meta.env.PROD 
   ? 'https://www.finsavior.com.br/api' 
   : 'http://localhost:8085/api';
@@ -32,6 +34,7 @@ export const clearTokens = () => {
   localStorage.removeItem('refreshToken');
   localStorage.removeItem('rememberMe');
   localStorage.removeItem('auth_provider');
+  localStorage.removeItem('user_email');
   sessionStorage.removeItem('accessToken');
   sessionStorage.removeItem('refreshToken');
 };
@@ -81,6 +84,9 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
     headers.set('Content-Type', 'application/json');
   }
 
+  const locale = localStorage.getItem(LOCALE_STORAGE_KEY) || 'pt-BR';
+  headers.set('Accept-Language', locale);
+
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     ...options,
     headers,
@@ -92,33 +98,8 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
     const isRefreshableStatus = response.status === 401;
 
     if (isRefreshableStatus && !isAuthRoute) {
-      const clone = response.clone();
-      try {
-        const errorData = await clone.json();
-        const msg = (errorData.msg || errorData.message || '').toLowerCase();
-        
-        // If it's a plan limit error, don't try to refresh
-        const isPlanLimit = response.status === 403 && (
-          msg.includes('limite') || 
-          msg.includes('upgrade') || 
-          msg.includes('fscoins') || 
-          msg.includes('moedas') || 
-          msg.includes('insuficiente') ||
-          msg.includes('saldo')
-        );
-
-        if (isPlanLimit) {
-          const error = new Error(errorData.msg || errorData.message || 'Limite atingido') as any;
-          error.status = response.status;
-          error.data = errorData;
-          throw error;
-        }
-      } catch (e: any) {
-        if (e.status === 403) throw e; // Re-throw plan limit error
-        // Otherwise ignore parse error and proceed to refresh attempt
-      }
-
-  // Proceed with refresh logic
+      // Plan-limit errors arrive as 403 and never reach this branch;
+      // any 401 here is a genuine expired/invalid token, so go refresh.
       if (!isRefreshing && !(options as any)._retry) {
         isRefreshing = true;
         try {
@@ -187,6 +168,8 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
     const error = new Error(errorData.msg || errorData.message || 'Request failed') as any;
     error.status = response.status;
     error.data = errorData;
+    // Machine-readable code (e.g. PLAY_MANAGED_IN_STORE) that the UI translates via i18n
+    error.errorCode = errorData.errorCode;
     throw error;
   }
 

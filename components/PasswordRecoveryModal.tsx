@@ -10,8 +10,10 @@ import {
   ShieldCheck,
   Lock
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { authService } from '../services/authService';
 import { useToast } from '../contexts/ToastContext';
+import { translateApiError } from '../utils/apiError';
 
 interface PasswordRecoveryModalProps {
   isOpen: boolean;
@@ -19,6 +21,7 @@ interface PasswordRecoveryModalProps {
 }
 
 const PasswordRecoveryModal: React.FC<PasswordRecoveryModalProps> = ({ isOpen, onClose }) => {
+  const { t } = useTranslation();
   const { showToast } = useToast();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -36,11 +39,12 @@ const PasswordRecoveryModal: React.FC<PasswordRecoveryModalProps> = ({ isOpen, o
     setError(null);
     try {
       await authService.passwordRecovery(email);
-      showToast('E-mail de recuperação enviado!', 'success');
+      showToast(t('passwordRecovery.emailSent'), 'success');
       setStep(2);
     } catch (err: any) {
-      setError(err.message || 'Erro ao enviar e-mail de recuperação.');
-      showToast('Erro ao enviar e-mail', 'error');
+      const msg = translateApiError(err, t('passwordRecovery.sendError'));
+      setError(msg);
+      showToast(t('passwordRecovery.sendErrorToast'), 'error');
     } finally {
       setLoading(false);
     }
@@ -49,11 +53,11 @@ const PasswordRecoveryModal: React.FC<PasswordRecoveryModalProps> = ({ isOpen, o
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      setError('As senhas não coincidem.');
+      setError(t('passwordRecovery.passwordMismatch'));
       return;
     }
     if (newPassword.length < 8) {
-      setError('A senha deve ter pelo menos 8 caracteres.');
+      setError(t('passwordRecovery.passwordMinLength'));
       return;
     }
 
@@ -61,11 +65,11 @@ const PasswordRecoveryModal: React.FC<PasswordRecoveryModalProps> = ({ isOpen, o
     setError(null);
     try {
       await authService.resetPassword(token, newPassword);
-      showToast('Senha redefinida com sucesso!', 'success');
+      showToast(t('passwordRecovery.resetSuccess'), 'success');
       setStep(3);
     } catch (err: any) {
-      setError(err.message || 'Erro ao redefinir senha. Verifique o token.');
-      showToast('Erro ao redefinir senha', 'error');
+      setError(translateApiError(err, t('passwordRecovery.resetError')));
+      showToast(t('passwordRecovery.resetErrorToast'), 'error');
     } finally {
       setLoading(false);
     }
@@ -89,7 +93,7 @@ const PasswordRecoveryModal: React.FC<PasswordRecoveryModalProps> = ({ isOpen, o
             <div className="w-10 h-10 rounded-xl bg-primary/20 text-primary flex items-center justify-center">
               <Key size={20} />
             </div>
-            <h3 className="text-xl font-black text-white tracking-tight">Recuperar Senha</h3>
+            <h3 className="text-xl font-black text-white tracking-tight">{t('passwordRecovery.title')}</h3>
           </div>
           <button onClick={handleClose} className="p-2 text-slate-400 hover:text-white rounded-full transition-all">
             <X size={24} />
@@ -100,13 +104,11 @@ const PasswordRecoveryModal: React.FC<PasswordRecoveryModalProps> = ({ isOpen, o
           {step === 1 && (
             <form onSubmit={handleSendEmail} className="space-y-6">
               <div className="text-center mb-6">
-                <p className="text-slate-400 text-sm">
-                  Insira seu e-mail cadastrado para receber um token de recuperação.
-                </p>
+                <p className="text-slate-400 text-sm">{t('passwordRecovery.step1Desc')}</p>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">E-mail</label>
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('passwordRecovery.email')}</label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                   <input 
@@ -114,7 +116,7 @@ const PasswordRecoveryModal: React.FC<PasswordRecoveryModalProps> = ({ isOpen, o
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-2xl px-12 py-4 text-white focus:outline-none focus:border-primary transition-all"
-                    placeholder="seu@email.com"
+                    placeholder={t('passwordRecovery.emailPlaceholder')}
                     required
                   />
                 </div>
@@ -134,7 +136,7 @@ const PasswordRecoveryModal: React.FC<PasswordRecoveryModalProps> = ({ isOpen, o
               >
                 {loading ? <Loader2 className="animate-spin" size={20} /> : (
                   <>
-                    <span>Enviar Token</span>
+                    <span>{t('passwordRecovery.sendToken')}</span>
                     <ArrowRight size={18} />
                   </>
                 )}
@@ -145,14 +147,12 @@ const PasswordRecoveryModal: React.FC<PasswordRecoveryModalProps> = ({ isOpen, o
           {step === 2 && (
             <form onSubmit={handleResetPassword} className="space-y-6">
               <div className="text-center mb-6">
-                <p className="text-slate-400 text-sm">
-                  Insira o token recebido por e-mail e sua nova senha.
-                </p>
+                <p className="text-slate-400 text-sm">{t('passwordRecovery.step2Desc')}</p>
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Token de Recuperação</label>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('passwordRecovery.recoveryToken')}</label>
                   <div className="relative">
                     <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                     <input 
@@ -160,14 +160,14 @@ const PasswordRecoveryModal: React.FC<PasswordRecoveryModalProps> = ({ isOpen, o
                       value={token}
                       onChange={e => setToken(e.target.value)}
                       className="w-full bg-white/5 border border-white/10 rounded-2xl px-12 py-4 text-white focus:outline-none focus:border-primary transition-all"
-                      placeholder="Cole o token aqui"
+                      placeholder={t('passwordRecovery.tokenPlaceholder')}
                       required
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nova Senha</label>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('passwordRecovery.newPassword')}</label>
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                     <input 
@@ -175,7 +175,7 @@ const PasswordRecoveryModal: React.FC<PasswordRecoveryModalProps> = ({ isOpen, o
                       value={newPassword}
                       onChange={e => setNewPassword(e.target.value)}
                       className="w-full bg-white/5 border border-white/10 rounded-2xl px-12 py-4 text-white focus:outline-none focus:border-primary transition-all"
-                      placeholder="Mínimo 8 caracteres"
+                      placeholder={t('passwordRecovery.newPasswordPlaceholder')}
                       required
                       minLength={8}
                     />
@@ -183,7 +183,7 @@ const PasswordRecoveryModal: React.FC<PasswordRecoveryModalProps> = ({ isOpen, o
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Confirmar Nova Senha</label>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{t('passwordRecovery.confirmNewPassword')}</label>
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                     <input 
@@ -191,7 +191,7 @@ const PasswordRecoveryModal: React.FC<PasswordRecoveryModalProps> = ({ isOpen, o
                       value={confirmPassword}
                       onChange={e => setConfirmPassword(e.target.value)}
                       className="w-full bg-white/5 border border-white/10 rounded-2xl px-12 py-4 text-white focus:outline-none focus:border-primary transition-all"
-                      placeholder="Repita a nova senha"
+                      placeholder={t('passwordRecovery.confirmNewPasswordPlaceholder')}
                       required
                     />
                   </div>
@@ -212,7 +212,7 @@ const PasswordRecoveryModal: React.FC<PasswordRecoveryModalProps> = ({ isOpen, o
               >
                 {loading ? <Loader2 className="animate-spin" size={20} /> : (
                   <>
-                    <span>Redefinir Senha</span>
+                    <span>{t('passwordRecovery.resetPassword')}</span>
                     <CheckCircle2 size={18} />
                   </>
                 )}
@@ -223,7 +223,7 @@ const PasswordRecoveryModal: React.FC<PasswordRecoveryModalProps> = ({ isOpen, o
                 onClick={() => setStep(1)}
                 className="w-full py-2 text-slate-500 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest"
               >
-                Voltar para e-mail
+                {t('passwordRecovery.backToEmail')}
               </button>
             </form>
           )}
@@ -234,16 +234,14 @@ const PasswordRecoveryModal: React.FC<PasswordRecoveryModalProps> = ({ isOpen, o
                 <CheckCircle2 size={40} />
               </div>
               <div>
-                <h4 className="text-2xl font-black text-white tracking-tight mb-2">Sucesso!</h4>
-                <p className="text-slate-400 text-sm">
-                  Sua senha foi redefinida com sucesso. Agora você já pode entrar na sua conta.
-                </p>
+                <h4 className="text-2xl font-black text-white tracking-tight mb-2">{t('passwordRecovery.successTitle')}</h4>
+                <p className="text-slate-400 text-sm">{t('passwordRecovery.successDesc')}</p>
               </div>
               <button 
                 onClick={handleClose}
                 className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-emerald-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
               >
-                Ir para Login
+                {t('passwordRecovery.goToLogin')}
               </button>
             </div>
           )}

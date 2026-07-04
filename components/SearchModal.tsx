@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   Search, 
   X, 
@@ -17,13 +17,14 @@ import {
   ArrowRight,
   HelpCircle
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface SearchItem {
   id: string;
   title: string;
   description: string;
   icon: React.ElementType;
-  category: 'Tela' | 'Funcionalidade';
+  category: 'screen' | 'feature';
   action: () => void;
 }
 
@@ -34,25 +35,35 @@ interface SearchModalProps {
 }
 
 const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, setActiveTab }) => {
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchItem[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const searchItems: SearchItem[] = [
-    { id: 'summary', title: 'Dashboard', description: 'Visão geral das suas finanças', icon: LayoutDashboard, category: 'Tela', action: () => setActiveTab('summary') },
-    { id: 'debits', title: 'Débitos', description: 'Gerenciar contas e boletos', icon: Receipt, category: 'Tela', action: () => setActiveTab('debits') },
-    { id: 'cards', title: 'Cartões', description: 'Faturas e gastos no crédito', icon: CreditCard, category: 'Tela', action: () => setActiveTab('cards') },
-    { id: 'assets', title: 'Rendas', description: 'Ganhos e investimentos', icon: Wallet, category: 'Tela', action: () => setActiveTab('assets') },
-    { id: 'ai', title: 'IA Advisor', description: 'Análises e insights inteligentes', icon: BrainCircuit, category: 'Tela', action: () => setActiveTab('ai') },
-    { id: 'plans', title: 'Planos Premium', description: 'Upgrade e benefícios', icon: ShieldCheck, category: 'Tela', action: () => setActiveTab('plans') },
-    { id: 'categories', title: 'Categorias', description: 'Organize seus gastos', icon: Tags, category: 'Tela', action: () => setActiveTab('categories') },
-    { id: 'account', title: 'Minha Conta', description: 'Perfil e configurações', icon: User, category: 'Tela', action: () => setActiveTab('account') },
-    { id: 'support', title: 'Ajuda e Suporte', description: 'Fale conosco e tire dúvidas', icon: HelpCircle, category: 'Tela', action: () => setActiveTab('support') },
-    { id: 'new-analysis', title: 'Gerar Análise', description: 'Criar novo relatório de IA', icon: Sparkles, category: 'Funcionalidade', action: () => setActiveTab('ai') },
-    { id: 'chat-savi', title: 'Chat com Savi', description: 'Tire dúvidas com a assistente', icon: Bot, category: 'Funcionalidade', action: () => setActiveTab('ai') },
-    { id: 'add-bill', title: 'Adicionar Conta', description: 'Registrar novo débito', icon: PlusCircle, category: 'Funcionalidade', action: () => setActiveTab('debits') },
-    { id: 'add-asset', title: 'Adicionar Renda', description: 'Registrar novo ganho', icon: PlusCircle, category: 'Funcionalidade', action: () => setActiveTab('assets') },
-  ];
+  const searchItems: SearchItem[] = useMemo(() => [
+    { id: 'summary', title: t('search.items.summary.title'), description: t('search.items.summary.description'), icon: LayoutDashboard, category: 'screen', action: () => setActiveTab('summary') },
+    { id: 'debits', title: t('search.items.debits.title'), description: t('search.items.debits.description'), icon: Receipt, category: 'screen', action: () => setActiveTab('debits') },
+    { id: 'cards', title: t('search.items.cards.title'), description: t('search.items.cards.description'), icon: CreditCard, category: 'screen', action: () => setActiveTab('cards') },
+    { id: 'assets', title: t('search.items.assets.title'), description: t('search.items.assets.description'), icon: Wallet, category: 'screen', action: () => setActiveTab('assets') },
+    { id: 'ai', title: t('search.items.ai.title'), description: t('search.items.ai.description'), icon: BrainCircuit, category: 'screen', action: () => setActiveTab('ai') },
+    { id: 'plans', title: t('search.items.plans.title'), description: t('search.items.plans.description'), icon: ShieldCheck, category: 'screen', action: () => setActiveTab('plans') },
+    { id: 'categories', title: t('search.items.categories.title'), description: t('search.items.categories.description'), icon: Tags, category: 'screen', action: () => setActiveTab('categories') },
+    { id: 'account', title: t('search.items.account.title'), description: t('search.items.account.description'), icon: User, category: 'screen', action: () => setActiveTab('account') },
+    { id: 'support', title: t('search.items.support.title'), description: t('search.items.support.description'), icon: HelpCircle, category: 'screen', action: () => setActiveTab('support') },
+    { id: 'new-analysis', title: t('search.items.newAnalysis.title'), description: t('search.items.newAnalysis.description'), icon: Sparkles, category: 'feature', action: () => setActiveTab('ai') },
+    { id: 'chat-savi', title: t('search.items.chatSavi.title'), description: t('search.items.chatSavi.description'), icon: Bot, category: 'feature', action: () => setActiveTab('ai') },
+    { id: 'add-bill', title: t('search.items.addBill.title'), description: t('search.items.addBill.description'), icon: PlusCircle, category: 'feature', action: () => setActiveTab('debits') },
+    { id: 'add-asset', title: t('search.items.addAsset.title'), description: t('search.items.addAsset.description'), icon: PlusCircle, category: 'feature', action: () => setActiveTab('assets') },
+  ], [t, setActiveTab]);
+
+  const quickTags = useMemo(() => [
+    t('search.tags.dashboard'),
+    t('search.tags.ai'),
+    t('search.tags.plans'),
+    t('search.tags.bills'),
+    t('search.tags.income'),
+    t('search.tags.chat'),
+  ], [t]);
 
   useEffect(() => {
     if (isOpen) {
@@ -71,12 +82,15 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, setActiveTab
     const filtered = searchItems.filter(item => 
       item.title.toLowerCase().includes(query.toLowerCase()) ||
       item.description.toLowerCase().includes(query.toLowerCase()) ||
-      item.category.toLowerCase().includes(query.toLowerCase())
+      (item.category === 'screen' ? t('search.categoryScreen') : t('search.categoryFeature')).toLowerCase().includes(query.toLowerCase())
     );
     setResults(filtered);
-  }, [query]);
+  }, [query, searchItems, t]);
 
   if (!isOpen) return null;
+
+  const categoryLabel = (category: SearchItem['category']) =>
+    category === 'screen' ? t('search.categoryScreen') : t('search.categoryFeature');
 
   return (
     <div className="fixed inset-0 z-[100] flex items-start justify-center p-4 sm:p-6 md:p-20 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
@@ -84,7 +98,6 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, setActiveTab
         className="bg-[#0b1121] w-full max-w-2xl rounded-3xl border border-white/10 shadow-2xl overflow-hidden animate-scale-in flex flex-col"
         onClick={e => e.stopPropagation()}
       >
-        {/* Search Input */}
         <div className="p-6 border-b border-white/5 flex items-center gap-4 bg-white/5">
           <Search className="text-primary" size={24} />
           <input 
@@ -92,7 +105,7 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, setActiveTab
             type="text" 
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="O que você está procurando?"
+            placeholder={t('search.placeholder')}
             className="flex-1 bg-transparent border-none text-white text-lg focus:outline-none placeholder:text-slate-500"
           />
           <button onClick={onClose} className="p-2 text-slate-500 hover:text-white transition-colors">
@@ -100,16 +113,15 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, setActiveTab
           </button>
         </div>
 
-        {/* Results Area */}
         <div className="flex-1 overflow-y-auto max-h-[60vh] custom-scrollbar">
           {query.trim() === '' ? (
             <div className="p-8 text-center">
               <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-4 text-slate-600">
                 <Search size={32} />
               </div>
-              <p className="text-slate-400 font-medium">Busque por telas, funcionalidades ou informações.</p>
+              <p className="text-slate-400 font-medium">{t('search.emptyHint')}</p>
               <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {['Dashboard', 'IA', 'Planos', 'Contas', 'Rendas', 'Chat'].map(tag => (
+                {quickTags.map(tag => (
                   <button 
                     key={tag}
                     onClick={() => setQuery(tag)}
@@ -138,7 +150,7 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, setActiveTab
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-white">{item.title}</span>
                       <span className="text-[10px] font-black bg-white/5 text-slate-500 px-2 py-0.5 rounded-full uppercase tracking-widest">
-                        {item.category}
+                        {categoryLabel(item.category)}
                       </span>
                     </div>
                     <p className="text-xs text-slate-500 mt-0.5">{item.description}</p>
@@ -149,25 +161,24 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, setActiveTab
             </div>
           ) : (
             <div className="p-12 text-center">
-              <p className="text-slate-500">Nenhum resultado encontrado para "{query}"</p>
+              <p className="text-slate-500">{t('search.noResults', { query })}</p>
             </div>
           )}
         </div>
 
-        {/* Footer */}
         <div className="p-4 border-t border-white/5 bg-black/20 flex justify-between items-center">
           <div className="flex items-center gap-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest">
             <div className="flex items-center gap-1">
               <kbd className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10">ESC</kbd>
-              <span>para fechar</span>
+              <span>{t('search.escClose')}</span>
             </div>
             <div className="flex items-center gap-1">
               <kbd className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10">↵</kbd>
-              <span>para selecionar</span>
+              <span>{t('search.enterSelect')}</span>
             </div>
           </div>
           <div className="text-[10px] font-bold text-primary uppercase tracking-widest">
-            FinSavior Search
+            {t('search.brand')}
           </div>
         </div>
       </div>

@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Bill, Category } from '../types';
 import { getCategoryIcon } from '../constants';
-import { formatCurrency, formatDayLabel } from '../utils/format';
-import { Plus, CheckCircle2, Circle, Edit2, Trash2, FileText, Loader2, Mic } from 'lucide-react';
+import { formatDayLabel } from '../utils/format';
+import { formatCurrency } from '../i18n/localeFormat';
+import { translateApiError } from '../utils/apiError';
+import { Plus, CheckCircle2, Circle, Edit2, Trash2, Loader2 } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
 import ImportDocButton from './ImportDocButton';
 import { useToast } from '../contexts/ToastContext';
-import { AiBillExtractionDTO } from '../services/aiTranscriptionService';
 
 interface DebitsViewProps {
   bills: Bill[];
@@ -21,13 +23,11 @@ interface DebitsViewProps {
 }
 
 const DebitsView: React.FC<DebitsViewProps> = ({ bills, onAdd, onDelete, onEdit, onEditClick, categories, onRefresh, onRefreshCoins, onNavigateToPlans }) => {
+  const { t } = useTranslation();
   const [billToDelete, setBillToDelete] = useState<Bill | null>(null);
-  const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [updatingBillId, setUpdatingBillId] = useState<string | null>(null);
   const { showToast } = useToast();
-  
-  // Temporary state for inline editing (simplified for UX)
-  // In a full app, this might open a modal or navigate to a form
+
   const handleEditClick = (bill: Bill) => {
     if (onEditClick) {
       onEditClick(bill);
@@ -42,7 +42,7 @@ const DebitsView: React.FC<DebitsViewProps> = ({ bills, onAdd, onDelete, onEdit,
       await onEdit({ ...bill, isPaid: !bill.isPaid });
     } catch (e: any) {
       console.error('Error updating bill:', e);
-      showToast(e?.message || 'Erro ao atualizar conta', 'error');
+      showToast(translateApiError(e, t('debits.updateError')), 'error');
     } finally {
       setUpdatingBillId(null);
     }
@@ -52,13 +52,22 @@ const DebitsView: React.FC<DebitsViewProps> = ({ bills, onAdd, onDelete, onEdit,
   const paid = bills.filter(b => b.isPaid).reduce((acc, bill) => acc + bill.amount, 0);
   const progress = total > 0 ? (paid / total) * 100 : 0;
 
+  const deleteMessage = billToDelete?.installments && billToDelete.installments.total > 1
+    ? t('debits.deleteInstallments')
+    : (billToDelete?.isRecurrent || billToDelete?.fixedBillId)
+      ? t('debits.deleteRecurrent')
+      : t('debits.deleteConfirm');
+
+  const deleteCheckboxLabel = billToDelete?.installments && billToDelete.installments.total > 1
+    ? t('debits.deleteAllInstallments')
+    : t('debits.deleteAllMonths');
+
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header Stat */}
       <div className="glass-card p-6 rounded-3xl flex justify-between items-center relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-transparent pointer-events-none" />
         <div>
-           <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Total a Pagar</p>
+           <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">{t('debits.totalToPay')}</p>
            <h1 className="text-3xl font-extrabold text-white">{formatCurrency(total)}</h1>
         </div>
         <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-rose-500 to-orange-600 flex items-center justify-center shadow-lg shadow-rose-500/20">
@@ -66,11 +75,10 @@ const DebitsView: React.FC<DebitsViewProps> = ({ bills, onAdd, onDelete, onEdit,
         </div>
       </div>
 
-      {/* Progress Bar */}
       <div className="bg-surface rounded-2xl p-4 border border-slate-700/50">
         <div className="flex justify-between text-xs mb-2">
-          <span className="text-slate-400">Progresso mensal</span>
-          <span className="text-white font-bold">{Math.round(progress)}% Pago</span>
+          <span className="text-slate-400">{t('debits.monthlyProgress')}</span>
+          <span className="text-white font-bold">{t('debits.percentPaid', { percent: Math.round(progress) })}</span>
         </div>
         <div className="h-3 w-full bg-slate-800 rounded-full overflow-hidden">
           <div 
@@ -81,7 +89,7 @@ const DebitsView: React.FC<DebitsViewProps> = ({ bills, onAdd, onDelete, onEdit,
       </div>
 
       <div className="flex items-center justify-between px-2">
-         <h2 className="text-lg font-bold text-white">Contas do Mês</h2>
+         <h2 className="text-lg font-bold text-white">{t('debits.monthBills')}</h2>
          <div className="flex items-center gap-4">
             <ImportDocButton 
               docType="BANK_STATEMENT" 
@@ -91,12 +99,11 @@ const DebitsView: React.FC<DebitsViewProps> = ({ bills, onAdd, onDelete, onEdit,
               onNavigateToPlans={onNavigateToPlans}
             />
             <button onClick={onAdd} className="flex items-center gap-1 text-sm text-primary font-medium hover:text-white transition-colors">
-               <Plus size={16} /> Nova Conta
+               <Plus size={16} /> {t('debits.newBill')}
             </button>
          </div>
       </div>
 
-      {/* Interactive List */}
       <div className="space-y-3">
         {bills.map((bill) => {
           const category = categories.find(c => c.id === bill.category) || categories[0];
@@ -107,7 +114,6 @@ const DebitsView: React.FC<DebitsViewProps> = ({ bills, onAdd, onDelete, onEdit,
             >
               {bill.isPaid && <div className="absolute inset-0 bg-emerald-500/5 pointer-events-none" />}
               
-              {/* Category Icon */}
               <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors ${bill.isPaid ? 'bg-emerald-500/20 text-emerald-500' : 'bg-slate-800 text-slate-400'}`} style={{ backgroundColor: !bill.isPaid ? `${category?.color}20` : undefined, color: !bill.isPaid ? category?.color : undefined }}>
                 {getCategoryIcon(category?.icon || 'coffee', 20)}
               </div>
@@ -131,27 +137,24 @@ const DebitsView: React.FC<DebitsViewProps> = ({ bills, onAdd, onDelete, onEdit,
                 </div>
               </div>
 
-              {/* Actions (Hover on Desktop, Always visible layout on mobile but handled via flex) */}
               <div className="flex items-center gap-2">
-                  {/* Edit/Delete Actions */}
                   <div className="flex gap-1 mr-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button 
                         onClick={() => handleEditClick(bill)}
                         className="p-2 text-slate-400 hover:text-primary hover:bg-slate-800 rounded-lg transition-colors"
-                        title="Editar"
+                        title={t('debits.edit')}
                     >
                         <Edit2 size={16} />
                     </button>
                     <button 
                         onClick={() => setBillToDelete(bill)}
                         className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-lg transition-colors"
-                        title="Excluir"
+                        title={t('debits.deleteBill')}
                     >
                         <Trash2 size={16} />
                     </button>
                   </div>
 
-                  {/* Custom Checkbox Interaction */}
                   <div className="relative cursor-pointer shrink-0" onClick={() => togglePaid(bill)}>
                     {updatingBillId === bill.id ? (
                       <Loader2 className="animate-spin text-slate-400" size={24} />
@@ -171,16 +174,10 @@ const DebitsView: React.FC<DebitsViewProps> = ({ bills, onAdd, onDelete, onEdit,
         isOpen={!!billToDelete}
         onClose={() => setBillToDelete(null)}
         onConfirm={(deleteAll) => billToDelete && onDelete(billToDelete.id, deleteAll)}
-        title="Excluir Conta?"
-        message={
-          billToDelete?.installments && billToDelete.installments.total > 1
-            ? "Esta conta faz parte de um parcelamento. Deseja excluir apenas esta parcela ou todas as parcelas futuras?"
-            : (billToDelete?.isRecurrent || billToDelete?.fixedBillId)
-              ? "Esta é uma conta fixa. Deseja excluir apenas este mês ou todos os meses?"
-              : "Tem certeza que deseja excluir esta conta? Essa ação não pode ser desfeita."
-        }
+        title={t('debits.deleteBillTitle')}
+        message={deleteMessage}
         showCheckbox={(!!billToDelete?.installments && billToDelete.installments.total > 1) || !!billToDelete?.isRecurrent || !!billToDelete?.fixedBillId}
-        checkboxLabel={billToDelete?.installments && billToDelete.installments.total > 1 ? "Excluir todas as parcelas" : "Excluir todos os meses (conta fixa)"}
+        checkboxLabel={deleteCheckboxLabel}
       />
     </div>
   );

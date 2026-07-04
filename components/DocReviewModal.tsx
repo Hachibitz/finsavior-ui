@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Check, Trash2, Edit3, Save, AlertCircle } from 'lucide-react';
 import { AiBillExtractionDTO, TableType, DocumentType } from '../types';
 import { billService } from '../services/billService';
+import { yyyyMMToBillDate } from '../utils/billDate';
+import { useToast } from '../contexts/ToastContext';
+import { translateApiError } from '../utils/apiError';
+import { getCategoryLabel } from '../utils/categoryLabel';
 
 interface DocReviewModalProps {
   extractedBills: AiBillExtractionDTO[];
@@ -22,6 +27,8 @@ const DocReviewModal: React.FC<DocReviewModalProps> = ({
   onClose, 
   onSaved 
 }) => {
+  const { t } = useTranslation();
+  const { showToast } = useToast();
   const [bills, setBills] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -35,11 +42,11 @@ const DocReviewModal: React.FC<DocReviewModalProps> = ({
       billTable: defaultTableType === 'CARD' ? 'CREDIT_CARD' : 'MAIN',
       cardId: docType === 'CREDIT_CARD' ? cardId : undefined,
       billValue: Math.abs(b.billValue || 0),
-      billName: b.billName || 'Sem nome',
+      billName: b.billName || t('import.noName'),
       billCategory: b.billCategory || 'Others',
       possibleDate: b.possibleDate || (targetDate ? `${targetDate}-01` : new Date().toISOString().split('T')[0])
     })));
-  }, [initialBills, docType, defaultTableType, cardId, targetDate]);
+  }, [initialBills, docType, defaultTableType, cardId, targetDate, t]);
 
   const handleToggleSelect = (id: string) => {
     setBills(bills.map(b => b.id === id ? { ...b, selected: !b.selected } : b));
@@ -60,27 +67,23 @@ const DocReviewModal: React.FC<DocReviewModalProps> = ({
     setLoading(true);
     try {
       const payload = selected.map(item => {
-        // Use targetDate if available (format YYYY-MM), otherwise use possibleDate or today
-        let finalDate = item.possibleDate;
-        if (item.targetDate) {
-          // If we have a targetDate (YYYY-MM) and a possibleDate (DD/MM/YYYY), 
-          // we should probably keep the day from possibleDate but use the month/year from targetDate
-          // However, the backend formatBillDate usually expects a standard format or specific month string.
-          // To be safe and follow the user's request that it should be saved for the target month:
-          const [targetYear, targetMonth] = item.targetDate.split('-');
-          if (item.possibleDate && item.possibleDate.includes('/')) {
-            const [day] = item.possibleDate.split('/');
-            finalDate = `${targetYear}-${targetMonth}-${day.padStart(2, '0')}`;
-          } else {
-            finalDate = `${item.targetDate}-01`;
+        const billingMonth = targetDate || new Date().toISOString().slice(0, 7);
+        let purchaseDate: string | undefined;
+
+        if (item.possibleDate && item.possibleDate.includes('/')) {
+          const parts = item.possibleDate.split('/');
+          if (parts.length === 3) {
+            const [day, month, year] = parts;
+            purchaseDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
           }
         }
 
         return {
           billName: item.billName,
           billValue: item.billValue,
-          billDescription: item.billDescription || 'Importado via PDF',
-          billDate: finalDate || new Date().toISOString().split('T')[0],
+          billDescription: item.billDescription || t('import.importedViaPdf'),
+          billDate: yyyyMMToBillDate(billingMonth),
+          purchaseDate,
           billType: item.billType,
           billTable: item.billTable,
           paymentType: item.paymentType,
@@ -98,7 +101,7 @@ const DocReviewModal: React.FC<DocReviewModalProps> = ({
       onClose();
     } catch (error) {
       console.error('Error saving bills:', error);
-      alert('Falha ao salvar contas.');
+      showToast(translateApiError(error, t('import.saveFailed')), 'error');
     } finally {
       setLoading(false);
     }
@@ -112,9 +115,9 @@ const DocReviewModal: React.FC<DocReviewModalProps> = ({
         
         <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
           <div>
-            <h3 className="text-2xl font-black text-white tracking-tight">Revisar Importação</h3>
+            <h3 className="text-2xl font-black text-white tracking-tight">{t('import.reviewTitle')}</h3>
             <p className="text-slate-400 text-sm mt-1">
-              {bills.length} itens encontrados • {selectedCount} selecionados
+              {t('import.itemsFound', { total: bills.length, selected: selectedCount })}
             </p>
           </div>
           <button onClick={onClose} className="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all">
@@ -126,7 +129,7 @@ const DocReviewModal: React.FC<DocReviewModalProps> = ({
           {bills.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-slate-500">
               <AlertCircle size={48} className="mb-4 opacity-20" />
-              <p>Nenhum item para revisar.</p>
+              <p>{t('import.noItems')}</p>
             </div>
           ) : (
             bills.map((bill) => (
@@ -155,8 +158,8 @@ const DocReviewModal: React.FC<DocReviewModalProps> = ({
                         className="w-full bg-transparent border-none text-white font-bold focus:ring-0 p-0 text-lg"
                       />
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-slate-500 uppercase font-bold tracking-widest">{bill.possibleDate || 'Sem data'}</span>
-                        <span className="text-xs text-primary font-bold px-2 py-0.5 bg-primary/10 rounded-full">{bill.billCategory}</span>
+                        <span className="text-xs text-slate-500 uppercase font-bold tracking-widest">{bill.possibleDate || t('import.noDate')}</span>
+                        <span className="text-xs text-primary font-bold px-2 py-0.5 bg-primary/10 rounded-full">{getCategoryLabel(bill.billCategory || 'others', t)}</span>
                       </div>
                     </div>
 
@@ -192,7 +195,7 @@ const DocReviewModal: React.FC<DocReviewModalProps> = ({
             onClick={onClose}
             className="flex-1 py-4 rounded-2xl font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-all"
           >
-            Cancelar
+            {t('common.cancel')}
           </button>
           <button 
             onClick={handleSave}
@@ -204,7 +207,7 @@ const DocReviewModal: React.FC<DocReviewModalProps> = ({
             ) : (
               <>
                 <Save size={20} />
-                Importar {selectedCount} Itens
+                {t('import.importItems', { count: selectedCount })}
               </>
             )}
           </button>

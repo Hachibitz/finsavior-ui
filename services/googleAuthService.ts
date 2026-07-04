@@ -101,9 +101,15 @@ export const googleAuthService = {
       const exchange = await exchangeGoogleCredential(result);
 
       if ('userNotFound' in exchange && exchange.userNotFound) {
+        // Never persist the Firebase idToken: it's re-acquired from the Firebase
+        // session when the user confirms the registration.
         sessionStorage.setItem(
           GOOGLE_PENDING_REGISTER_KEY,
-          JSON.stringify(exchange.firebaseUser)
+          JSON.stringify({
+            email: exchange.firebaseUser.email,
+            displayName: exchange.firebaseUser.displayName,
+            photoURL: exchange.firebaseUser.photoURL
+          })
         );
         return {
           userNotFound: true,

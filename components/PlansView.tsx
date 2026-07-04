@@ -3,129 +3,70 @@ import { Check, Zap, ArrowLeft, Loader2 } from 'lucide-react';
 import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
 import { loadStripe } from '@stripe/stripe-js';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { paymentService } from '../services/paymentService';
+import { googlePlayBillingService } from '../services/googlePlayBillingService';
+import { translateApiError } from '../utils/apiError';
+import { formatCurrency } from '../i18n/localeFormat';
 import { UserProfile } from '../types';
+
+const planFamily = (planType?: string) => {
+  if (!planType || planType === 'FREE') return 'FREE';
+  return planType.replace(/^(STRIPE_|PLAY_)/, '').replace(/_MONTHLY|_ANNUAL$/, '');
+};
 
 const STRIPE_PUBLIC_KEY = import.meta.env.PROD 
   ? 'pk_live_51RAXKGP48Sfjk7zmg09SbDC5o0ZEThNvRfXQ0CcxbLaM9Y89n3rzPDeKr8uy2FQxvJfLPfRciM9FwvxlvXVDBQ8p00Ikf069O6' 
   : 'pk_test_51RAXKQP3WXaQ8eNCSd62SrLxgo6vXm9v0iPZHLkZY7nKKlJcALGyybHh7JynrX4icimDQlRAxtktx9qAcQV4VAgz00ATgXomAT';
 
-export const PLANS = [
-    {
-        name: 'FREE',
-        priceMonthly: 'R$ 0,00',
-        priceYearly: null,
-        features: [
-            '1 análise para teste',
-            '2 mensagens com a Savi por mês (assistente financeira de IA)',
-            'Até 4.000 tokens de IA por mês',
-            'Inserção básica por voz'
-        ],
-        type: 'FREE',
-    },
-    {
-        name: 'BASIC MENSAL',
-        priceMonthly: 'R$ 5,90',
-        priceYearly: 'R$ 59,90',
-        features: [
-            '3 análises mensais, 1 trimestral',
-            '15 mensagens com a Savi por mês (assistente financeira de IA)',
-            'Até 30.000 tokens de IA por mês',
-            'Controle do nível de criatividade/precisão',
-            'Inserção por voz e WhatsApp',
-            'Sem anúncios forçados'
-        ],
-        trial: true,
-        type: 'STRIPE_BASIC_MONTHLY',
-    },
-    {
-        name: 'PLUS MENSAL',
-        priceMonthly: 'R$ 12,90',
-        priceYearly: 'R$ 129,90',
-        features: [
-            '12 análises mensais, 3 trimestrais, 1 anual',
-            '50 mensagens com a Savi por mês (assistente financeira de IA)',
-            'Até 100.000 tokens de IA por mês',
-            'Suporte prioritário',
-            'Controle do nível de criatividade/precisão',
-            'Inserção por voz e WhatsApp ilimitados',
-            'Sem anúncios forçados'
-        ],
-        type: 'STRIPE_PLUS_MONTHLY',
-        trial: true,
-    },
-    {
-        name: 'PREMIUM MENSAL',
-        priceMonthly: 'R$ 25,90',
-        priceYearly: 'R$ 200,00',
-        features: [
-            'Análises ilimitadas',
-            'Mensagens ilimitadas com a Savi (assistente financeira de IA)',
-            'Tokens ilimitados de IA por mês',
-            'Suporte personalizado e prioritário',
-            'Controle do nível de criatividade/precisão',
-            'Inserção por voz e WhatsApp ilimitados',
-            'Maior desconto no anual!',
-            'Sem anúncios forçados'
-        ],
-        trial: true,
-        type: 'STRIPE_PREMIUM_MONTHLY',
-    },
-    {
-        name: 'BASIC ANUAL',
-        priceMonthly: 'R$ 5,90',
-        priceYearly: 'R$ 59,90',
-        features: [
-            '3 análises mensais, 1 trimestral',
-            '15 mensagens com a Savi por mês (assistente financeira de IA)',
-            'Até 30.000 tokens de IA por mês',
-            'Controle do nível de criatividade/precisão',
-            'Inserção por voz e WhatsApp',
-            'Sem anúncios forçados'
-        ],
-        trial: true,
-        type: 'STRIPE_BASIC_ANNUAL',
-    },
-    {
-        name: 'PLUS ANUAL',
-        priceMonthly: 'R$ 12,90',
-        priceYearly: 'R$ 129,90',
-        features: [
-            '12 análises mensais, 3 trimestrais, 1 anual',
-            '50 mensagens com a Savi por mês (assistente financeira de IA)',
-            'Até 100.000 tokens de IA por mês',
-            'Suporte prioritário',
-            'Controle do nível de criatividade/precisão',
-            'Inserção por voz e WhatsApp ilimitados',
-            'Sem anúncios forçados'
-        ],
-        type: 'STRIPE_PLUS_ANNUAL',
-        trial: true,
-    },
-    {
-        name: 'PREMIUM ANUAL',
-        priceMonthly: 'R$ 25,90',
-        priceYearly: 'R$ 200,00',
-        features: [
-            'Análises ilimitadas',
-            'Mensagens ilimitadas com a Savi (assistente financeira de IA)',
-            'Tokens ilimitados de IA por mês',
-            'Suporte personalizado e prioritário',
-            'Controle do nível de criatividade/precisão',
-            'Inserção por voz e WhatsApp ilimitados',
-            'Maior desconto no anual!',
-            'Sem anúncios forçados'
-        ],
-        trial: true,
-        type: 'STRIPE_PREMIUM_ANNUAL',
-    },
+type PlanTier = 'FREE' | 'BASIC' | 'PLUS' | 'PREMIUM';
+
+interface PlanDefinition {
+  tier: PlanTier;
+  billing: 'MONTHLY' | 'ANNUAL' | null;
+  priceMonthly: number;
+  priceYearly: number | null;
+  trial?: boolean;
+  type: string;
+}
+
+const PLAN_DEFINITIONS: PlanDefinition[] = [
+  { tier: 'FREE', billing: null, priceMonthly: 0, priceYearly: null, type: 'FREE' },
+  { tier: 'BASIC', billing: 'MONTHLY', priceMonthly: 5.90, priceYearly: 59.90, trial: true, type: 'STRIPE_BASIC_MONTHLY' },
+  { tier: 'PLUS', billing: 'MONTHLY', priceMonthly: 12.90, priceYearly: 129.90, trial: true, type: 'STRIPE_PLUS_MONTHLY' },
+  { tier: 'PREMIUM', billing: 'MONTHLY', priceMonthly: 25.90, priceYearly: 200.00, trial: true, type: 'STRIPE_PREMIUM_MONTHLY' },
+  { tier: 'BASIC', billing: 'ANNUAL', priceMonthly: 5.90, priceYearly: 59.90, trial: true, type: 'STRIPE_BASIC_ANNUAL' },
+  { tier: 'PLUS', billing: 'ANNUAL', priceMonthly: 12.90, priceYearly: 129.90, trial: true, type: 'STRIPE_PLUS_ANNUAL' },
+  { tier: 'PREMIUM', billing: 'ANNUAL', priceMonthly: 25.90, priceYearly: 200.00, trial: true, type: 'STRIPE_PREMIUM_ANNUAL' },
 ];
+
+const FEATURE_KEY_BY_TIER: Record<PlanTier, 'free' | 'basic' | 'plus' | 'premium'> = {
+  FREE: 'free',
+  BASIC: 'basic',
+  PLUS: 'plus',
+  PREMIUM: 'premium',
+};
+
+function buildPlans(t: TFunction) {
+  return PLAN_DEFINITIONS.map((def) => ({
+    tier: def.tier,
+    billing: def.billing,
+    priceMonthly: formatCurrency(def.priceMonthly),
+    priceYearly: def.priceYearly != null ? formatCurrency(def.priceYearly) : null,
+    features: t(`plans.features.${FEATURE_KEY_BY_TIER[def.tier]}`, { returnObjects: true }) as string[],
+    trial: def.trial,
+    type: def.type,
+  }));
+}
 
 interface PlansViewProps {
   profile?: UserProfile;
 }
 
 const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
+  const { t, i18n } = useTranslation();
+  const usePlayBilling = googlePlayBillingService.isAndroidNative();
   const [loading, setLoading] = useState(false);
   const [checkoutActive, setCheckoutActive] = useState(false);
   const [stripeInstance, setStripeInstance] = useState<any>(null);
@@ -135,33 +76,36 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
 
   const currentPlanDs = profile?.plan?.planDs || 'FREE';
 
+  const plans = useMemo(() => buildPlans(t), [t, i18n.language]);
+
   const groupedPlans = useMemo(() => {
-    const grouped: any = {};
-    PLANS.forEach((plan) => {
-      const baseName = plan.name.replace(' MENSAL', '').replace(' ANUAL', '');
-      if (!grouped[baseName]) {
-        grouped[baseName] = {
-          name: baseName,
+    const grouped: Record<string, { name: PlanTier; monthly: ReturnType<typeof buildPlans>[number] | null; yearly: ReturnType<typeof buildPlans>[number] | null }> = {};
+    plans.forEach((plan) => {
+      if (!grouped[plan.tier]) {
+        grouped[plan.tier] = {
+          name: plan.tier,
           monthly: null,
           yearly: null,
         };
       }
 
-      if (plan.type.includes('MONTHLY')) {
-        grouped[baseName].monthly = plan;
-      } else if (plan.type.includes('ANNUAL')) {
-        grouped[baseName].yearly = plan;
+      if (plan.billing === 'MONTHLY') {
+        grouped[plan.tier].monthly = plan;
+      } else if (plan.billing === 'ANNUAL') {
+        grouped[plan.tier].yearly = plan;
       } else {
-        grouped[baseName].monthly = plan;
+        grouped[plan.tier].monthly = plan;
       }
     });
     return Object.values(grouped);
-  }, []);
+  }, [plans]);
 
-  const handlePlanClick = (planGroup: any) => {
+  const handlePlanClick = (planGroup: typeof groupedPlans[number]) => {
     if (planGroup.name === 'FREE') return;
     
-    const isCurrent = planGroup.monthly?.type === currentPlanDs || planGroup.yearly?.type === currentPlanDs;
+    const isCurrent =
+      planFamily(planGroup.monthly?.type) === planFamily(currentPlanDs) ||
+      planFamily(planGroup.yearly?.type) === planFamily(currentPlanDs);
     if (isCurrent) return;
 
     setSelectedPlanGroup(planGroup);
@@ -172,16 +116,13 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
     const params = new URLSearchParams(window.location.search);
     const sessionId = params.get('session_id');
     if (sessionId) {
-      // Simple confirmation flow: notify user and clean URL
-      alert('Assinatura concluída! Seu plano ficará disponível em instantes.');
+      alert(t('plans.checkoutSuccess'));
       params.delete('session_id');
       const newUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
       window.history.replaceState({}, '', newUrl);
-      // Optionally, trigger a profile refresh in parent by reloading
-      // or integrate with a user context — here we keep it simple
       window.location.reload();
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (checkoutActive && embeddedCheckout) {
@@ -189,7 +130,6 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
         const container = document.getElementById('checkout-container');
         if (container) {
           try {
-            console.log('Mounting checkout to #checkout-container');
             embeddedCheckout.mount('#checkout-container');
           } catch (err) {
             console.error('Mount error:', err);
@@ -206,45 +146,47 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
     setShowChoiceModal(false);
     setLoading(true);
     try {
-      console.log('Starting checkout for plan:', planType);
+      if (usePlayBilling) {
+        await googlePlayBillingService.purchaseSubscription(planType);
+        alert(t('plans.checkoutSuccess'));
+        window.location.reload();
+        return;
+      }
+
       const userEmail = profile?.email || localStorage.getItem('user_email') || '';
-      console.log('Using email for checkout:', userEmail);
       const shouldUseHostedCheckout = Capacitor.isNativePlatform();
-      
+
       const session = await paymentService.createCheckoutSession(planType, userEmail, shouldUseHostedCheckout);
-      console.log('Checkout session created:', session);
-      
+
+      const isTrustedCheckoutUrl = (url: string) =>
+        /^https:\/\/([a-z0-9-]+\.)?stripe\.com\//i.test(url);
+
       if (shouldUseHostedCheckout && session.url) {
-        console.log('Opening hosted checkout in system browser:', session.url);
+        if (!isTrustedCheckoutUrl(session.url)) throw new Error(t('plans.checkoutInvalidUrl'));
         await Browser.open({
           url: session.url,
           presentationStyle: 'fullscreen',
         });
       } else if (session.clientSecret) {
         const stripe = await loadStripe(STRIPE_PUBLIC_KEY);
-        if (!stripe) throw new Error('Falha ao carregar o Stripe');
+        if (!stripe) throw new Error(t('plans.stripeLoadFailed'));
         setStripeInstance(stripe);
-        
-        // Ativa a visualização do checkout para renderizar o container
         setCheckoutActive(true);
 
-        console.log('Initializing embedded checkout with clientSecret');
         const checkout = await stripe.initEmbeddedCheckout({
           clientSecret: session.clientSecret,
         });
-        console.log('Embedded checkout initialized successfully');
 
         setEmbeddedCheckout(checkout);
       } else if (session.url) {
-        console.log('Redirecting to checkout URL:', session.url);
+        if (!isTrustedCheckoutUrl(session.url)) throw new Error(t('plans.checkoutInvalidUrl'));
         window.location.href = session.url;
       } else {
-        throw new Error('Resposta do servidor não contém clientSecret ou URL');
+        throw new Error(t('plans.checkoutNoSession'));
       }
     } catch (error: any) {
       console.error('Checkout error detail:', error);
-      const msg = error.message || 'Erro desconhecido';
-      alert(`Erro ao iniciar checkout: ${msg}. Tente novamente.`);
+      alert(translateApiError(error, t('plans.checkoutError')));
     } finally {
       setLoading(false);
     }
@@ -266,7 +208,7 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
           className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-4"
         >
           <ArrowLeft size={20} />
-          <span>Voltar para planos</span>
+          <span>{t('plans.backToPlans')}</span>
         </button>
         <div id="checkout-container" className="bg-white rounded-3xl overflow-hidden min-h-[600px]"></div>
       </div>
@@ -276,14 +218,20 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
   return (
     <div className="space-y-8 animate-fade-in pb-20">
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-extrabold text-white mb-2">Planos FinSavior</h1>
-        <p className="text-slate-400">Escolha o plano ideal para sua jornada financeira.</p>
+        <h1 className="text-3xl font-extrabold text-white mb-2">{t('plans.title')}</h1>
+        <p className="text-slate-400">{t('plans.subtitle')}</p>
+        {usePlayBilling && (
+          <p className="text-xs text-emerald-400 mt-2">{t('plans.playBilling')}</p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        {groupedPlans.map((group: any) => {
-          const isCurrent = group.monthly?.type === currentPlanDs || group.yearly?.type === currentPlanDs;
+        {groupedPlans.map((group) => {
+          const isCurrent =
+            planFamily(group.monthly?.type) === planFamily(currentPlanDs) ||
+            planFamily(group.yearly?.type) === planFamily(currentPlanDs);
           const isPro = group.name !== 'FREE';
+          const displayPlan = group.monthly || group.yearly;
           
           return (
             <div 
@@ -294,27 +242,27 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
             >
               {group.name === 'PLUS' && !isCurrent && (
                 <div className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-widest">
-                  Popular
+                  {t('plans.popular')}
                 </div>
               )}
 
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h2 className="text-xl font-bold text-white">{group.name}</h2>
+                  <h2 className="text-xl font-bold text-white">{t(`plans.planNames.${group.name}`)}</h2>
                   {group.monthly?.trial && (
                     <div className="inline-flex items-center gap-1 bg-emerald-500/10 text-emerald-500 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md mb-1">
-                      7 Dias Grátis
+                      {t('plans.trial')}
                     </div>
                   )}
                   <p className="text-2xl font-bold text-slate-200">
                     {group.monthly?.priceMonthly || group.yearly?.priceYearly}
                     <span className="text-sm font-normal text-slate-500">
-                      {group.monthly ? '/mês' : '/ano'}
+                      {group.monthly ? t('plans.perMonth') : t('plans.perYear')}
                     </span>
                   </p>
                   {group.yearly && (
                     <p className="text-xs text-emerald-400 font-medium mt-1">
-                      ou {group.yearly.priceYearly}/ano (Economize!)
+                      {t('plans.orYearly', { price: group.yearly.priceYearly })}
                     </p>
                   )}
                 </div>
@@ -326,7 +274,7 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
               </div>
 
               <ul className="space-y-2 mb-6 text-slate-300 text-sm">
-                {(group.monthly?.features || group.yearly?.features).map((feature: string, idx: number) => (
+                {(displayPlan?.features || []).map((feature: string, idx: number) => (
                   <li key={idx} className="flex items-start gap-2">
                     <Check size={14} className="text-emerald-500 mt-0.5 shrink-0" />
                     <span>{feature}</span>
@@ -348,11 +296,11 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
                 {loading && selectedPlanGroup?.name === group.name ? (
                   <Loader2 className="animate-spin" size={18} />
                 ) : isCurrent ? (
-                  'PLANO ATUAL'
+                  t('plans.current')
                 ) : isPro ? (
-                  'MUDAR PARA ESTE PLANO'
+                  t('plans.upgrade')
                 ) : (
-                  'PLANO BÁSICO'
+                  t('plans.free')
                 )}
               </button>
             </div>
@@ -361,41 +309,42 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
       </div>
 
       <p className="text-center text-xs text-slate-500 mt-8">
-        * O período de teste gratuito é concedido apenas para a primeira assinatura.
+        {t('plans.trialNote')}
       </p>
 
-      {/* Choice Modal */}
-      {showChoiceModal && (
+      {showChoiceModal && selectedPlanGroup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
           <div className="glass-card w-full max-w-sm rounded-3xl border border-white/10 p-8 animate-scale-in">
-            <h3 className="text-xl font-bold text-white mb-2 text-center">Escolha o ciclo</h3>
-            <p className="text-slate-400 text-sm text-center mb-8">Selecione como deseja ser cobrado pelo plano {selectedPlanGroup?.name}.</p>
+            <h3 className="text-xl font-bold text-white mb-2 text-center">{t('plans.chooseCycle')}</h3>
+            <p className="text-slate-400 text-sm text-center mb-8">
+              {t('plans.chooseCycleDesc', { plan: t(`plans.planNames.${selectedPlanGroup.name}`) })}
+            </p>
             
             <div className="space-y-4">
               <button 
-                onClick={() => startCheckout(selectedPlanGroup.monthly.type)}
+                onClick={() => startCheckout(selectedPlanGroup.monthly!.type)}
                 className="w-full p-4 rounded-2xl border border-slate-700 hover:border-primary hover:bg-primary/5 transition-all text-left group"
               >
                 <div className="flex justify-between items-center">
-                  <span className="font-bold text-white group-hover:text-primary transition-colors">Mensal</span>
-                  <span className="text-slate-200 font-bold">{selectedPlanGroup.monthly.priceMonthly}</span>
+                  <span className="font-bold text-white group-hover:text-primary transition-colors">{t('plans.monthly')}</span>
+                  <span className="text-slate-200 font-bold">{selectedPlanGroup.monthly!.priceMonthly}</span>
                 </div>
-                <p className="text-xs text-slate-500 mt-1">Cobre mensalmente, cancele quando quiser.</p>
+                <p className="text-xs text-slate-500 mt-1">{t('plans.monthlyDesc')}</p>
               </button>
 
               {selectedPlanGroup.yearly && (
                 <button 
-                  onClick={() => startCheckout(selectedPlanGroup.yearly.type)}
+                  onClick={() => startCheckout(selectedPlanGroup.yearly!.type)}
                   className="w-full p-4 rounded-2xl border border-primary bg-primary/5 hover:bg-primary/10 transition-all text-left relative"
                 >
                   <div className="absolute -top-2 -right-2 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter">
-                    Melhor Valor
+                    {t('plans.bestValue')}
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="font-bold text-primary">Anual</span>
+                    <span className="font-bold text-primary">{t('plans.annual')}</span>
                     <span className="text-white font-bold">{selectedPlanGroup.yearly.priceYearly}</span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1">Pagamento único anual. Economia garantida.</p>
+                  <p className="text-xs text-slate-400 mt-1">{t('plans.annualDesc')}</p>
                 </button>
               )}
 
@@ -403,7 +352,7 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
                 onClick={() => setShowChoiceModal(false)}
                 className="w-full py-3 text-slate-500 text-sm font-medium hover:text-white transition-colors mt-4"
               >
-                Cancelar
+                {t('common.cancel')}
               </button>
             </div>
           </div>

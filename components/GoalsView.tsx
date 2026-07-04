@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Goal, UserProfile } from '../types';
 import { Plus, Target, Calendar, TrendingUp, Trash2, Edit2, X, ChevronRight, Sparkles, AlertCircle, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { goalService } from '../services/goalService';
 import { coinService } from '../services/coinService';
 import { useToast } from '../contexts/ToastContext';
+import { formatCurrency, formatShortDate } from '../i18n/localeFormat';
+import { translateApiError } from '../utils/apiError';
 
 interface GoalsViewProps {
   profile: UserProfile | null;
@@ -13,6 +16,7 @@ interface GoalsViewProps {
 }
 
 const GoalsView: React.FC<GoalsViewProps> = ({ profile, onRefreshCoins, onNavigateToPlans }) => {
+  const { t } = useTranslation();
   const { showToast } = useToast();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -73,7 +77,7 @@ const GoalsView: React.FC<GoalsViewProps> = ({ profile, onRefreshCoins, onNaviga
       });
     } catch (error) {
       console.error('Error fetching goals:', error);
-      showToast('Não foi possível carregar suas metas.', 'error');
+      showToast(translateApiError(error, t('goals.loadError')), 'error');
     } finally {
       setIsLoading(false);
     }
@@ -91,9 +95,9 @@ const GoalsView: React.FC<GoalsViewProps> = ({ profile, onRefreshCoins, onNaviga
       setGoals([...goals, newGoal]);
       setIsAddModalOpen(false);
       resetForm();
-      showToast('Meta adicionada com sucesso!', 'success');
+      showToast(t('goals.addSuccess'), 'success');
     } catch (error) {
-      showToast('Erro ao adicionar meta', 'error');
+      showToast(translateApiError(error, t('goals.addError')), 'error');
     }
   };
 
@@ -111,9 +115,9 @@ const GoalsView: React.FC<GoalsViewProps> = ({ profile, onRefreshCoins, onNaviga
       setGoals(goals.map(g => g.id === updatedGoal.id ? updatedGoal : g));
       setIsEditModalOpen(false);
       resetForm();
-      showToast('Meta atualizada!', 'success');
+      showToast(t('goals.updateSuccess'), 'success');
     } catch (error) {
-      showToast('Erro ao atualizar meta', 'error');
+      showToast(translateApiError(error, t('goals.updateError')), 'error');
     }
   };
 
@@ -121,9 +125,9 @@ const GoalsView: React.FC<GoalsViewProps> = ({ profile, onRefreshCoins, onNaviga
     try {
       await goalService.deleteGoal(id);
       setGoals(goals.filter(g => g.id !== id));
-      showToast('Meta excluída', 'success');
+      showToast(t('goals.deleteSuccess'), 'success');
     } catch (error) {
-      showToast('Erro ao excluir meta', 'error');
+      showToast(translateApiError(error, t('goals.deleteError')), 'error');
     }
   };
 
@@ -137,18 +141,18 @@ const GoalsView: React.FC<GoalsViewProps> = ({ profile, onRefreshCoins, onNaviga
       setGoalAdvice(prev => ({ ...prev, [goalId]: advice }));
       if (useCoins) {
         refreshCoins();
-        showToast('Conselho gerado usando FSCoins!', 'success');
+        showToast(t('goals.adviceSuccess'), 'success');
       }
     } catch (error: any) {
       if (error.status === 403 || error.status === 400) {
-        const msg = error.response?.data?.msg || error.message || 'Limite mensal de conselhos atingido.';
+        const msg = error.response?.data?.msg || error.message || t('goals.adviceError');
         setLimitErrorMessage(msg);
         setPendingGoalId(goalId);
         setShowLimitAlert(true);
       } else if (error.status === 412) {
-        showToast('Saldo insuficiente de FSCoins.', 'error');
+        showToast(t('voice.insufficientCoins'), 'error');
       } else {
-        setGoalAdvice(prev => ({ ...prev, [goalId]: 'Não foi possível gerar dicas agora. Tente novamente mais tarde.' }));
+        setGoalAdvice(prev => ({ ...prev, [goalId]: t('goals.adviceError') }));
       }
     } finally {
       setIsAdviceLoading(null);
@@ -191,8 +195,8 @@ const GoalsView: React.FC<GoalsViewProps> = ({ profile, onRefreshCoins, onNaviga
     <div className="space-y-6 animate-fade-in pb-20">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-white">Minhas Metas</h2>
-          <p className="text-slate-400 text-sm">Planeje seu futuro e realize seus sonhos</p>
+          <h2 className="text-2xl font-bold text-white">{t('goals.title')}</h2>
+          <p className="text-slate-400 text-sm">{t('goals.subtitle')}</p>
         </div>
         <button 
           onClick={() => setIsAddModalOpen(true)}
@@ -205,7 +209,7 @@ const GoalsView: React.FC<GoalsViewProps> = ({ profile, onRefreshCoins, onNaviga
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Carregando metas...</p>
+          <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">{t('goals.loading')}</p>
         </div>
       ) : goals.length > 0 ? (
         <div className="grid gap-4">
@@ -218,7 +222,7 @@ const GoalsView: React.FC<GoalsViewProps> = ({ profile, onRefreshCoins, onNaviga
               <div key={goal.id} className="glass-card rounded-3xl p-6 relative overflow-hidden group">
                 {isCompleted && (
                   <div className="absolute top-0 right-0 bg-emerald-500 text-white px-4 py-1 rounded-bl-2xl text-[10px] font-bold uppercase tracking-widest z-10">
-                    Concluída
+                    {t('goals.completed')}
                   </div>
                 )}
                 
@@ -231,7 +235,7 @@ const GoalsView: React.FC<GoalsViewProps> = ({ profile, onRefreshCoins, onNaviga
                       <h3 className="font-bold text-white text-lg">{goal.name}</h3>
                       <div className="flex items-center gap-2 text-slate-400 text-xs">
                         <Calendar size={12} />
-                        <span>Até {new Date(goal.deadline).toLocaleDateString('pt-BR')}</span>
+                        <span>{t('goals.until')} {formatShortDate(goal.deadline)}</span>
                       </div>
                     </div>
                   </div>
@@ -261,8 +265,8 @@ const GoalsView: React.FC<GoalsViewProps> = ({ profile, onRefreshCoins, onNaviga
                 <div className="space-y-4">
                   <div className="flex justify-between items-end">
                     <div>
-                      <p className="text-slate-400 text-xs uppercase font-bold tracking-wider mb-1">Progresso</p>
-                      <p className="text-white font-bold">R$ {goal.currentAmount.toLocaleString('pt-BR')} <span className="text-slate-500 font-normal text-sm">/ R$ {goal.targetAmount.toLocaleString('pt-BR')}</span></p>
+                      <p className="text-slate-400 text-xs uppercase font-bold tracking-wider mb-1">{t('goals.progress')}</p>
+                      <p className="text-white font-bold">{formatCurrency(goal.currentAmount)} <span className="text-slate-500 font-normal text-sm">/ {formatCurrency(goal.targetAmount)}</span></p>
                     </div>
                     <span className={`text-sm font-bold ${isCompleted ? 'text-emerald-400' : 'text-primary'}`}>{progress.toFixed(0)}%</span>
                   </div>
@@ -281,8 +285,8 @@ const GoalsView: React.FC<GoalsViewProps> = ({ profile, onRefreshCoins, onNaviga
                           <TrendingUp size={16} />
                         </div>
                         <div>
-                          <p className="text-[10px] text-slate-400 uppercase font-bold">Poupar por mês</p>
-                          <p className="text-white font-bold text-sm">R$ {monthly.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">{t('goals.savePerMonth')}</p>
+                          <p className="text-white font-bold text-sm">{formatCurrency(monthly)}</p>
                         </div>
                       </div>
                       <button 
@@ -295,7 +299,7 @@ const GoalsView: React.FC<GoalsViewProps> = ({ profile, onRefreshCoins, onNaviga
                         ) : (
                           <Sparkles size={14} />
                         )}
-                        {goalAdvice[goal.id] ? 'Atualizar Dicas' : 'Dicas da IA'}
+                        {goalAdvice[goal.id] ? t('goals.updateTips') : t('goals.aiTips')}
                       </button>
                     </div>
                   )}
@@ -322,7 +326,7 @@ const GoalsView: React.FC<GoalsViewProps> = ({ profile, onRefreshCoins, onNaviga
                             }}
                             className="mt-2 flex items-center gap-1 text-[10px] font-bold text-indigo-400 hover:text-white transition-colors"
                           >
-                            Ver conselho completo <ChevronRight size={12} />
+                            {t('goals.viewFullAdvice')} <ChevronRight size={12} />
                           </button>
                         </div>
                       </div>
@@ -338,15 +342,15 @@ const GoalsView: React.FC<GoalsViewProps> = ({ profile, onRefreshCoins, onNaviga
           <div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center text-slate-600 mb-6">
             <Target size={40} />
           </div>
-          <h3 className="text-xl font-bold text-white mb-2">Sem metas no momento</h3>
+          <h3 className="text-xl font-bold text-white mb-2">{t('goals.noGoals')}</h3>
           <p className="text-slate-400 text-sm max-w-xs">
-            Defina objetivos financeiros para te ajudar a economizar com propósito.
+            {t('goals.noGoalsDesc')}
           </p>
           <button 
             onClick={() => setIsAddModalOpen(true)}
             className="mt-8 px-8 py-3 bg-primary text-white font-bold rounded-2xl hover:scale-105 transition-all"
           >
-            Criar Minha Primeira Meta
+            {t('goals.createFirst')}
           </button>
         </div>
       )}
@@ -356,15 +360,15 @@ const GoalsView: React.FC<GoalsViewProps> = ({ profile, onRefreshCoins, onNaviga
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
           <div className="bg-surface w-full max-w-sm rounded-3xl border border-slate-700 shadow-2xl p-6 animate-scale-in">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-white">{isEditModalOpen ? 'Editar Meta' : 'Nova Meta'}</h3>
+              <h3 className="text-xl font-bold text-white">{isEditModalOpen ? t('goals.editGoal') : t('goals.newGoal')}</h3>
               <button onClick={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); resetForm(); }} className="text-slate-400 hover:text-white"><X /></button>
             </div>
             <form onSubmit={isEditModalOpen ? handleUpdateGoal : handleAddGoal} className="space-y-4">
               <div>
-                <label className="text-xs text-slate-400 uppercase font-bold">Nome do Objetivo</label>
+                <label className="text-xs text-slate-400 uppercase font-bold">{t('goals.goalName')}</label>
                 <input 
                   type="text" 
-                  placeholder="Ex: Viagem, Carro, Reserva..." 
+                  placeholder={t('goals.goalPlaceholder')} 
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white mt-1 focus:border-primary outline-none"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -373,7 +377,7 @@ const GoalsView: React.FC<GoalsViewProps> = ({ profile, onRefreshCoins, onNaviga
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-slate-400 uppercase font-bold">Valor Alvo</label>
+                  <label className="text-xs text-slate-400 uppercase font-bold">{t('goals.targetAmount')}</label>
                   <input 
                     type="number" 
                     placeholder="0.00" 
@@ -384,7 +388,7 @@ const GoalsView: React.FC<GoalsViewProps> = ({ profile, onRefreshCoins, onNaviga
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400 uppercase font-bold">Já tenho</label>
+                  <label className="text-xs text-slate-400 uppercase font-bold">{t('goals.alreadyHave')}</label>
                   <input 
                     type="number" 
                     placeholder="0.00" 
@@ -395,7 +399,7 @@ const GoalsView: React.FC<GoalsViewProps> = ({ profile, onRefreshCoins, onNaviga
                 </div>
               </div>
               <div>
-                <label className="text-xs text-slate-400 uppercase font-bold">Data Limite</label>
+                <label className="text-xs text-slate-400 uppercase font-bold">{t('goals.deadline')}</label>
                 <input 
                   type="date" 
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white mt-1 focus:border-primary outline-none"
@@ -405,7 +409,7 @@ const GoalsView: React.FC<GoalsViewProps> = ({ profile, onRefreshCoins, onNaviga
                 />
               </div>
               <button type="submit" className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-2xl mt-4 transition-all shadow-lg shadow-primary/20">
-                {isEditModalOpen ? 'Salvar Alterações' : 'Criar Meta'}
+                {isEditModalOpen ? t('goals.saveChanges') : t('goals.createGoal')}
               </button>
             </form>
           </div>
@@ -418,7 +422,7 @@ const GoalsView: React.FC<GoalsViewProps> = ({ profile, onRefreshCoins, onNaviga
             <div className="flex justify-between items-center p-6 border-b border-slate-700">
               <div className="flex items-center gap-2">
                 <Sparkles className="text-indigo-400" size={20} />
-                <h3 className="text-xl font-bold text-white">Conselho da IA</h3>
+                <h3 className="text-xl font-bold text-white">{t('goals.aiAdvice')}</h3>
               </div>
               <button onClick={() => setIsAdviceModalOpen(false)} className="text-slate-400 hover:text-white"><X /></button>
             </div>
@@ -432,7 +436,7 @@ const GoalsView: React.FC<GoalsViewProps> = ({ profile, onRefreshCoins, onNaviga
                 onClick={() => setIsAdviceModalOpen(false)}
                 className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-2xl transition-all"
               >
-                Fechar
+                {t('common.close')}
               </button>
             </div>
           </div>
@@ -443,8 +447,8 @@ const GoalsView: React.FC<GoalsViewProps> = ({ profile, onRefreshCoins, onNaviga
       {showLimitAlert && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
           <div className="glass-card w-full max-w-sm rounded-3xl border border-white/10 p-8 animate-scale-in">
-            <h3 className="text-xl font-bold text-white mb-2">Limite Atingido ⭐</h3>
-            <p className="text-slate-400 text-sm mb-6">{limitErrorMessage} Deseja usar {adviceCost} FSCoins para gerar este conselho? (Saldo: {userFsCoins})</p>
+            <h3 className="text-xl font-bold text-white mb-2">{t('goals.limitTitle')}</h3>
+            <p className="text-slate-400 text-sm mb-6">{t('goals.useCoinsPrompt', { msg: limitErrorMessage, cost: adviceCost, balance: userFsCoins })}</p>
             
             <div className="space-y-3">
               <button 
@@ -452,7 +456,7 @@ const GoalsView: React.FC<GoalsViewProps> = ({ profile, onRefreshCoins, onNaviga
                 disabled={userFsCoins < adviceCost}
                 className="w-full py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50"
               >
-                Usar {adviceCost} Moedas
+                {t('goals.useCoins', { count: adviceCost })}
               </button>
               <button 
                 onClick={() => {
@@ -461,13 +465,13 @@ const GoalsView: React.FC<GoalsViewProps> = ({ profile, onRefreshCoins, onNaviga
                 }}
                 className="w-full py-3 bg-white text-slate-900 font-bold rounded-xl hover:bg-slate-100 transition-all"
               >
-                Ver Planos
+                {t('goals.viewPlans')}
               </button>
               <button 
                 onClick={() => setShowLimitAlert(false)}
                 className="w-full py-3 text-slate-500 text-sm font-medium hover:text-white transition-colors"
               >
-                Cancelar
+                {t('common.cancel')}
               </button>
             </div>
           </div>

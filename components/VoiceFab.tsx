@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { VoiceRecorder } from 'capacitor-voice-recorder';
 import { Mic, Square, X, Loader2, Smartphone } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { aiTranscriptionService, AiBillExtractionDTO } from '../services/aiTranscriptionService';
 import { coinService } from '../services/coinService';
 import { useToast } from '../contexts/ToastContext';
+import { translateApiError } from '../utils/apiError';
 
 interface VoiceFabProps {
   mode: 'BILL' | 'CHAT';
@@ -23,6 +25,7 @@ const VoiceFab: React.FC<VoiceFabProps> = ({
   onNavigateToPlans,
   onRefreshCoins
 }) => {
+  const { t } = useTranslation();
   const [isRecording, setIsRecording] = useState(false);
   const [loading, setLoading] = useState(false);
   const [userFsCoins, setUserFsCoins] = useState(0);
@@ -68,7 +71,7 @@ const VoiceFab: React.FC<VoiceFabProps> = ({
             const status = await navigator.permissions.query({ name: 'microphone' as any });
             console.log('Microphone permission status:', status.state);
             if (status.state === 'denied') {
-              showToast('Permissão de microfone negada no navegador. Ative nas configurações.', 'error');
+              showToast(t('voice.micDenied'), 'error');
               return;
             }
           }
@@ -76,7 +79,7 @@ const VoiceFab: React.FC<VoiceFabProps> = ({
           stream.getTracks().forEach(track => track.stop()); // Just to trigger prompt
         } catch (e) {
           console.error('Web permission request failed', e);
-          showToast('Precisamos de permissão do microfone no seu navegador!', 'error');
+          showToast(t('voice.micRequiredBrowser'), 'error');
           return;
         }
       }
@@ -89,7 +92,7 @@ const VoiceFab: React.FC<VoiceFabProps> = ({
         const permission = await VoiceRecorder.requestAudioRecordingPermission();
         if (!permission.value) {
           console.warn('Permissão negada pelo usuário ou sistema.');
-          showToast('Precisamos de permissão para ouvir suas contas!', 'error');
+          showToast(t('voice.micRequired'), 'error');
           return;
         }
         // Re-check after request
@@ -106,14 +109,15 @@ const VoiceFab: React.FC<VoiceFabProps> = ({
           setIsRecording(true);
           console.log('Gravação iniciada com sucesso.');
         } else {
-          throw new Error('Falha ao iniciar gravação (retorno falso)');
+          showToast(t('voice.startRecordingError'), 'error');
+          return;
         }
       } else {
-        showToast('Não foi possível obter permissão de áudio.', 'error');
+        showToast(t('voice.audioPermissionFailed'), 'error');
       }
     } catch (error) {
       console.error('Erro detalhado ao iniciar gravação:', error);
-      showToast('Erro ao iniciar gravação. Verifique as permissões do app.', 'error');
+      showToast(t('voice.startRecordingError'), 'error');
     }
   };
 
@@ -121,7 +125,7 @@ const VoiceFab: React.FC<VoiceFabProps> = ({
     try {
       setIsRecording(false);
       await VoiceRecorder.stopRecording();
-      showToast('Gravação cancelada', 'info');
+      showToast(t('voice.recordingCancelled'), 'info');
     } catch (error) {
       console.error('Erro ao cancelar gravação', error);
     }
@@ -157,7 +161,7 @@ const VoiceFab: React.FC<VoiceFabProps> = ({
       console.error('Erro ao finalizar gravação:', error);
       setIsRecording(false);
       setLoading(false);
-      showToast('Erro ao finalizar gravação', 'error');
+      showToast(t('voice.finishRecordingError'), 'error');
     }
   };
 
@@ -200,13 +204,13 @@ const VoiceFab: React.FC<VoiceFabProps> = ({
       console.error(err);
       
       if (err.status === 403 || err.status === 400) {
-        const msg = err.response?.data?.message || 'Limite de áudio atingido no plano Free.';
+        const msg = err.response?.data?.message || t('voice.audioLimit');
         setLimitErrorMessage(msg);
         setShowLimitAlert(true);
       } else if (err.status === 412) {
-        showToast('Saldo insuficiente de moedas.', 'error');
+        showToast(t('voice.insufficientCoins'), 'error');
       } else {
-        showToast('Não consegui processar o áudio. Tente novamente.', 'error');
+        showToast(translateApiError(err, t('voice.processAudioError')), 'error');
       }
     }
   };
@@ -245,8 +249,8 @@ const VoiceFab: React.FC<VoiceFabProps> = ({
         {showLimitAlert && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
             <div className="glass-card w-full max-w-sm rounded-3xl border border-white/10 p-8 animate-scale-in">
-              <h3 className="text-xl font-bold text-white mb-2">Limite Atingido ⭐</h3>
-              <p className="text-slate-400 text-sm mb-6">{limitErrorMessage} Deseja usar {audioCost} FSCoins para transcrever este áudio? (Saldo: {userFsCoins})</p>
+              <h3 className="text-xl font-bold text-white mb-2">{t('voice.limitTitle')}</h3>
+              <p className="text-slate-400 text-sm mb-6">{t('voice.useCoinsPrompt', { msg: limitErrorMessage, cost: audioCost, balance: userFsCoins })}</p>
               
               <div className="space-y-3">
                 <button 
@@ -254,7 +258,7 @@ const VoiceFab: React.FC<VoiceFabProps> = ({
                   disabled={userFsCoins < audioCost}
                   className="w-full py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50"
                 >
-                  Usar {audioCost} Moedas
+                  {t('voice.useCoins', { count: audioCost })}
                 </button>
                 <button 
                   onClick={() => {
@@ -263,13 +267,13 @@ const VoiceFab: React.FC<VoiceFabProps> = ({
                   }}
                   className="w-full py-3 bg-white text-slate-900 font-bold rounded-xl hover:bg-slate-100 transition-all"
                 >
-                  Ver Planos
+                  {t('nav.plans')}
                 </button>
                 <button 
                   onClick={() => setShowLimitAlert(false)}
                   className="w-full py-3 text-slate-500 text-sm font-medium hover:text-white transition-colors"
                 >
-                  Cancelar
+                  {t('common.cancel')}
                 </button>
               </div>
             </div>
@@ -309,8 +313,8 @@ const VoiceFab: React.FC<VoiceFabProps> = ({
       {showLimitAlert && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
           <div className="glass-card w-full max-w-sm rounded-3xl border border-white/10 p-8 animate-scale-in">
-            <h3 className="text-xl font-bold text-white mb-2">Limite Atingido ⭐</h3>
-            <p className="text-slate-400 text-sm mb-6">{limitErrorMessage} Deseja usar {audioCost} FSCoins para transcrever este áudio? (Saldo: {userFsCoins})</p>
+            <h3 className="text-xl font-bold text-white mb-2">{t('voice.limitTitle')}</h3>
+            <p className="text-slate-400 text-sm mb-6">{t('voice.useCoinsPrompt', { msg: limitErrorMessage, cost: audioCost, balance: userFsCoins })}</p>
             
             <div className="space-y-3">
               <button 
@@ -318,7 +322,7 @@ const VoiceFab: React.FC<VoiceFabProps> = ({
                 disabled={userFsCoins < audioCost}
                 className="w-full py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50"
               >
-                Usar {audioCost} Moedas
+                {t('voice.useCoins', { count: audioCost })}
               </button>
               <button 
                 onClick={() => {
@@ -327,13 +331,13 @@ const VoiceFab: React.FC<VoiceFabProps> = ({
                 }}
                 className="w-full py-3 bg-white text-slate-900 font-bold rounded-xl hover:bg-slate-100 transition-all"
               >
-                Ver Planos
+                {t('nav.plans')}
               </button>
               <button 
                 onClick={() => setShowLimitAlert(false)}
                 className="w-full py-3 text-slate-500 text-sm font-medium hover:text-white transition-colors"
               >
-                Cancelar
+                {t('common.cancel')}
               </button>
             </div>
           </div>
