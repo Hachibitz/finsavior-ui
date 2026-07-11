@@ -19,9 +19,11 @@ export function formatMonthShort(date: Date): string {
   return date.toLocaleString(intlLocale(), { month: 'short' }).replace('.', '');
 }
 
-export function formatCurrency(value: number): string {
+export function formatCurrency(value: number, currencyCode?: string): string {
   const locale = intlLocale();
-  const currency = locale.startsWith('pt') ? 'BRL' : locale.startsWith('en') ? 'USD' : 'BRL';
+  const currency =
+    currencyCode ||
+    (locale.startsWith('pt') ? 'BRL' : locale.startsWith('en') ? 'USD' : 'BRL');
   return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(value);
 }
 

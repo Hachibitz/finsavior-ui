@@ -291,6 +291,18 @@ const Layout: React.FC<LayoutProps> = ({
                 <span className="font-medium">{t('nav.account')}</span>
               </button>
 
+              {profile?.isAdmin && (
+                <button 
+                  onClick={() => { setActiveTab('admin-prices'); setIsMenuOpen(false); }}
+                  className="flex items-center gap-4 text-slate-300 hover:text-white w-full p-4 rounded-2xl hover:bg-white/5 transition-all group"
+                >
+                  <div className="p-2 rounded-lg bg-rose-500/10 text-rose-400 group-hover:bg-rose-500 group-hover:text-white transition-colors">
+                    <ShieldCheck size={20} />
+                  </div>
+                  <span className="font-medium">Admin · Preços</span>
+                </button>
+              )}
+
               <div className="h-px bg-white/10 my-6" />
 
               <div className="grid grid-cols-2 gap-3">

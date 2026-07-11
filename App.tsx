@@ -10,6 +10,7 @@ import AiAdvisorView from './components/AiAdvisorView';
 import PlansView from './components/PlansView';
 import CategoriesView from './components/CategoriesView';
 import AccountView from './components/AccountView';
+import AdminPlanPricesView from './components/AdminPlanPricesView';
 import SupportView from './components/SupportView';
 import WhatsappModal from './components/WhatsappModal';
 import CoinStoreModal from './components/CoinStoreModal';
@@ -812,6 +813,26 @@ const App: React.FC = () => {
             onRefreshProfile={fetchProfile}
             onNavigateToPlans={() => setActiveTab('plans')}
           />
+        );
+      case 'admin-prices':
+        if (!profile?.isAdmin) {
+          return (
+            <SummaryView 
+              summary={summary} 
+              bills={filteredBills} 
+              assets={filteredAssets} 
+              cardTransactions={filteredCardTransactions}
+              categories={categories}
+              selectedMonth={selectedMonth}
+              aiTip={aiInsights[selectedMonth] === INSUFFICIENT_DATA_SENTINEL ? t('dashboard.addDataForInsight') : aiInsights[selectedMonth]}
+              loadingTip={loadingInsight}
+              onRefreshInsight={() => fetchInsight(selectedMonth, true)}
+              profile={profile}
+            />
+          );
+        }
+        return (
+          <AdminPlanPricesView onBack={() => setActiveTab('account')} />
         );
       case 'support':
         return (

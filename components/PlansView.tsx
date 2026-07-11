@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { paymentService } from '../services/paymentService';
 import { googlePlayBillingService } from '../services/googlePlayBillingService';
+import { planPriceService, preferredCurrencyFromLocale, PlanDisplayPrice } from '../services/planPriceService';
 import { translateApiError } from '../utils/apiError';
 import { formatCurrency } from '../i18n/localeFormat';
 import { useToast } from '../contexts/ToastContext';
@@ -26,21 +27,28 @@ type PlanTier = 'FREE' | 'BASIC' | 'PLUS' | 'PREMIUM';
 interface PlanDefinition {
   tier: PlanTier;
   billing: 'MONTHLY' | 'ANNUAL' | null;
-  priceMonthly: number;
-  priceYearly: number | null;
-  trial?: boolean;
   type: string;
+  trial?: boolean;
 }
 
+/** Structural plan catalog — amounts come from GET /plans/display-prices. */
 const PLAN_DEFINITIONS: PlanDefinition[] = [
-  { tier: 'FREE', billing: null, priceMonthly: 0, priceYearly: null, type: 'FREE' },
-  { tier: 'BASIC', billing: 'MONTHLY', priceMonthly: 5.90, priceYearly: 59.90, trial: true, type: 'STRIPE_BASIC_MONTHLY' },
-  { tier: 'PLUS', billing: 'MONTHLY', priceMonthly: 12.90, priceYearly: 129.90, trial: true, type: 'STRIPE_PLUS_MONTHLY' },
-  { tier: 'PREMIUM', billing: 'MONTHLY', priceMonthly: 25.90, priceYearly: 200.00, trial: true, type: 'STRIPE_PREMIUM_MONTHLY' },
-  { tier: 'BASIC', billing: 'ANNUAL', priceMonthly: 5.90, priceYearly: 59.90, trial: true, type: 'STRIPE_BASIC_ANNUAL' },
-  { tier: 'PLUS', billing: 'ANNUAL', priceMonthly: 12.90, priceYearly: 129.90, trial: true, type: 'STRIPE_PLUS_ANNUAL' },
-  { tier: 'PREMIUM', billing: 'ANNUAL', priceMonthly: 25.90, priceYearly: 200.00, trial: true, type: 'STRIPE_PREMIUM_ANNUAL' },
+  { tier: 'FREE', billing: null, type: 'FREE' },
+  { tier: 'BASIC', billing: 'MONTHLY', trial: true, type: 'STRIPE_BASIC_MONTHLY' },
+  { tier: 'PLUS', billing: 'MONTHLY', trial: true, type: 'STRIPE_PLUS_MONTHLY' },
+  { tier: 'PREMIUM', billing: 'MONTHLY', trial: true, type: 'STRIPE_PREMIUM_MONTHLY' },
+  { tier: 'BASIC', billing: 'ANNUAL', trial: true, type: 'STRIPE_BASIC_ANNUAL' },
+  { tier: 'PLUS', billing: 'ANNUAL', trial: true, type: 'STRIPE_PLUS_ANNUAL' },
+  { tier: 'PREMIUM', billing: 'ANNUAL', trial: true, type: 'STRIPE_PREMIUM_ANNUAL' },
 ];
+
+/** Fallback BRL amounts if the API is unreachable. */
+const FALLBACK_AMOUNTS: Record<string, { monthly: number; annual: number }> = {
+  FREE: { monthly: 0, annual: 0 },
+  BASIC: { monthly: 7.9, annual: 79 },
+  PLUS: { monthly: 19.9, annual: 199.9 },
+  PREMIUM: { monthly: 39.9, annual: 399 },
+};
 
 const FEATURE_KEY_BY_TIER: Record<PlanTier, 'free' | 'basic' | 'plus' | 'premium'> = {
   FREE: 'free',
@@ -49,16 +57,34 @@ const FEATURE_KEY_BY_TIER: Record<PlanTier, 'free' | 'basic' | 'plus' | 'premium
   PREMIUM: 'premium',
 };
 
-function buildPlans(t: TFunction) {
-  return PLAN_DEFINITIONS.map((def) => ({
-    tier: def.tier,
-    billing: def.billing,
-    priceMonthly: formatCurrency(def.priceMonthly),
-    priceYearly: def.priceYearly != null ? formatCurrency(def.priceYearly) : null,
-    features: t(`plans.features.${FEATURE_KEY_BY_TIER[def.tier]}`, { returnObjects: true }) as string[],
-    trial: def.trial,
-    type: def.type,
-  }));
+function resolveAmount(
+  tier: PlanTier,
+  billing: 'MONTHLY' | 'ANNUAL' | null,
+  prices: PlanDisplayPrice[]
+): number {
+  if (tier === 'FREE' || !billing) return 0;
+  const match = prices.find(
+    (p) => p.planTier === tier && p.billingCycle === billing
+  );
+  if (match) return Number(match.amount);
+  const fallback = FALLBACK_AMOUNTS[tier];
+  return billing === 'ANNUAL' ? fallback.annual : fallback.monthly;
+}
+
+function buildPlans(t: TFunction, prices: PlanDisplayPrice[], currency: string) {
+  return PLAN_DEFINITIONS.map((def) => {
+    const monthlyAmount = resolveAmount(def.tier, 'MONTHLY', prices);
+    const yearlyAmount = resolveAmount(def.tier, 'ANNUAL', prices);
+    return {
+      tier: def.tier,
+      billing: def.billing,
+      priceMonthly: formatCurrency(monthlyAmount, currency),
+      priceYearly: def.tier === 'FREE' ? null : formatCurrency(yearlyAmount, currency),
+      features: t(`plans.features.${FEATURE_KEY_BY_TIER[def.tier]}`, { returnObjects: true }) as string[],
+      trial: def.trial,
+      type: def.type,
+    };
+  });
 }
 
 interface PlansViewProps {
@@ -77,6 +103,9 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
   const [showSwitchProviderModal, setShowSwitchProviderModal] = useState(false);
   const [pendingPlanType, setPendingPlanType] = useState<string | null>(null);
   const [playBillingAvailable, setPlayBillingAvailable] = useState<boolean | null>(null);
+  const [displayPrices, setDisplayPrices] = useState<PlanDisplayPrice[]>([]);
+  const [displayCurrency, setDisplayCurrency] = useState(() => preferredCurrencyFromLocale(i18n.language));
+
 
   const currentPlanDs = profile?.plan?.planDs || 'FREE';
   const subscriptionProvider = profile?.plan?.subscriptionProvider;
@@ -91,7 +120,30 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
     !usePlayBilling && subscriptionProvider === 'STRIPE' && hasBlockingSubscription;
   const isProviderSwitchBlocked = isGooglePlayManagedOnWeb;
 
-  const plans = useMemo(() => buildPlans(t), [t, i18n.language]);
+  const plans = useMemo(
+    () => buildPlans(t, displayPrices, displayCurrency),
+    [t, i18n.language, displayPrices, displayCurrency]
+  );
+
+  useEffect(() => {
+    const currency = preferredCurrencyFromLocale(i18n.language);
+    planPriceService
+      .getDisplayPrices(currency)
+      .then((res) => {
+        setDisplayCurrency(res.currency);
+        setDisplayPrices(res.prices ?? []);
+      })
+      .catch((error) => {
+        console.warn('Failed to load plan display prices', error);
+        setDisplayCurrency(currency);
+        setDisplayPrices([]);
+      });
+  }, [i18n.language]);
+
+  useEffect(() => {
+    if (!usePlayBilling) return;
+    googlePlayBillingService.checkBillingSupported().then(setPlayBillingAvailable);
+  }, [usePlayBilling]);
 
   const groupedPlans = useMemo(() => {
     const grouped: Record<string, { name: PlanTier; monthly: ReturnType<typeof buildPlans>[number] | null; yearly: ReturnType<typeof buildPlans>[number] | null }> = {};
@@ -160,11 +212,6 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
       setPendingPlanType(null);
     }
   };
-
-  useEffect(() => {
-    if (!usePlayBilling) return;
-    googlePlayBillingService.checkBillingSupported().then(setPlayBillingAvailable);
-  }, [usePlayBilling]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

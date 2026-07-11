@@ -162,6 +162,8 @@ export interface UserProfile {
   coins: number;
   phoneNumber?: string;
   isWhatsappEnabled?: boolean;
+  roles?: string[];
+  isAdmin?: boolean;
 }
 
 export interface EnableWhatsappRequest {
