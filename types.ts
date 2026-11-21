@@ -71,6 +71,8 @@ export interface CardTransaction extends BaseRecord {
   };
   billTable?: string;
   billType?: string | BillType;
+  isRecurrent?: boolean;
+  fixedBillId?: number;
 }
 
 // Corresponds to "Ativos" (Ativos/Income)
