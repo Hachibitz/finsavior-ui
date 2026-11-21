@@ -9,6 +9,7 @@ This repository contains the web UI and Capacitor Android application shipped to
 - Bill, income, card, and recurring expense management.
 - Monthly dashboard and recent activity views.
 - Fixed bill recurrence options and real purchase date display.
+- Dashboard search and filters for recurring, installment, and highest-value expenses in the selected month.
 - AI assistant chat, document import, and voice-based entry.
 - Google authentication and secure session refresh flow.
 - Stripe subscription checkout with web and native mobile support.

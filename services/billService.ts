@@ -95,6 +95,8 @@ export const billService = {
       cardId: d.cardId || '',
       paymentType: d.paymentType,
       purchaseDate: d.purchaseDate,
+      isRecurrent: d.isRecurrent,
+      fixedBillId: d.fixedBillId,
       installments: d.currentInstallment !== undefined && d.installmentCount !== undefined ? { current: d.currentInstallment ?? 0, total: d.installmentCount ?? 0 } : undefined
     } as CardTransaction));
   },
@@ -114,6 +116,8 @@ export const billService = {
       cardId: d.cardId || cardId,
       paymentType: d.paymentType,
       purchaseDate: d.purchaseDate,
+      isRecurrent: d.isRecurrent,
+      fixedBillId: d.fixedBillId,
       installments: d.currentInstallment !== undefined && d.installmentCount !== undefined ? { current: d.currentInstallment ?? 0, total: d.installmentCount ?? 0 } : undefined
     } as CardTransaction));
   },
