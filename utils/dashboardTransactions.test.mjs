@@ -24,3 +24,12 @@ test('limits only the default recent view', () => {
   assert.equal(filterDashboardTransactions(many, 'recent', '', 'pt-BR').length, 6);
   assert.equal(filterDashboardTransactions(many, 'recent', 'aluguel', 'pt-BR').length, 8);
 });
+
+test('orders actual dates ahead of unknown day in the same billing month', () => {
+  const records = [
+    { ...entries[0], id: 'unknown', date: 'Dec 2026' },
+    { ...entries[1], id: 'known', date: 'Dec 2026', purchaseDate: '2026-12-30' },
+    { ...entries[2], id: 'older', date: 'Nov 2026' },
+  ];
+  assert.deepEqual(filterDashboardTransactions(records, 'recent', '', 'pt-BR').map(x => x.id), ['known', 'unknown', 'older']);
+});

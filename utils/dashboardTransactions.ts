@@ -6,6 +6,18 @@ export type DashboardTransaction =
   | (CardTransaction & { type: 'expense' })
   | (Omit<Asset, 'type'> & { type: 'income'; category: 'salary' });
 
+function dateSortKey(tx: DashboardTransaction): string {
+  const purchase = tx.purchaseDate?.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (purchase) return purchase[1];
+  const iso = tx.date.match(/^(\d{4}-\d{2})(?:-(\d{2}))?/);
+  if (iso) return `${iso[1]}-${iso[2] || '00'}`;
+  const billing = tx.date.match(/^([A-Za-z]{3})\s+(\d{4})$/);
+  if (!billing) return '';
+  const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  const index = months.indexOf(billing[1].toLowerCase());
+  return index < 0 ? '' : `${billing[2]}-${String(index + 1).padStart(2, '0')}-00`;
+}
+
 export function filterDashboardTransactions(
   transactions: DashboardTransaction[],
   filter: DashboardFilter,
@@ -22,6 +34,6 @@ export function filterDashboardTransactions(
     return true;
   });
   if (filter === 'top') return filtered.sort((a, b) => b.amount - a.amount);
-  filtered.sort((a, b) => (b.purchaseDate || b.date).localeCompare(a.purchaseDate || a.date));
+  filtered.sort((a, b) => dateSortKey(b).localeCompare(dateSortKey(a)));
   return filter === 'recent' && !query ? filtered.slice(0, 6) : filtered;
 }
