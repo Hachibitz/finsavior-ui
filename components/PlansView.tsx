@@ -12,6 +12,7 @@ import { translateApiError } from '../utils/apiError';
 import { formatCurrency } from '../i18n/localeFormat';
 import { useToast } from '../contexts/ToastContext';
 import { UserProfile } from '../types';
+import { resolvePlanAmount } from '../utils/planPrices';
 
 const planFamily = (planType?: string) => {
   if (!planType || planType === 'FREE') return 'FREE';
@@ -42,14 +43,6 @@ const PLAN_DEFINITIONS: PlanDefinition[] = [
   { tier: 'PREMIUM', billing: 'ANNUAL', trial: true, type: 'STRIPE_PREMIUM_ANNUAL' },
 ];
 
-/** Fallback BRL amounts if the API is unreachable. */
-const FALLBACK_AMOUNTS: Record<string, { monthly: number; annual: number }> = {
-  FREE: { monthly: 0, annual: 0 },
-  BASIC: { monthly: 7.9, annual: 79 },
-  PLUS: { monthly: 19.9, annual: 199.9 },
-  PREMIUM: { monthly: 39.9, annual: 399 },
-};
-
 const FEATURE_KEY_BY_TIER: Record<PlanTier, 'free' | 'basic' | 'plus' | 'premium'> = {
   FREE: 'free',
   BASIC: 'basic',
@@ -57,29 +50,17 @@ const FEATURE_KEY_BY_TIER: Record<PlanTier, 'free' | 'basic' | 'plus' | 'premium
   PREMIUM: 'premium',
 };
 
-function resolveAmount(
-  tier: PlanTier,
-  billing: 'MONTHLY' | 'ANNUAL' | null,
-  prices: PlanDisplayPrice[]
-): number {
-  if (tier === 'FREE' || !billing) return 0;
-  const match = prices.find(
-    (p) => p.planTier === tier && p.billingCycle === billing
-  );
-  if (match) return Number(match.amount);
-  const fallback = FALLBACK_AMOUNTS[tier];
-  return billing === 'ANNUAL' ? fallback.annual : fallback.monthly;
-}
-
 function buildPlans(t: TFunction, prices: PlanDisplayPrice[], currency: string) {
   return PLAN_DEFINITIONS.map((def) => {
-    const monthlyAmount = resolveAmount(def.tier, 'MONTHLY', prices);
-    const yearlyAmount = resolveAmount(def.tier, 'ANNUAL', prices);
+    const monthlyAmount = resolvePlanAmount(def.tier, 'MONTHLY', prices);
+    const yearlyAmount = resolvePlanAmount(def.tier, 'ANNUAL', prices);
     return {
       tier: def.tier,
       billing: def.billing,
-      priceMonthly: formatCurrency(monthlyAmount, currency),
-      priceYearly: def.tier === 'FREE' ? null : formatCurrency(yearlyAmount, currency),
+      priceMonthly: monthlyAmount === null ? t('plans.priceUnavailable') : formatCurrency(monthlyAmount, currency),
+      priceYearly: def.tier === 'FREE' ? null : yearlyAmount === null ? t('plans.priceUnavailable') : formatCurrency(yearlyAmount, currency),
+      hasMonthlyPrice: monthlyAmount !== null,
+      hasYearlyPrice: yearlyAmount !== null,
       features: t(`plans.features.${FEATURE_KEY_BY_TIER[def.tier]}`, { returnObjects: true }) as string[],
       trial: def.trial,
       type: def.type,
@@ -392,13 +373,17 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
                   )}
                   <p className="text-2xl font-bold text-slate-200">
                     {group.monthly?.priceMonthly || group.yearly?.priceYearly}
-                    <span className="text-sm font-normal text-slate-500">
-                      {group.monthly ? t('plans.perMonth') : t('plans.perYear')}
-                    </span>
+                    {(group.monthly ? group.monthly.hasMonthlyPrice : group.yearly?.hasYearlyPrice) && (
+                      <span className="text-sm font-normal text-slate-500">
+                        {group.monthly ? t('plans.perMonth') : t('plans.perYear')}
+                      </span>
+                    )}
                   </p>
                   {group.yearly && (
                     <p className="text-xs text-emerald-400 font-medium mt-1">
-                      {t('plans.orYearly', { price: group.yearly.priceYearly })}
+                      {group.yearly.hasYearlyPrice
+                        ? t('plans.orYearly', { price: group.yearly.priceYearly })
+                        : t('plans.priceUnavailable')}
                     </p>
                   )}
                 </div>
@@ -477,14 +462,18 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
                   onClick={() => startCheckout(selectedPlanGroup.yearly!.type)}
                   className="w-full p-4 rounded-2xl border border-primary bg-primary/5 hover:bg-primary/10 transition-all text-left relative"
                 >
-                  <div className="absolute -top-2 -right-2 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter">
-                    {t('plans.bestValue')}
-                  </div>
+                  {selectedPlanGroup.yearly.hasYearlyPrice && (
+                    <div className="absolute -top-2 -right-2 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter">
+                      {t('plans.bestValue')}
+                    </div>
+                  )}
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-primary">{t('plans.annual')}</span>
                     <span className="text-white font-bold">{selectedPlanGroup.yearly.priceYearly}</span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1">{t('plans.annualDesc')}</p>
+                  {selectedPlanGroup.yearly.hasYearlyPrice && (
+                    <p className="text-xs text-slate-400 mt-1">{t('plans.annualDesc')}</p>
+                  )}
                 </button>
               )}
 
