@@ -7,7 +7,7 @@ import ImportDocButton from './ImportDocButton';
 import { useToast } from '../contexts/ToastContext';
 import TransactionForm from './TransactionForm';
 import { billService } from '../services/billService';
-import { formatCurrency } from '../i18n/localeFormat';
+import { formatCurrency, formatPurchaseDate } from '../i18n/localeFormat';
 import { getCategoryLabel } from '../utils/categoryLabel';
 
 interface CardsViewProps {
@@ -333,6 +333,9 @@ const CardsView: React.FC<CardsViewProps> = ({
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <h4 className="font-semibold text-slate-200 text-sm group-hover:text-primary transition-colors">{tx.description}</h4>
+                    {formatPurchaseDate(tx.purchaseDate) && (
+                      <p className="text-xs text-slate-500 mt-1">{formatPurchaseDate(tx.purchaseDate)}</p>
+                    )}
                     <div className="flex items-center gap-2 mt-1">
                        <span className="text-[10px] text-slate-400 uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700">
                           {tx.billType === 'PAYMENT' ? t('cards.payment') : getCategoryLabel(category || tx.category || 'others', t)}
@@ -431,6 +434,7 @@ const CardsView: React.FC<CardsViewProps> = ({
           description: selectedTransaction.description,
           amount: selectedTransaction.amount,
           date: selectedTransaction.date,
+          purchaseDate: selectedTransaction.purchaseDate,
           category: selectedTransaction.category,
           cardId: selectedTransaction.cardId,
           isPaid: true,

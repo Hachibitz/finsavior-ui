@@ -27,11 +27,12 @@ import { SaviIcon } from './Logo';
 
 interface ChatViewProps {
   profile: UserProfile | null;
+  selectedMonth: string;
   onBack?: () => void;
   onRefreshCoins?: () => void;
 }
 
-const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) => {
+const ChatView: React.FC<ChatViewProps> = ({ profile, selectedMonth, onBack, onRefreshCoins }) => {
   const { t } = useTranslation();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -95,10 +96,9 @@ const ChatView: React.FC<ChatViewProps> = ({ profile, onBack, onRefreshCoins }) 
     setIsTyping(true);
 
     try {
-      const historyStrings = messages.slice(-10).map(m => `${m.role}: ${m.content}`);
       const response = await aiChatService.chatWithSavi({
         question: trimmed,
-        chatHistory: historyStrings,
+        date: selectedMonth,
         isUsingCoins
       });
 

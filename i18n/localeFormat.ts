@@ -32,6 +32,14 @@ export function formatShortDate(date: Date | string): string {
   return d.toLocaleDateString(intlLocale(), { day: '2-digit', month: 'short' });
 }
 
+export function formatPurchaseDate(value?: string | null): string | null {
+  const match = value?.match(/^(\d{4})-(\d{2})-(\d{2})(?:T.*)?$/);
+  if (!match) return null;
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  if (date.getFullYear() !== Number(match[1]) || date.getMonth() !== Number(match[2]) - 1 || date.getDate() !== Number(match[3])) return null;
+  return date.toLocaleDateString(intlLocale(), { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
 /** Whisper / OpenAI language code from app locale. */
 export function whisperLanguageCode(): string {
   const lang = i18n.language || 'pt-BR';

@@ -119,6 +119,7 @@ const AiAdvisorView: React.FC<AiAdvisorViewProps> = ({
     return (
       <ChatView 
         profile={profile} 
+        selectedMonth={selectedMonth}
         onBack={() => setActiveSubTab('reports')} 
         onRefreshCoins={onRefreshCoins}
       />
