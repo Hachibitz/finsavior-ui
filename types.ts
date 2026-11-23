@@ -71,6 +71,8 @@ export interface CardTransaction extends BaseRecord {
   };
   billTable?: string;
   billType?: string | BillType;
+  isRecurrent?: boolean;
+  fixedBillId?: number;
 }
 
 // Corresponds to "Ativos" (Ativos/Income)
@@ -162,6 +164,8 @@ export interface UserProfile {
   coins: number;
   phoneNumber?: string;
   isWhatsappEnabled?: boolean;
+  roles?: string[];
+  isAdmin?: boolean;
 }
 
 export interface EnableWhatsappRequest {

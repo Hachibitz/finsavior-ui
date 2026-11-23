@@ -6,11 +6,14 @@ import { loadStripe } from '@stripe/stripe-js';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { paymentService } from '../services/paymentService';
-import { googlePlayBillingService } from '../services/googlePlayBillingService';
+import { googlePlayBillingService, PlayLocalizedPrice } from '../services/googlePlayBillingService';
+import { planPriceService, preferredCurrencyFromLocale, PlanDisplayPrice } from '../services/planPriceService';
+import { useFeatureFlags } from '../services/featureFlagService';
 import { translateApiError } from '../utils/apiError';
 import { formatCurrency } from '../i18n/localeFormat';
 import { useToast } from '../contexts/ToastContext';
 import { UserProfile } from '../types';
+import { resolvePlanAmount } from '../utils/planPrices';
 
 const planFamily = (planType?: string) => {
   if (!planType || planType === 'FREE') return 'FREE';
@@ -26,20 +29,19 @@ type PlanTier = 'FREE' | 'BASIC' | 'PLUS' | 'PREMIUM';
 interface PlanDefinition {
   tier: PlanTier;
   billing: 'MONTHLY' | 'ANNUAL' | null;
-  priceMonthly: number;
-  priceYearly: number | null;
-  trial?: boolean;
   type: string;
+  trial?: boolean;
 }
 
+/** Structural plan catalog — amounts come from GET /plans/display-prices. */
 const PLAN_DEFINITIONS: PlanDefinition[] = [
-  { tier: 'FREE', billing: null, priceMonthly: 0, priceYearly: null, type: 'FREE' },
-  { tier: 'BASIC', billing: 'MONTHLY', priceMonthly: 5.90, priceYearly: 59.90, trial: true, type: 'STRIPE_BASIC_MONTHLY' },
-  { tier: 'PLUS', billing: 'MONTHLY', priceMonthly: 12.90, priceYearly: 129.90, trial: true, type: 'STRIPE_PLUS_MONTHLY' },
-  { tier: 'PREMIUM', billing: 'MONTHLY', priceMonthly: 25.90, priceYearly: 200.00, trial: true, type: 'STRIPE_PREMIUM_MONTHLY' },
-  { tier: 'BASIC', billing: 'ANNUAL', priceMonthly: 5.90, priceYearly: 59.90, trial: true, type: 'STRIPE_BASIC_ANNUAL' },
-  { tier: 'PLUS', billing: 'ANNUAL', priceMonthly: 12.90, priceYearly: 129.90, trial: true, type: 'STRIPE_PLUS_ANNUAL' },
-  { tier: 'PREMIUM', billing: 'ANNUAL', priceMonthly: 25.90, priceYearly: 200.00, trial: true, type: 'STRIPE_PREMIUM_ANNUAL' },
+  { tier: 'FREE', billing: null, type: 'FREE' },
+  { tier: 'BASIC', billing: 'MONTHLY', trial: true, type: 'STRIPE_BASIC_MONTHLY' },
+  { tier: 'PLUS', billing: 'MONTHLY', trial: true, type: 'STRIPE_PLUS_MONTHLY' },
+  { tier: 'PREMIUM', billing: 'MONTHLY', trial: true, type: 'STRIPE_PREMIUM_MONTHLY' },
+  { tier: 'BASIC', billing: 'ANNUAL', trial: true, type: 'STRIPE_BASIC_ANNUAL' },
+  { tier: 'PLUS', billing: 'ANNUAL', trial: true, type: 'STRIPE_PLUS_ANNUAL' },
+  { tier: 'PREMIUM', billing: 'ANNUAL', trial: true, type: 'STRIPE_PREMIUM_ANNUAL' },
 ];
 
 const FEATURE_KEY_BY_TIER: Record<PlanTier, 'free' | 'basic' | 'plus' | 'premium'> = {
@@ -49,16 +51,43 @@ const FEATURE_KEY_BY_TIER: Record<PlanTier, 'free' | 'basic' | 'plus' | 'premium
   PREMIUM: 'premium',
 };
 
-function buildPlans(t: TFunction) {
-  return PLAN_DEFINITIONS.map((def) => ({
-    tier: def.tier,
-    billing: def.billing,
-    priceMonthly: formatCurrency(def.priceMonthly),
-    priceYearly: def.priceYearly != null ? formatCurrency(def.priceYearly) : null,
-    features: t(`plans.features.${FEATURE_KEY_BY_TIER[def.tier]}`, { returnObjects: true }) as string[],
-    trial: def.trial,
-    type: def.type,
-  }));
+function buildPlans(
+  t: TFunction,
+  prices: PlanDisplayPrice[],
+  currency: string,
+  playPrices: Record<string, PlayLocalizedPrice>
+) {
+  return PLAN_DEFINITIONS.map((def) => {
+    const playMonthly = playPrices[`PLAY_${def.tier}_MONTHLY`];
+    const playAnnual = playPrices[`PLAY_${def.tier}_ANNUAL`];
+
+    const monthlyAmount = playMonthly ? playMonthly.price : resolvePlanAmount(def.tier, 'MONTHLY', prices);
+    const yearlyAmount = playAnnual ? playAnnual.price : resolvePlanAmount(def.tier, 'ANNUAL', prices);
+
+    const priceMonthly =
+      def.tier === 'FREE'
+        ? formatCurrency(0, currency)
+        : playMonthly?.priceString
+          ?? (monthlyAmount === null ? t('plans.priceUnavailable') : formatCurrency(monthlyAmount, currency));
+
+    const priceYearly =
+      def.tier === 'FREE'
+        ? null
+        : playAnnual?.priceString
+          ?? (yearlyAmount === null ? t('plans.priceUnavailable') : formatCurrency(yearlyAmount, currency));
+
+    return {
+      tier: def.tier,
+      billing: def.billing,
+      priceMonthly,
+      priceYearly,
+      hasMonthlyPrice: monthlyAmount !== null,
+      hasYearlyPrice: yearlyAmount !== null,
+      features: t(`plans.features.${FEATURE_KEY_BY_TIER[def.tier]}`, { returnObjects: true }) as string[],
+      trial: def.trial,
+      type: def.type,
+    };
+  });
 }
 
 interface PlansViewProps {
@@ -67,6 +96,7 @@ interface PlansViewProps {
 
 const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
   const { t, i18n } = useTranslation();
+  const { i18nEnabled, stripeEnabled } = useFeatureFlags();
   const { showToast } = useToast();
   const usePlayBilling = googlePlayBillingService.isAndroidNative();
   const [loading, setLoading] = useState(false);
@@ -77,6 +107,13 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
   const [showSwitchProviderModal, setShowSwitchProviderModal] = useState(false);
   const [pendingPlanType, setPendingPlanType] = useState<string | null>(null);
   const [playBillingAvailable, setPlayBillingAvailable] = useState<boolean | null>(null);
+  const [displayPrices, setDisplayPrices] = useState<PlanDisplayPrice[]>([]);
+  const [playLocalizedPrices, setPlayLocalizedPrices] = useState<Record<string, PlayLocalizedPrice>>({});
+  const [priceSource, setPriceSource] = useState<string | null>(null);
+  const [displayCurrency, setDisplayCurrency] = useState(() =>
+    i18nEnabled ? preferredCurrencyFromLocale(i18n.language) : 'BRL'
+  );
+
 
   const currentPlanDs = profile?.plan?.planDs || 'FREE';
   const subscriptionProvider = profile?.plan?.subscriptionProvider;
@@ -89,9 +126,56 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
     !usePlayBilling && subscriptionProvider === 'GOOGLE_PLAY' && hasBlockingSubscription;
   const canUpdateStripeInPlace =
     !usePlayBilling && subscriptionProvider === 'STRIPE' && hasBlockingSubscription;
-  const isProviderSwitchBlocked = isGooglePlayManagedOnWeb;
+  const isStripeDisabledOnWeb = !usePlayBilling && !stripeEnabled;
+  const isProviderSwitchBlocked = isGooglePlayManagedOnWeb || isStripeDisabledOnWeb;
 
-  const plans = useMemo(() => buildPlans(t), [t, i18n.language]);
+  const plans = useMemo(
+    () => buildPlans(t, displayPrices, displayCurrency, playLocalizedPrices),
+    [t, i18n.language, displayPrices, displayCurrency, playLocalizedPrices]
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    const currency = i18nEnabled ? preferredCurrencyFromLocale(i18n.language) : 'BRL';
+    const provider = usePlayBilling || !stripeEnabled ? 'GOOGLE_PLAY' : 'STRIPE';
+
+    const loadPrices = async () => {
+      if (usePlayBilling) {
+        const localized = await googlePlayBillingService.getLocalizedSubscriptionPrices();
+        if (!cancelled && Object.keys(localized).length > 0) {
+          setPlayLocalizedPrices(localized);
+          setPriceSource('PROVIDER_LIVE');
+          return;
+        }
+      }
+
+      try {
+        const res = await planPriceService.getDisplayPrices(currency, provider);
+        if (!cancelled) {
+          setDisplayCurrency(res.currency);
+          setDisplayPrices(res.prices ?? []);
+          setPriceSource(res.source ?? null);
+        }
+      } catch (error) {
+        console.warn('Failed to load plan display prices', error);
+        if (!cancelled) {
+          setDisplayCurrency(currency);
+          setDisplayPrices([]);
+          setPriceSource('UNAVAILABLE');
+        }
+      }
+    };
+
+    void loadPrices();
+    return () => {
+      cancelled = true;
+    };
+  }, [i18n.language, i18nEnabled, stripeEnabled, usePlayBilling]);
+
+  useEffect(() => {
+    if (!usePlayBilling) return;
+    googlePlayBillingService.checkBillingSupported().then(setPlayBillingAvailable);
+  }, [usePlayBilling]);
 
   const groupedPlans = useMemo(() => {
     const grouped: Record<string, { name: PlanTier; monthly: ReturnType<typeof buildPlans>[number] | null; yearly: ReturnType<typeof buildPlans>[number] | null }> = {};
@@ -141,7 +225,9 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
       return;
     }
 
-    await googlePlayBillingService.purchaseSubscription(planType);
+    const playKey = planType.replace(/^STRIPE_/, 'PLAY_');
+    const offerToken = playLocalizedPrices[playKey]?.offerToken;
+    await googlePlayBillingService.purchaseSubscription(planType, offerToken);
     showToast(t('plans.checkoutSuccess'), 'success');
     window.location.reload();
   };
@@ -160,11 +246,6 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
       setPendingPlanType(null);
     }
   };
-
-  useEffect(() => {
-    if (!usePlayBilling) return;
-    googlePlayBillingService.checkBillingSupported().then(setPlayBillingAvailable);
-  }, [usePlayBilling]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -225,7 +306,12 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
         return;
       }
 
-      const session = await paymentService.createCheckoutSession(planType, userEmail, shouldUseHostedCheckout);
+      const session = await paymentService.createCheckoutSession(
+        planType,
+        userEmail,
+        shouldUseHostedCheckout,
+        displayCurrency
+      );
 
       const isTrustedCheckoutUrl = (url: string) =>
         /^https:\/\/([a-z0-9-]+\.)?stripe\.com\//i.test(url);
@@ -345,13 +431,17 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
                   )}
                   <p className="text-2xl font-bold text-slate-200">
                     {group.monthly?.priceMonthly || group.yearly?.priceYearly}
-                    <span className="text-sm font-normal text-slate-500">
-                      {group.monthly ? t('plans.perMonth') : t('plans.perYear')}
-                    </span>
+                    {(group.monthly ? group.monthly.hasMonthlyPrice : group.yearly?.hasYearlyPrice) && (
+                      <span className="text-sm font-normal text-slate-500">
+                        {group.monthly ? t('plans.perMonth') : t('plans.perYear')}
+                      </span>
+                    )}
                   </p>
                   {group.yearly && (
                     <p className="text-xs text-emerald-400 font-medium mt-1">
-                      {t('plans.orYearly', { price: group.yearly.priceYearly })}
+                      {group.yearly.hasYearlyPrice
+                        ? t('plans.orYearly', { price: group.yearly.priceYearly })
+                        : t('plans.priceUnavailable')}
                     </p>
                   )}
                 </div>
@@ -386,6 +476,8 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
               >
                 {loading && selectedPlanGroup?.name === group.name ? (
                   <Loader2 className="animate-spin" size={18} />
+                ) : isStripeDisabledOnWeb ? (
+                  t('plans.subscribeOnAndroid')
                 ) : isProviderSwitchBlocked ? (
                   t('plans.manageCurrentProvider')
                 ) : isCurrent ? (
@@ -400,6 +492,12 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
           );
         })}
       </div>
+
+      {priceSource === 'PROVIDER_CACHE' && (
+        <p className="text-center text-xs text-amber-400/90 mt-4">
+          {t('plans.priceCacheNotice')}
+        </p>
+      )}
 
       <p className="text-center text-xs text-slate-500 mt-8">
         {t('plans.trialNote')}
@@ -430,14 +528,18 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
                   onClick={() => startCheckout(selectedPlanGroup.yearly!.type)}
                   className="w-full p-4 rounded-2xl border border-primary bg-primary/5 hover:bg-primary/10 transition-all text-left relative"
                 >
-                  <div className="absolute -top-2 -right-2 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter">
-                    {t('plans.bestValue')}
-                  </div>
+                  {selectedPlanGroup.yearly.hasYearlyPrice && (
+                    <div className="absolute -top-2 -right-2 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter">
+                      {t('plans.bestValue')}
+                    </div>
+                  )}
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-primary">{t('plans.annual')}</span>
                     <span className="text-white font-bold">{selectedPlanGroup.yearly.priceYearly}</span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-1">{t('plans.annualDesc')}</p>
+                  {selectedPlanGroup.yearly.hasYearlyPrice && (
+                    <p className="text-xs text-slate-400 mt-1">{t('plans.annualDesc')}</p>
+                  )}
                 </button>
               )}
 

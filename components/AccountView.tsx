@@ -24,6 +24,7 @@ import { whatsappService } from '../services/whatsappService';
 import { paymentService } from '../services/paymentService';
 import { googlePlayBillingService } from '../services/googlePlayBillingService';
 import LanguageSelector from './LanguageSelector';
+import { useFeatureFlags } from '../services/featureFlagService';
 import { translateApiError } from '../utils/apiError';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '../contexts/ToastContext';
@@ -36,6 +37,7 @@ interface AccountViewProps {
 
 const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, onNavigateToPlans }) => {
   const { t } = useTranslation();
+  const { i18nEnabled } = useFeatureFlags();
   const { showToast } = useToast();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -295,9 +297,11 @@ const AccountView: React.FC<AccountViewProps> = ({ profile, onRefreshProfile, on
         <div className="space-y-6">
           <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] ml-4">{t('account.settings')}</h3>
           
-          <div className="glass-card rounded-3xl border border-white/5 overflow-hidden p-5">
-            <LanguageSelector />
-          </div>
+          {i18nEnabled && (
+            <div className="glass-card rounded-3xl border border-white/5 overflow-hidden p-5">
+              <LanguageSelector />
+            </div>
+          )}
 
           <div className="glass-card rounded-3xl border border-white/5 overflow-hidden">
             <button 

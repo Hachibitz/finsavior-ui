@@ -5,12 +5,14 @@ export const paymentService = {
   createCheckoutSession: async (
     planType: string,
     email: string,
-    hostedCheckout = false
+    hostedCheckout = false,
+    currency?: string
   ): Promise<CheckoutSessionDTO> => {
     return await api.post<CheckoutSessionDTO>('/payment/subscription/create-checkout', {
       planType,
       email,
-      hostedCheckout
+      hostedCheckout,
+      ...(currency ? { currency } : {}),
     });
   },
 

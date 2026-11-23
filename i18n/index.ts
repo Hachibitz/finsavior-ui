@@ -71,7 +71,29 @@ export async function setAppLocale(locale: AppLocale, userChosen = true) {
   applyDocumentLocale(locale);
 }
 
-const initialLocale = detectInitialLocale();
+let i18nEnabledFlag = false;
+
+export async function applyI18nFeatureFlag(enabled: boolean) {
+  i18nEnabledFlag = enabled;
+  if (!enabled) {
+    if (i18n.language !== 'pt-BR') {
+      await i18n.changeLanguage('pt-BR');
+    }
+    applyDocumentLocale('pt-BR');
+    return;
+  }
+  const preferred = detectInitialLocale();
+  if (i18n.language !== preferred) {
+    await i18n.changeLanguage(preferred);
+  }
+  applyDocumentLocale(preferred);
+}
+
+export function isI18nFeatureEnabled(): boolean {
+  return i18nEnabledFlag;
+}
+
+const initialLocale: AppLocale = 'pt-BR';
 
 void i18n.use(initReactI18next).init({
   resources,

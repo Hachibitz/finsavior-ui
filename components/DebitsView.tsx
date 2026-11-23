@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Bill, Category } from '../types';
 import { getCategoryIcon } from '../constants';
-import { formatDayLabel } from '../utils/format';
-import { formatCurrency } from '../i18n/localeFormat';
+import { formatCurrency, formatPurchaseDate } from '../i18n/localeFormat';
 import { translateApiError } from '../utils/apiError';
 import { Plus, CheckCircle2, Circle, Edit2, Trash2, Loader2 } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
@@ -129,9 +128,9 @@ const DebitsView: React.FC<DebitsViewProps> = ({ bills, onAdd, onDelete, onEdit,
                 </div>
                 <div className="flex justify-between items-center mt-1">
                    <span className="text-xs text-slate-500 uppercase font-medium">{category?.name || 'Unknown'}</span>
-                   {formatDayLabel(bill.purchaseDate, bill.date) && (
+                   {formatPurchaseDate(bill.purchaseDate) && (
                      <span className="text-xs text-slate-500 font-medium tabular-nums">
-                       {formatDayLabel(bill.purchaseDate, bill.date)}
+                       {formatPurchaseDate(bill.purchaseDate)}
                      </span>
                    )}
                 </div>

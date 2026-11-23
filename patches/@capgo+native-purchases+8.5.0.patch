@@ -1,0 +1,88 @@
+diff --git a/node_modules/@capgo/native-purchases/android/src/main/java/ee/forgr/nativepurchases/NativePurchasesPlugin.java b/node_modules/@capgo/native-purchases/android/src/main/java/ee/forgr/nativepurchases/NativePurchasesPlugin.java
+index 6bb92c6..034a236 100644
+--- a/node_modules/@capgo/native-purchases/android/src/main/java/ee/forgr/nativepurchases/NativePurchasesPlugin.java
++++ b/node_modules/@capgo/native-purchases/android/src/main/java/ee/forgr/nativepurchases/NativePurchasesPlugin.java
+@@ -499,6 +499,7 @@ public class NativePurchasesPlugin extends Plugin {
+         Log.d(TAG, "purchaseProduct() called");
+         String productIdentifier = call.getString("productIdentifier");
+         String planIdentifier = call.getString("planIdentifier");
++        final String requestedOfferToken = call.getString("offerToken");
+         String productType = call.getString("productType", "inapp");
+         Number quantity = call.getInt("quantity", 1);
+         String appAccountToken = call.getString("appAccountToken");
+@@ -602,17 +603,32 @@ public class NativePurchasesPlugin extends Plugin {
+                                 ProductDetails.SubscriptionOfferDetails selectedOfferDetails = null;
+                                 assert productDetailsItem.getSubscriptionOfferDetails() != null;
+                                 Log.d(TAG, "Available offer details count: " + productDetailsItem.getSubscriptionOfferDetails().size());
+-                                for (ProductDetails.SubscriptionOfferDetails offerDetails : productDetailsItem.getSubscriptionOfferDetails()) {
+-                                    Log.d(TAG, "Checking offer: " + offerDetails.getBasePlanId());
+-                                    if (offerDetails.getBasePlanId().equals(planIdentifier)) {
+-                                        selectedOfferDetails = offerDetails;
+-                                        Log.d(TAG, "Found matching plan: " + planIdentifier);
+-                                        break;
++                                if (requestedOfferToken != null && !requestedOfferToken.isEmpty()) {
++                                    for (ProductDetails.SubscriptionOfferDetails offerDetails : productDetailsItem.getSubscriptionOfferDetails()) {
++                                        if (requestedOfferToken.equals(offerDetails.getOfferToken())) {
++                                            selectedOfferDetails = offerDetails;
++                                            break;
++                                        }
+                                     }
+                                 }
+                                 if (selectedOfferDetails == null) {
+-                                    selectedOfferDetails = productDetailsItem.getSubscriptionOfferDetails().get(0);
+-                                    Log.d(TAG, "Using first available offer: " + selectedOfferDetails.getBasePlanId());
++                                    for (ProductDetails.SubscriptionOfferDetails offerDetails : productDetailsItem.getSubscriptionOfferDetails()) {
++                                        Log.d(TAG, "Checking offer: " + offerDetails.getBasePlanId());
++                                        if (offerDetails.getBasePlanId().equals(planIdentifier)) {
++                                            if (selectedOfferDetails == null || offerDetails.getOfferId() == null) {
++                                                selectedOfferDetails = offerDetails;
++                                            }
++                                            if (offerDetails.getOfferId() == null) {
++                                                Log.d(TAG, "Found base plan without promo offer: " + planIdentifier);
++                                                break;
++                                            }
++                                        }
++                                    }
++                                }
++                                if (selectedOfferDetails == null) {
++                                    closeBillingClient();
++                                    call.reject("Matching base plan not found: " + planIdentifier);
++                                    return;
+                                 }
+                                 productDetailsParams.setOfferToken(selectedOfferDetails.getOfferToken());
+                                 Log.d(TAG, "Set offer token: " + selectedOfferDetails.getOfferToken());
+@@ -967,21 +983,25 @@ public class NativePurchasesPlugin extends Plugin {
+                                     product.put("offerToken", offerDetails.getOfferToken());
+                                     product.put("offerId", offerDetails.getOfferId());
+ 
+-                                    ProductDetails.PricingPhase firstPricingPhase = offerDetails
+-                                        .getPricingPhases()
+-                                        .getPricingPhaseList()
+-                                        .get(0);
+-                                    double price = firstPricingPhase.getPriceAmountMicros() / 1000000.0;
++                                    List<ProductDetails.PricingPhase> phases = offerDetails.getPricingPhases().getPricingPhaseList();
++                                    ProductDetails.PricingPhase recurringPricingPhase = phases.get(phases.size() - 1);
++                                    for (int i = phases.size() - 1; i >= 0; i--) {
++                                        if (phases.get(i).getPriceAmountMicros() > 0) {
++                                            recurringPricingPhase = phases.get(i);
++                                            break;
++                                        }
++                                    }
++                                    double price = recurringPricingPhase.getPriceAmountMicros() / 1000000.0;
+                                     product.put("price", price);
+-                                    product.put("priceString", firstPricingPhase.getFormattedPrice());
+-                                    product.put("currencyCode", firstPricingPhase.getPriceCurrencyCode());
++                                    product.put("priceString", recurringPricingPhase.getFormattedPrice());
++                                    product.put("currencyCode", recurringPricingPhase.getPriceCurrencyCode());
+                                     product.put("isFamilyShareable", false);
+ 
+                                     Log.d(TAG, "Plan identifier: " + productDetails.getProductId());
+                                     Log.d(TAG, "Base plan ID: " + offerDetails.getBasePlanId());
+                                     Log.d(TAG, "Price: " + price);
+-                                    Log.d(TAG, "Formatted price: " + firstPricingPhase.getFormattedPrice());
+-                                    Log.d(TAG, "Currency: " + firstPricingPhase.getPriceCurrencyCode());
++                                    Log.d(TAG, "Formatted price: " + recurringPricingPhase.getFormattedPrice());
++                                    Log.d(TAG, "Currency: " + recurringPricingPhase.getPriceCurrencyCode());
+ 
+                                     products.put(product);
+                                     addedOffers++;

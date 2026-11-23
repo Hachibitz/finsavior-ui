@@ -34,6 +34,7 @@ import { Notification } from '../types/notifications';
 import ReactMarkdown from 'react-markdown';
 import AiAnalysisModal from './AiAnalysisModal';
 import { SaviIcon } from './Logo';
+import { filterDashboardTransactions, DashboardFilter } from '../utils/dashboardTransactions';
 
 interface SummaryViewProps {
   summary: SummaryData;
@@ -87,6 +88,8 @@ const SummaryView: React.FC<SummaryViewProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
+  const [billSearch, setBillSearch] = useState('');
+  const [billFilter, setBillFilter] = useState<DashboardFilter>('recent');
   const [isSavingsVisible, setIsSavingsVisible] = useState(false);
   const [historicalData, setHistoricalData] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
@@ -189,10 +192,10 @@ const SummaryView: React.FC<SummaryViewProps> = ({
     const combined = [
       ...bills.map(b => ({ ...b, type: 'expense' as const })),
       ...cardTransactions.map(t => ({ ...t, type: 'expense' as const })),
-      ...assets.map(a => ({ ...a, type: 'income' as const, category: 'salary' }))
+      ...assets.map(a => ({ ...a, type: 'income' as const, category: 'salary' as const }))
     ];
-    return combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 6);
-  }, [bills, cardTransactions, assets]);
+    return filterDashboardTransactions(combined, billFilter, billSearch, i18n.language);
+  }, [bills, cardTransactions, assets, billSearch, billFilter, i18n.language]);
 
   // Category breakdown data
   const categoryData = useMemo(() => {
@@ -734,6 +737,27 @@ const SummaryView: React.FC<SummaryViewProps> = ({
                 </button>
               </div>
 
+              <div className="flex flex-col sm:flex-row gap-2 mb-6">
+                <input
+                  type="search"
+                  value={billSearch}
+                  onChange={event => setBillSearch(event.target.value)}
+                  aria-label={t('dashboard.searchBills')}
+                  placeholder={t('dashboard.searchBills')}
+                  className="min-w-0 flex-1 rounded-xl bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-white"
+                />
+                <select
+                  value={billFilter}
+                  onChange={event => setBillFilter(event.target.value as DashboardFilter)}
+                  aria-label={t('dashboard.billFilter')}
+                  className="rounded-xl bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-white"
+                >
+                  <option value="recent">{t('dashboard.recentFilter')}</option>
+                  <option value="fixed">{t('dashboard.fixedFilter')}</option>
+                  <option value="installments">{t('dashboard.installmentFilter')}</option>
+                  <option value="top">{t('dashboard.topFilter')}</option>
+                </select>
+              </div>
               <div className="space-y-6">
                 {recentTransactions.map((tx, idx) => {
                   const category = categories.find(c => c.id === (tx as any).category);
