@@ -96,7 +96,7 @@ interface PlansViewProps {
 
 const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
   const { t, i18n } = useTranslation();
-  const { i18nEnabled } = useFeatureFlags();
+  const { i18nEnabled, stripeEnabled } = useFeatureFlags();
   const { showToast } = useToast();
   const usePlayBilling = googlePlayBillingService.isAndroidNative();
   const [loading, setLoading] = useState(false);
@@ -126,7 +126,8 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
     !usePlayBilling && subscriptionProvider === 'GOOGLE_PLAY' && hasBlockingSubscription;
   const canUpdateStripeInPlace =
     !usePlayBilling && subscriptionProvider === 'STRIPE' && hasBlockingSubscription;
-  const isProviderSwitchBlocked = isGooglePlayManagedOnWeb;
+  const isStripeDisabledOnWeb = !usePlayBilling && !stripeEnabled;
+  const isProviderSwitchBlocked = isGooglePlayManagedOnWeb || isStripeDisabledOnWeb;
 
   const plans = useMemo(
     () => buildPlans(t, displayPrices, displayCurrency, playLocalizedPrices),
@@ -136,7 +137,7 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
   useEffect(() => {
     let cancelled = false;
     const currency = i18nEnabled ? preferredCurrencyFromLocale(i18n.language) : 'BRL';
-    const provider = usePlayBilling ? 'GOOGLE_PLAY' : 'STRIPE';
+    const provider = usePlayBilling || !stripeEnabled ? 'GOOGLE_PLAY' : 'STRIPE';
 
     const loadPrices = async () => {
       if (usePlayBilling) {
@@ -169,7 +170,7 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
     return () => {
       cancelled = true;
     };
-  }, [i18n.language, i18nEnabled, usePlayBilling]);
+  }, [i18n.language, i18nEnabled, stripeEnabled, usePlayBilling]);
 
   useEffect(() => {
     if (!usePlayBilling) return;
@@ -475,6 +476,8 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
               >
                 {loading && selectedPlanGroup?.name === group.name ? (
                   <Loader2 className="animate-spin" size={18} />
+                ) : isStripeDisabledOnWeb ? (
+                  t('plans.subscribeOnAndroid')
                 ) : isProviderSwitchBlocked ? (
                   t('plans.manageCurrentProvider')
                 ) : isCurrent ? (

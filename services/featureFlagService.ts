@@ -4,9 +4,10 @@ import { applyI18nFeatureFlag } from '../i18n';
 
 export interface AppFeatureFlags {
   i18nEnabled: boolean;
+  stripeEnabled: boolean;
 }
 
-let cachedFlags: AppFeatureFlags = { i18nEnabled: false };
+let cachedFlags: AppFeatureFlags = { i18nEnabled: true, stripeEnabled: false };
 let flagsLoaded = false;
 let inFlight: Promise<AppFeatureFlags> | null = null;
 const listeners = new Set<(flags: AppFeatureFlags) => void>();
@@ -22,16 +23,19 @@ export async function loadFeatureFlags(force = false): Promise<AppFeatureFlags> 
   inFlight = api
     .get<AppFeatureFlags>('/plans/features')
     .then((res) => {
-      cachedFlags = { i18nEnabled: Boolean(res?.i18nEnabled) };
+      cachedFlags = {
+        i18nEnabled: res?.i18nEnabled !== false,
+        stripeEnabled: Boolean(res?.stripeEnabled),
+      };
       flagsLoaded = true;
       void applyI18nFeatureFlag(cachedFlags.i18nEnabled);
       notifyAll();
       return cachedFlags;
     })
     .catch(() => {
-      cachedFlags = { i18nEnabled: false };
+      cachedFlags = { i18nEnabled: true, stripeEnabled: false };
       flagsLoaded = true;
-      void applyI18nFeatureFlag(false);
+      void applyI18nFeatureFlag(true);
       notifyAll();
       return cachedFlags;
     })
