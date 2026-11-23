@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Loader2, Plus, Save, Trash2 } from 'lucide-react';
+import { Loader2, Plus, RefreshCw, Save, Trash2 } from 'lucide-react';
 import { planPriceService, PlanDisplayPrice } from '../services/planPriceService';
 import { translateApiError } from '../utils/apiError';
 import { formatCurrency } from '../i18n/localeFormat';
@@ -24,6 +24,7 @@ const AdminPlanPricesView: React.FC<AdminPlanPricesViewProps> = ({ onBack }) => 
   const [rows, setRows] = useState<PlanDisplayPrice[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [filterCurrency, setFilterCurrency] = useState('ALL');
 
@@ -80,6 +81,22 @@ const AdminPlanPricesView: React.FC<AdminPlanPricesViewProps> = ({ onBack }) => 
     }
   };
 
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const counts = await planPriceService.syncProviders();
+      showToast(
+        `Sincronizado: Stripe (${counts.stripe ?? 0}), Google Play (${counts.googlePlay ?? 0})`,
+        'success'
+      );
+      await load();
+    } catch (error) {
+      showToast(translateApiError(error, 'Falha ao sincronizar provedores'), 'error');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleDelete = async (id?: number) => {
     if (!id) return;
     if (!window.confirm('Remover este preço de exibição?')) return;
@@ -101,14 +118,24 @@ const AdminPlanPricesView: React.FC<AdminPlanPricesViewProps> = ({ onBack }) => 
             Valores mostrados na tela de Planos por moeda. Não alteram cobrança Stripe/Play.
           </p>
         </div>
-        {onBack && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={onBack}
-            className="px-4 py-2 rounded-xl bg-slate-800 text-slate-200 text-sm font-bold"
+            onClick={handleSync}
+            disabled={syncing}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600/20 border border-emerald-500/30 text-emerald-300 text-sm font-bold disabled:opacity-60"
           >
-            Voltar
+            <RefreshCw className={syncing ? 'animate-spin' : ''} size={16} />
+            Sincronizar Stripe/Play
           </button>
-        )}
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="px-4 py-2 rounded-xl bg-slate-800 text-slate-200 text-sm font-bold"
+            >
+              Voltar
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="glass-card rounded-3xl border border-slate-700/50 p-5 space-y-4">
@@ -190,6 +217,8 @@ const AdminPlanPricesView: React.FC<AdminPlanPricesViewProps> = ({ onBack }) => 
                 </p>
                 <p className="text-slate-400 text-xs">
                   {row.currency} — {formatCurrency(Number(row.amount), row.currency)}
+                  {row.provider ? ` · ${row.provider}` : ''}
+                  {row.source ? ` (${row.source})` : ''}
                 </p>
               </div>
               <button

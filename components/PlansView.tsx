@@ -6,7 +6,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { paymentService } from '../services/paymentService';
-import { googlePlayBillingService } from '../services/googlePlayBillingService';
+import { googlePlayBillingService, PlayLocalizedPrice } from '../services/googlePlayBillingService';
 import { planPriceService, preferredCurrencyFromLocale, PlanDisplayPrice } from '../services/planPriceService';
 import { translateApiError } from '../utils/apiError';
 import { formatCurrency } from '../i18n/localeFormat';
@@ -50,15 +50,36 @@ const FEATURE_KEY_BY_TIER: Record<PlanTier, 'free' | 'basic' | 'plus' | 'premium
   PREMIUM: 'premium',
 };
 
-function buildPlans(t: TFunction, prices: PlanDisplayPrice[], currency: string) {
+function buildPlans(
+  t: TFunction,
+  prices: PlanDisplayPrice[],
+  currency: string,
+  playPrices: Record<string, PlayLocalizedPrice>
+) {
   return PLAN_DEFINITIONS.map((def) => {
-    const monthlyAmount = resolvePlanAmount(def.tier, 'MONTHLY', prices);
-    const yearlyAmount = resolvePlanAmount(def.tier, 'ANNUAL', prices);
+    const playMonthly = playPrices[`PLAY_${def.tier}_MONTHLY`];
+    const playAnnual = playPrices[`PLAY_${def.tier}_ANNUAL`];
+
+    const monthlyAmount = playMonthly ? playMonthly.price : resolvePlanAmount(def.tier, 'MONTHLY', prices);
+    const yearlyAmount = playAnnual ? playAnnual.price : resolvePlanAmount(def.tier, 'ANNUAL', prices);
+
+    const priceMonthly =
+      def.tier === 'FREE'
+        ? formatCurrency(0, currency)
+        : playMonthly?.priceString
+          ?? (monthlyAmount === null ? t('plans.priceUnavailable') : formatCurrency(monthlyAmount, currency));
+
+    const priceYearly =
+      def.tier === 'FREE'
+        ? null
+        : playAnnual?.priceString
+          ?? (yearlyAmount === null ? t('plans.priceUnavailable') : formatCurrency(yearlyAmount, currency));
+
     return {
       tier: def.tier,
       billing: def.billing,
-      priceMonthly: monthlyAmount === null ? t('plans.priceUnavailable') : formatCurrency(monthlyAmount, currency),
-      priceYearly: def.tier === 'FREE' ? null : yearlyAmount === null ? t('plans.priceUnavailable') : formatCurrency(yearlyAmount, currency),
+      priceMonthly,
+      priceYearly,
       hasMonthlyPrice: monthlyAmount !== null,
       hasYearlyPrice: yearlyAmount !== null,
       features: t(`plans.features.${FEATURE_KEY_BY_TIER[def.tier]}`, { returnObjects: true }) as string[],
@@ -85,6 +106,8 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
   const [pendingPlanType, setPendingPlanType] = useState<string | null>(null);
   const [playBillingAvailable, setPlayBillingAvailable] = useState<boolean | null>(null);
   const [displayPrices, setDisplayPrices] = useState<PlanDisplayPrice[]>([]);
+  const [playLocalizedPrices, setPlayLocalizedPrices] = useState<Record<string, PlayLocalizedPrice>>({});
+  const [priceSource, setPriceSource] = useState<string | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState(() => preferredCurrencyFromLocale(i18n.language));
 
 
@@ -102,24 +125,47 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
   const isProviderSwitchBlocked = isGooglePlayManagedOnWeb;
 
   const plans = useMemo(
-    () => buildPlans(t, displayPrices, displayCurrency),
-    [t, i18n.language, displayPrices, displayCurrency]
+    () => buildPlans(t, displayPrices, displayCurrency, playLocalizedPrices),
+    [t, i18n.language, displayPrices, displayCurrency, playLocalizedPrices]
   );
 
   useEffect(() => {
+    let cancelled = false;
     const currency = preferredCurrencyFromLocale(i18n.language);
-    planPriceService
-      .getDisplayPrices(currency)
-      .then((res) => {
-        setDisplayCurrency(res.currency);
-        setDisplayPrices(res.prices ?? []);
-      })
-      .catch((error) => {
+    const provider = usePlayBilling ? 'GOOGLE_PLAY' : 'STRIPE';
+
+    const loadPrices = async () => {
+      if (usePlayBilling) {
+        const localized = await googlePlayBillingService.getLocalizedSubscriptionPrices();
+        if (!cancelled && Object.keys(localized).length > 0) {
+          setPlayLocalizedPrices(localized);
+          setPriceSource('PROVIDER_LIVE');
+          return;
+        }
+      }
+
+      try {
+        const res = await planPriceService.getDisplayPrices(currency, provider);
+        if (!cancelled) {
+          setDisplayCurrency(res.currency);
+          setDisplayPrices(res.prices ?? []);
+          setPriceSource(res.source ?? null);
+        }
+      } catch (error) {
         console.warn('Failed to load plan display prices', error);
-        setDisplayCurrency(currency);
-        setDisplayPrices([]);
-      });
-  }, [i18n.language]);
+        if (!cancelled) {
+          setDisplayCurrency(currency);
+          setDisplayPrices([]);
+          setPriceSource('UNAVAILABLE');
+        }
+      }
+    };
+
+    void loadPrices();
+    return () => {
+      cancelled = true;
+    };
+  }, [i18n.language, usePlayBilling]);
 
   useEffect(() => {
     if (!usePlayBilling) return;
@@ -174,7 +220,9 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
       return;
     }
 
-    await googlePlayBillingService.purchaseSubscription(planType);
+    const playKey = planType.replace(/^STRIPE_/, 'PLAY_');
+    const offerToken = playLocalizedPrices[playKey]?.offerToken;
+    await googlePlayBillingService.purchaseSubscription(planType, offerToken);
     showToast(t('plans.checkoutSuccess'), 'success');
     window.location.reload();
   };
@@ -253,7 +301,12 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
         return;
       }
 
-      const session = await paymentService.createCheckoutSession(planType, userEmail, shouldUseHostedCheckout);
+      const session = await paymentService.createCheckoutSession(
+        planType,
+        userEmail,
+        shouldUseHostedCheckout,
+        displayCurrency
+      );
 
       const isTrustedCheckoutUrl = (url: string) =>
         /^https:\/\/([a-z0-9-]+\.)?stripe\.com\//i.test(url);
@@ -432,6 +485,12 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
           );
         })}
       </div>
+
+      {priceSource === 'PROVIDER_CACHE' && (
+        <p className="text-center text-xs text-amber-400/90 mt-4">
+          {t('plans.priceCacheNotice')}
+        </p>
+      )}
 
       <p className="text-center text-xs text-slate-500 mt-8">
         {t('plans.trialNote')}

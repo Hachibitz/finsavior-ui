@@ -7,6 +7,13 @@ export interface PlayBillingSku {
   basePlanId: string;
 }
 
+export interface PlayLocalizedPrice {
+  price: number;
+  priceString: string;
+  currencyCode: string;
+  offerToken?: string;
+}
+
 export interface PlayProductCatalog {
   products: Record<string, PlayBillingSku>;
 }
@@ -174,7 +181,51 @@ export const googlePlayBillingService = {
     return false;
   },
 
-  async purchaseSubscription(planType: string): Promise<void> {
+  async getLocalizedSubscriptionPrices(): Promise<Record<string, PlayLocalizedPrice>> {
+    if (!this.isAndroidNative()) return {};
+    const supported = await this.checkBillingSupported();
+    if (!supported) return {};
+
+    try {
+      const catalog = await this.getCatalog();
+      const entries = Object.entries(catalog.products) as Array<[string, PlayBillingSku]>;
+      const productIds = Array.from(
+        new Set(entries.map(([, sku]) => sku.productId))
+      );
+      if (productIds.length === 0) return {};
+
+      const { products } = await NativePurchases.getProducts({
+        productIdentifiers: productIds,
+        productType: PURCHASE_TYPE.SUBS,
+      });
+
+      const resolved: Record<string, PlayLocalizedPrice> = {};
+      for (const [planKey, sku] of entries) {
+        const candidates = (products ?? []).filter(
+          (p) => p.planIdentifier === sku.productId && p.identifier === sku.basePlanId
+        );
+        // Prefer base plan (offerId == null) with positive recurring price
+        const match =
+          candidates.find((c) => !c.offerId && c.price > 0) ??
+          candidates.find((c) => c.price > 0) ??
+          candidates[0];
+        if (match && match.price > 0 && match.priceString) {
+          resolved[planKey] = {
+            price: match.price,
+            priceString: match.priceString,
+            currencyCode: match.currencyCode,
+            offerToken: match.offerToken,
+          };
+        }
+      }
+      return resolved;
+    } catch (error) {
+      console.warn('Failed to fetch localized Google Play subscription prices:', error);
+      return {};
+    }
+  },
+
+  async purchaseSubscription(planType: string, offerToken?: string): Promise<void> {
     await this.ensureBillingAvailable();
     const catalog = await this.getCatalog();
     const sku = this.resolvePlaySku(planType, catalog);
@@ -186,7 +237,8 @@ export const googlePlayBillingService = {
         planIdentifier: sku.basePlanId,
         productType: PURCHASE_TYPE.SUBS,
         autoAcknowledgePurchases: false,
-      });
+        ...(offerToken ? { offerToken } : {}),
+      } as Parameters<typeof NativePurchases.purchaseProduct>[0]);
       purchaseToken = purchase.purchaseToken;
     } catch (error) {
       if (isPlayBillingUnavailableError(error)) throw error;

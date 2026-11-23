@@ -6,17 +6,31 @@ export interface PlanDisplayPrice {
   billingCycle: 'MONTHLY' | 'ANNUAL' | string;
   currency: string;
   amount: number;
+  provider?: string;
+  source?: string;
+  externalPriceId?: string | null;
+  lastSyncedAt?: string | null;
 }
 
 export interface PlanPricesResponse {
   currency: string;
   prices: PlanDisplayPrice[];
+  provider?: string;
+  source?: 'PROVIDER_LIVE' | 'PROVIDER_CACHE' | 'MANUAL' | 'UNAVAILABLE' | string;
+  lastSyncedAt?: string | null;
 }
 
 export const planPriceService = {
-  async getDisplayPrices(currency?: string): Promise<PlanPricesResponse> {
-    const query = currency ? `?currency=${encodeURIComponent(currency)}` : '';
-    return api.get<PlanPricesResponse>(`/plans/display-prices${query}`);
+  async getDisplayPrices(currency?: string, provider?: 'STRIPE' | 'GOOGLE_PLAY'): Promise<PlanPricesResponse> {
+    const params = new URLSearchParams();
+    if (currency) params.set('currency', currency);
+    if (provider) params.set('provider', provider);
+    const qs = params.toString();
+    return api.get<PlanPricesResponse>(`/plans/display-prices${qs ? `?${qs}` : ''}`);
+  },
+
+  async syncProviders(): Promise<Record<string, number>> {
+    return api.post<Record<string, number>>('/admin/plan-prices/sync', {});
   },
 
   async listAllAdmin(): Promise<PlanDisplayPrice[]> {
