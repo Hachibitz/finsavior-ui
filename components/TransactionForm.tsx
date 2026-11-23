@@ -35,7 +35,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   const [billingMonth, setBillingMonth] = useState(getDefaultBillingMonth());
   const [purchaseDate, setPurchaseDate] = useState('');
   const [frequencyType, setFrequencyType] = useState<'SINGLE' | 'RECURRENT' | 'INSTALLMENT'>('SINGLE');
-  const [fixedBillGenerationStrategy, setFixedBillGenerationStrategy] = useState<FixedBillGenerationStrategy>('YEARLY_UPFRONT');
+  const [fixedBillGenerationStrategy, setFixedBillGenerationStrategy] = useState<FixedBillGenerationStrategy>('MONTHLY_FIRST_DAY');
   const [installmentCount, setInstallmentCount] = useState('2');
   const [currentInstallment, setCurrentInstallment] = useState('1');
   const [paymentType, setPaymentType] = useState<'Total' | 'Parcial' | 'Mínimo'>('Total');
@@ -92,7 +92,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
         setPurchaseDate(formatPurchaseDateForInput(initialData.purchaseDate));
 
         setFrequencyType(initialData.isInstallment ? 'INSTALLMENT' : initialData.isRecurrent ? 'RECURRENT' : 'SINGLE');
-        setFixedBillGenerationStrategy(initialData.fixedBillGenerationStrategy || 'YEARLY_UPFRONT');
+        setFixedBillGenerationStrategy(initialData.fixedBillGenerationStrategy || 'MONTHLY_FIRST_DAY');
         setInstallmentCount(initialData.installmentCount?.toString() || '2');
         setCurrentInstallment(initialData.currentInstallment?.toString() || '1');
         setPaymentType(initialData.paymentType as any || 'Total');
@@ -128,7 +128,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
           setDescription('');
           setCategory(categories[0]?.id || '');
           setFrequencyType('SINGLE');
-          setFixedBillGenerationStrategy('YEARLY_UPFRONT');
+          setFixedBillGenerationStrategy('MONTHLY_FIRST_DAY');
         }
         setHasSynced(true);
       }
@@ -166,7 +166,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
     setAmount('');
     setDescription('');
     setFrequencyType('SINGLE');
-    setFixedBillGenerationStrategy('YEARLY_UPFRONT');
+    setFixedBillGenerationStrategy('MONTHLY_FIRST_DAY');
     setInstallmentCount('2');
     onClose();
   };
@@ -419,34 +419,8 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
           )}
 
           {frequencyType === 'RECURRENT' && (
-            <div className="space-y-3 animate-fade-in">
-              <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider">{t('transaction.fixedBillStrategy')}</label>
-              <div className="grid grid-cols-1 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setFixedBillGenerationStrategy('YEARLY_UPFRONT')}
-                  className={`text-left p-3 rounded-xl border transition-all ${
-                    fixedBillGenerationStrategy === 'YEARLY_UPFRONT'
-                      ? 'bg-blue-500/10 border-blue-500/40 text-blue-100'
-                      : 'bg-slate-900/50 border-slate-700 text-slate-400'
-                  }`}
-                >
-                  <span className="block text-sm font-bold">{t('transaction.yearlyUpfront')}</span>
-                  <span className="block text-xs mt-1">{t('transaction.yearlyUpfrontDesc')}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFixedBillGenerationStrategy('MONTHLY_FIRST_DAY')}
-                  className={`text-left p-3 rounded-xl border transition-all ${
-                    fixedBillGenerationStrategy === 'MONTHLY_FIRST_DAY'
-                      ? 'bg-blue-500/10 border-blue-500/40 text-blue-100'
-                      : 'bg-slate-900/50 border-slate-700 text-slate-400'
-                  }`}
-                >
-                  <span className="block text-sm font-bold">{t('transaction.monthlyFirstDay')}</span>
-                  <span className="block text-xs mt-1">{t('transaction.monthlyFirstDayDesc')}</span>
-                </button>
-              </div>
+            <div className="p-3 rounded-xl border bg-blue-500/10 border-blue-500/30 text-blue-100 animate-fade-in">
+              <span className="block text-xs">{t('transaction.monthlyFirstDayDesc')}</span>
             </div>
           )}
 
