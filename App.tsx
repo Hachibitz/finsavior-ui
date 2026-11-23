@@ -551,8 +551,7 @@ const App: React.FC = () => {
 
   const handleDeleteBill = async (id: string, deleteAll: boolean = false) => {
     try {
-      const target = bills.find(b => b.id === id);
-      await billService.deleteBill(id, deleteAll, target?.date);
+      await billService.deleteBill(id, deleteAll);
       if (deleteAll) {
         fetchBills();
       } else {
@@ -632,8 +631,7 @@ const App: React.FC = () => {
 
   const handleDeleteCardTransaction = async (id: string, deleteAll: boolean = false) => {
     try {
-      const target = cardTransactions.find(t => t.id === id);
-      await billService.deleteBill(id, deleteAll, target?.date);
+      await billService.deleteBill(id, deleteAll);
       if (deleteAll) {
         fetchCardTransactions();
       } else {

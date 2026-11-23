@@ -246,7 +246,7 @@ export const appContentByLocale: Record<string, object> = {
       "yearlyUpfront": "Criar até dezembro",
       "yearlyUpfrontDesc": "Insere agora todos os meses restantes do ano e renova no dia 1 de janeiro.",
       "monthlyFirstDay": "Criar mês a mês",
-      "monthlyFirstDayDesc": "Aparece e entra nos cálculos dos meses futuros conforme você navega até você excluir.",
+      "monthlyFirstDayDesc": "Insere este mês agora e cria a próxima conta todo dia 1 às 00:00.",
       "saveTransaction": "Salvar Transação"
     },
     "support": {

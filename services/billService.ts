@@ -210,9 +210,8 @@ export const billService = {
     return mapDTOToBill(response);
   },
   
-  deleteBill: async (id: string, deleteAll: boolean = false, billDate?: string): Promise<void> => {
-    const dateParam = billDate ? `&billDate=${encodeURIComponent(billDate)}` : '';
-    await api.delete(`/bill/delete?itemId=${id}&deleteAll=${deleteAll}${dateParam}`);
+  deleteBill: async (id: string, deleteAll: boolean = false): Promise<void> => {
+    await api.delete(`/bill/delete?itemId=${id}&deleteAll=${deleteAll}`);
   },
 
   batchRegister: async (bills: Partial<BillDTO>[]): Promise<void> => {
