@@ -3,6 +3,7 @@ import { Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { AppLocale, SUPPORTED_LOCALES } from '../i18n/resources';
 import { setAppLocale } from '../i18n';
+import { useFeatureFlags } from '../services/featureFlagService';
 
 interface LanguageSelectorProps {
   variant?: 'compact' | 'full';
@@ -10,8 +11,11 @@ interface LanguageSelectorProps {
 }
 
 const LanguageSelector: React.FC<LanguageSelectorProps> = ({ variant = 'full', className = '' }) => {
+  const { i18nEnabled } = useFeatureFlags();
   const { t, i18n } = useTranslation();
   const current = (i18n.language as AppLocale) || 'pt-BR';
+
+  if (!i18nEnabled) return null;
 
   const handleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     await setAppLocale(e.target.value as AppLocale, true);

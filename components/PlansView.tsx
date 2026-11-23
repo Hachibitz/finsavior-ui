@@ -8,6 +8,7 @@ import type { TFunction } from 'i18next';
 import { paymentService } from '../services/paymentService';
 import { googlePlayBillingService, PlayLocalizedPrice } from '../services/googlePlayBillingService';
 import { planPriceService, preferredCurrencyFromLocale, PlanDisplayPrice } from '../services/planPriceService';
+import { useFeatureFlags } from '../services/featureFlagService';
 import { translateApiError } from '../utils/apiError';
 import { formatCurrency } from '../i18n/localeFormat';
 import { useToast } from '../contexts/ToastContext';
@@ -95,6 +96,7 @@ interface PlansViewProps {
 
 const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
   const { t, i18n } = useTranslation();
+  const { i18nEnabled } = useFeatureFlags();
   const { showToast } = useToast();
   const usePlayBilling = googlePlayBillingService.isAndroidNative();
   const [loading, setLoading] = useState(false);
@@ -108,7 +110,9 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
   const [displayPrices, setDisplayPrices] = useState<PlanDisplayPrice[]>([]);
   const [playLocalizedPrices, setPlayLocalizedPrices] = useState<Record<string, PlayLocalizedPrice>>({});
   const [priceSource, setPriceSource] = useState<string | null>(null);
-  const [displayCurrency, setDisplayCurrency] = useState(() => preferredCurrencyFromLocale(i18n.language));
+  const [displayCurrency, setDisplayCurrency] = useState(() =>
+    i18nEnabled ? preferredCurrencyFromLocale(i18n.language) : 'BRL'
+  );
 
 
   const currentPlanDs = profile?.plan?.planDs || 'FREE';
@@ -131,7 +135,7 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
 
   useEffect(() => {
     let cancelled = false;
-    const currency = preferredCurrencyFromLocale(i18n.language);
+    const currency = i18nEnabled ? preferredCurrencyFromLocale(i18n.language) : 'BRL';
     const provider = usePlayBilling ? 'GOOGLE_PLAY' : 'STRIPE';
 
     const loadPrices = async () => {
@@ -165,7 +169,7 @@ const PlansView: React.FC<PlansViewProps> = ({ profile }) => {
     return () => {
       cancelled = true;
     };
-  }, [i18n.language, usePlayBilling]);
+  }, [i18n.language, i18nEnabled, usePlayBilling]);
 
   useEffect(() => {
     if (!usePlayBilling) return;
