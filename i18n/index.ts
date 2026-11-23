@@ -71,7 +71,7 @@ export async function setAppLocale(locale: AppLocale, userChosen = true) {
   applyDocumentLocale(locale);
 }
 
-let i18nEnabledFlag = true;
+let i18nEnabledFlag = false;
 
 export async function applyI18nFeatureFlag(enabled: boolean) {
   i18nEnabledFlag = enabled;
@@ -93,7 +93,7 @@ export function isI18nFeatureEnabled(): boolean {
   return i18nEnabledFlag;
 }
 
-const initialLocale: AppLocale = detectInitialLocale();
+const initialLocale: AppLocale = 'pt-BR';
 
 void i18n.use(initReactI18next).init({
   resources,

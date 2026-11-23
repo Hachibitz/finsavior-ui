@@ -7,7 +7,7 @@ export interface AppFeatureFlags {
   stripeEnabled: boolean;
 }
 
-let cachedFlags: AppFeatureFlags = { i18nEnabled: true, stripeEnabled: false };
+let cachedFlags: AppFeatureFlags = { i18nEnabled: false, stripeEnabled: true };
 let flagsLoaded = false;
 let inFlight: Promise<AppFeatureFlags> | null = null;
 const listeners = new Set<(flags: AppFeatureFlags) => void>();
@@ -24,8 +24,8 @@ export async function loadFeatureFlags(force = false): Promise<AppFeatureFlags> 
     .get<AppFeatureFlags>('/plans/features')
     .then((res) => {
       cachedFlags = {
-        i18nEnabled: res?.i18nEnabled !== false,
-        stripeEnabled: Boolean(res?.stripeEnabled),
+        i18nEnabled: Boolean(res?.i18nEnabled),
+        stripeEnabled: res?.stripeEnabled !== false,
       };
       flagsLoaded = true;
       void applyI18nFeatureFlag(cachedFlags.i18nEnabled);
@@ -33,9 +33,9 @@ export async function loadFeatureFlags(force = false): Promise<AppFeatureFlags> 
       return cachedFlags;
     })
     .catch(() => {
-      cachedFlags = { i18nEnabled: true, stripeEnabled: false };
+      cachedFlags = { i18nEnabled: false, stripeEnabled: true };
       flagsLoaded = true;
-      void applyI18nFeatureFlag(true);
+      void applyI18nFeatureFlag(false);
       notifyAll();
       return cachedFlags;
     })
