@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Check } from 'lucide-react';
+import { X, Check, Plus } from 'lucide-react';
 import { Category, Transaction, CreditCard, FixedBillGenerationStrategy } from '../types';
 import { billDateToYYYYMM } from '../utils/billDate';
 import { getCategoryLabel } from '../utils/categoryLabel';
+import { AVAILABLE_ICONS, AVAILABLE_COLORS, getCategoryIcon } from '../constants';
 
 interface TransactionFormProps {
   isOpen: boolean;
@@ -18,10 +19,11 @@ interface TransactionFormProps {
   initialData?: Partial<Transaction>;
   initialCardId?: string;
   selectedMonth?: string;
+  onCreateCategory?: (category: Omit<Category, 'id'>) => Promise<Category | void>;
 }
 
 const TransactionForm: React.FC<TransactionFormProps> = ({ 
-  isOpen, onClose, onSubmit, categories, cards = [], forcedType, mode = 'DEFAULT', initialTitle, initialAmount, initialData, initialCardId, selectedMonth 
+  isOpen, onClose, onSubmit, categories, cards = [], forcedType, mode = 'DEFAULT', initialTitle, initialAmount, initialData, initialCardId, selectedMonth, onCreateCategory 
 }) => {
   const { t } = useTranslation();
   const [type, setType] = useState<'income' | 'expense'>(forcedType || 'expense');
@@ -46,6 +48,34 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   });
 
   const [hasSynced, setHasSynced] = useState(false);
+
+  // Quick category creation modal state
+  const [isNewCategoryOpen, setIsNewCategoryOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatIcon, setNewCatIcon] = useState(AVAILABLE_ICONS[0]);
+  const [newCatColor, setNewCatColor] = useState(AVAILABLE_COLORS[0]);
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+
+  const handleCreateCategorySubmit = async () => {
+    if (!newCatName.trim() || !onCreateCategory || isCreatingCategory) return;
+    setIsCreatingCategory(true);
+    try {
+      const created = await onCreateCategory({
+        name: newCatName.trim(),
+        icon: newCatIcon,
+        color: newCatColor
+      });
+      if (created && created.id) {
+        setCategory(created.id);
+      }
+      setNewCatName('');
+      setNewCatIcon(AVAILABLE_ICONS[0]);
+      setNewCatColor(AVAILABLE_COLORS[0]);
+      setIsNewCategoryOpen(false);
+    } finally {
+      setIsCreatingCategory(false);
+    }
+  };
 
   const paymentTypeLabels: Record<'Total' | 'Parcial' | 'Mínimo', string> = {
     Total: t('transaction.paymentTotal'),
@@ -313,15 +343,36 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  <div>
-                    <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">{t('transaction.category')}</label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider">{t('transaction.category')}</label>
+                      {onCreateCategory && (
+                        <button
+                          type="button"
+                          onClick={() => setIsNewCategoryOpen(true)}
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary/80 transition-colors"
+                        >
+                          <Plus size={12} />
+                          {t('categories.newCategory')}
+                        </button>
+                      )}
+                    </div>
                     <select 
                       value={category}
-                      onChange={(e) => setCategory(e.target.value)}
+                      onChange={(e) => {
+                        if (e.target.value === '__CREATE_NEW__') {
+                          setIsNewCategoryOpen(true);
+                          return;
+                        }
+                        setCategory(e.target.value);
+                      }}
                       className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-4 py-3 appearance-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                     >
                       {categories.map(cat => (
                         <option key={cat.id} value={cat.id}>{getCategoryLabel(cat, t)}</option>
                       ))}
+                      {onCreateCategory && (
+                        <option value="__CREATE_NEW__">+ {t('categories.newCategory')}</option>
+                      )}
                     </select>
                  </div>
                  <div>
@@ -459,6 +510,104 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
           </button>
         </form>
       </div>
+
+      {isNewCategoryOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in"
+          onClick={() => setIsNewCategoryOpen(false)}
+        >
+          <div
+            className="bg-surface w-full max-w-sm rounded-2xl border border-slate-700 shadow-2xl overflow-hidden animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5 border-b border-slate-700/50 flex justify-between items-center bg-white/5">
+              <h4 className="text-base font-bold text-white">{t('categories.newCategory')}</h4>
+              <button
+                type="button"
+                onClick={() => setIsNewCategoryOpen(false)}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">
+                  {t('categories.nameLabel')}
+                </label>
+                <input
+                  type="text"
+                  autoFocus
+                  value={newCatName}
+                  onChange={(e) => setNewCatName(e.target.value)}
+                  placeholder={t('categories.namePlaceholder')}
+                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">
+                  {t('categories.iconLabel')}
+                </label>
+                <div className="grid grid-cols-6 gap-2">
+                  {AVAILABLE_ICONS.map((iconName) => (
+                    <button
+                      key={iconName}
+                      type="button"
+                      onClick={() => setNewCatIcon(iconName)}
+                      className={`p-2 rounded-xl flex items-center justify-center transition-all ${
+                        newCatIcon === iconName
+                          ? 'bg-primary text-white shadow-lg'
+                          : 'bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-white'
+                      }`}
+                    >
+                      {getCategoryIcon(iconName, 18)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">
+                  {t('categories.colorLabel')}
+                </label>
+                <div className="flex flex-wrap gap-2.5">
+                  {AVAILABLE_COLORS.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setNewCatColor(c)}
+                      className={`w-7 h-7 rounded-full transition-transform ${
+                        newCatColor === c ? 'scale-125 ring-2 ring-white ring-offset-2 ring-offset-surface' : 'hover:scale-110'
+                      }`}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsNewCategoryOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-sm transition-colors"
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  type="button"
+                  disabled={!newCatName.trim() || isCreatingCategory}
+                  onClick={handleCreateCategorySubmit}
+                  className="flex-1 py-2.5 rounded-xl bg-primary hover:bg-primary/90 disabled:opacity-50 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <Check size={16} />
+                  {t('common.save')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
