@@ -4,7 +4,7 @@ import { Bill, Category } from '../types';
 import { getCategoryIcon } from '../constants';
 import { formatCurrency, formatPurchaseDate } from '../i18n/localeFormat';
 import { translateApiError } from '../utils/apiError';
-import { Plus, CheckCircle2, Circle, Edit2, Trash2, Loader2 } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, Edit2, Trash2, Loader2, Repeat } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
 import ImportDocButton from './ImportDocButton';
 import { useToast } from '../contexts/ToastContext';
@@ -19,9 +19,10 @@ interface DebitsViewProps {
   onRefresh: () => void;
   onRefreshCoins: () => void;
   onNavigateToPlans: () => void;
+  onOpenRecurring?: () => void;
 }
 
-const DebitsView: React.FC<DebitsViewProps> = ({ bills, onAdd, onDelete, onEdit, onEditClick, categories, onRefresh, onRefreshCoins, onNavigateToPlans }) => {
+const DebitsView: React.FC<DebitsViewProps> = ({ bills, onAdd, onDelete, onEdit, onEditClick, categories, onRefresh, onRefreshCoins, onNavigateToPlans, onOpenRecurring }) => {
   const { t } = useTranslation();
   const [billToDelete, setBillToDelete] = useState<Bill | null>(null);
   const [updatingBillId, setUpdatingBillId] = useState<string | null>(null);
@@ -87,9 +88,19 @@ const DebitsView: React.FC<DebitsViewProps> = ({ bills, onAdd, onDelete, onEdit,
         </div>
       </div>
 
-      <div className="flex items-center justify-between px-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-2">
          <h2 className="text-lg font-bold text-white">{t('debits.monthBills')}</h2>
-         <div className="flex items-center gap-4">
+         <div className="flex flex-wrap items-center gap-3">
+            {onOpenRecurring && (
+              <button
+                type="button"
+                onClick={onOpenRecurring}
+                className="flex items-center gap-1.5 text-xs font-semibold text-blue-300 bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/25 px-3 py-1.5 rounded-xl transition-colors"
+              >
+                <Repeat size={14} />
+                Fixas & Parceladas
+              </button>
+            )}
             <ImportDocButton 
               docType="BANK_STATEMENT" 
               tableType="MAIN" 

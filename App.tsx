@@ -9,6 +9,7 @@ import GoalsView from './components/GoalsView';
 import AiAdvisorView from './components/AiAdvisorView';
 import PlansView from './components/PlansView';
 import CategoriesView from './components/CategoriesView';
+import RecurringAndInstallmentsView from './components/RecurringAndInstallmentsView';
 import AccountView from './components/AccountView';
 import AdminPlanPricesView from './components/AdminPlanPricesView';
 import SupportView from './components/SupportView';
@@ -497,14 +498,16 @@ const App: React.FC = () => {
       summary.totalIncome, summary.totalExpense, summary.forecastBalance]);
 
   // Category Logic
-  const handleAddCategory = async (newCategory: Omit<Category, 'id'>) => {
+  const handleAddCategory = async (newCategory: Omit<Category, 'id'>): Promise<Category | undefined> => {
     try {
       const saved = await categoryService.createCategory(newCategory);
       setCategories(prev => [...prev, saved]);
       showToast(t('toasts.categoryAdded'), 'success');
+      return saved;
     } catch (error) {
       console.error('Error adding category:', error);
       showToast(translateApiError(error, t('toasts.categoryAddError')), 'error');
+      return undefined;
     }
   };
 
@@ -720,6 +723,7 @@ const App: React.FC = () => {
                 onRefresh={fetchBills}
                 onRefreshCoins={fetchProfile}
                 onNavigateToPlans={() => setActiveTab('plans')}
+                onOpenRecurring={() => setActiveTab('recurring')}
             />
         );
       case 'cards':
@@ -739,6 +743,8 @@ const App: React.FC = () => {
                 onRefresh={() => { fetchBills(); fetchCardTransactions(); }}
                 onRefreshCoins={fetchProfile}
                 onNavigateToPlans={() => setActiveTab('plans')}
+                onCreateCategory={handleAddCategory}
+                onOpenRecurring={() => setActiveTab('recurring')}
                 profile={profile}
                 selectedMonth={selectedMonth}
             />
@@ -804,6 +810,20 @@ const App: React.FC = () => {
             onAdd={handleAddCategory}
             onEdit={handleEditCategory}
             onDelete={handleDeleteCategory}
+          />
+        );
+      case 'recurring':
+        return (
+          <RecurringAndInstallmentsView
+            categories={categories}
+            cards={cards}
+            onDataChanged={() => {
+              fetchBills();
+              fetchCardTransactions();
+              fetchAssets();
+            }}
+            showToast={showToast}
+            onBack={() => setActiveTab('debits')}
           />
         );
       case 'account':
@@ -988,11 +1008,13 @@ const App: React.FC = () => {
         categories={categories.filter(cat => {
           const incomeIds = ['salary', 'freelance', 'projects', 'investments', 'savings'];
           const isIncomeForm = formForcedType === 'income';
-          if (isIncomeForm) return incomeIds.includes(cat.id) || cat.id === 'others';
+          const isCustom = !DEFAULT_CATEGORIES.some(dc => dc.id === cat.id);
+          if (isIncomeForm) return incomeIds.includes(cat.id) || cat.id === 'others' || isCustom;
           // Allow investments in expenses too
           return !incomeIds.includes(cat.id) || cat.id === 'others' || cat.id === 'investments';
         })}
         cards={cards}
+        onCreateCategory={handleAddCategory}
       />
 
       <TransactionForm 
@@ -1003,7 +1025,8 @@ const App: React.FC = () => {
         }}
         selectedMonth={selectedMonth}
         onSubmit={handleUpdateAsset}
-        categories={categories.filter(cat => ['salary', 'freelance', 'projects', 'investments', 'savings', 'others'].includes(cat.id))}
+        onCreateCategory={handleAddCategory}
+        categories={categories.filter(cat => ['salary', 'freelance', 'projects', 'investments', 'savings', 'others'].includes(cat.id) || !DEFAULT_CATEGORIES.some(dc => dc.id === cat.id))}
         forcedType="income"
         initialData={selectedAsset ? {
           description: selectedAsset.description,
@@ -1029,6 +1052,7 @@ const App: React.FC = () => {
           setIsEditBillModalOpen(false);
           setSelectedBill(null);
         }}
+        onCreateCategory={handleAddCategory}
         categories={categories.filter(cat => !['salary', 'freelance', 'projects', 'investments', 'savings'].includes(cat.id) || cat.id === 'investments')}
         forcedType="expense"
         initialData={selectedBill ? {
@@ -1037,6 +1061,10 @@ const App: React.FC = () => {
           billingMonth: billDateToYYYYMM(selectedBill.date) || selectedMonth,
           purchaseDate: selectedBill.purchaseDate || '',
           category: selectedBill.category,
+          isRecurrent: selectedBill.isRecurrent,
+          isInstallment: !!selectedBill.installments && selectedBill.installments.total > 1,
+          installmentCount: selectedBill.installments?.total,
+          currentInstallment: selectedBill.installments?.current,
           fixedBillGenerationStrategy: selectedBill.fixedBillGenerationStrategy,
           type: 'expense'
         } : undefined}

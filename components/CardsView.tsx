@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CardTransaction, Category, CreditCard, UserProfile, Transaction, Bill } from '../types';
-import { Plus, CreditCard as CardIcon, Calendar, ArrowRight, UploadCloud, ChevronRight, X, Check, FileText, Mic, Settings, Edit2, Trash2, MoreVertical } from 'lucide-react';
+import { Plus, CreditCard as CardIcon, Calendar, ArrowRight, UploadCloud, ChevronRight, X, Check, FileText, Mic, Settings, Edit2, Trash2, MoreVertical, Repeat } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
 import ImportDocButton from './ImportDocButton';
 import { useToast } from '../contexts/ToastContext';
@@ -25,6 +25,8 @@ interface CardsViewProps {
   onRefresh: () => void;
   onRefreshCoins: () => void;
   onNavigateToPlans: () => void;
+  onCreateCategory?: (category: Omit<Category, 'id'>) => Promise<Category | void>;
+  onOpenRecurring?: () => void;
   profile: UserProfile | null;
   selectedMonth: string;
 }
@@ -36,7 +38,7 @@ const CardsView: React.FC<CardsViewProps> = ({
   categories, 
   onAddCard, onEditCard, onDeleteCard,
   onAddTransaction, onEditTransaction, onDeleteTransaction,
-  onImportInvoice, onRefresh, onRefreshCoins, onNavigateToPlans, profile,
+  onImportInvoice, onRefresh, onRefreshCoins, onNavigateToPlans, onCreateCategory, onOpenRecurring, profile,
   selectedMonth
 }) => {
   const { t } = useTranslation();
@@ -315,11 +317,27 @@ const CardsView: React.FC<CardsViewProps> = ({
             </div>
           </div>
         )}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between gap-2 mb-6">
           <h3 className="font-bold text-white text-lg">{t('cards.recentEntries')}</h3>
-          <button className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-all">
-            <Plus size={18} />
-          </button>
+          <div className="flex items-center gap-2">
+            {onOpenRecurring && (
+              <button
+                type="button"
+                onClick={onOpenRecurring}
+                className="flex items-center gap-1.5 text-xs font-semibold text-blue-300 bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/25 px-3 py-1.5 rounded-xl transition-colors"
+              >
+                <Repeat size={14} />
+                Fixas & Parceladas
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setIsExpenseModalOpen(true)}
+              className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-all"
+            >
+              <Plus size={18} />
+            </button>
+          </div>
         </div>
 
         <div className="relative border-l border-slate-700 ml-3 space-y-6">
@@ -410,6 +428,7 @@ const CardsView: React.FC<CardsViewProps> = ({
         forcedType="expense"
         initialCardId={activeCardId}
         selectedMonth={selectedMonth}
+        onCreateCategory={onCreateCategory}
       />
 
       <TransactionForm 
@@ -430,6 +449,7 @@ const CardsView: React.FC<CardsViewProps> = ({
         mode="CREDIT_CARD"
         forcedType="expense"
         selectedMonth={selectedMonth}
+        onCreateCategory={onCreateCategory}
         initialData={selectedTransaction ? {
           description: selectedTransaction.description,
           amount: selectedTransaction.amount,
@@ -437,6 +457,10 @@ const CardsView: React.FC<CardsViewProps> = ({
           purchaseDate: selectedTransaction.purchaseDate,
           category: selectedTransaction.category,
           cardId: selectedTransaction.cardId,
+          isRecurrent: selectedTransaction.isRecurrent,
+          isInstallment: !!selectedTransaction.installments && selectedTransaction.installments.total > 1,
+          installmentCount: selectedTransaction.installments?.total,
+          currentInstallment: selectedTransaction.installments?.current,
           isPaid: true,
           type: 'expense'
         } : undefined}
@@ -456,9 +480,19 @@ const CardsView: React.FC<CardsViewProps> = ({
           setSelectedTransaction(null);
         }}
         title={t('cards.deleteTransaction')}
-        message={selectedTransaction?.installments && selectedTransaction.installments.total > 1 ? t('cards.deleteTransactionInstallments') : t('cards.deleteTransactionMsg')}
-        showCheckbox={!!selectedTransaction?.installments && selectedTransaction.installments.total > 1}
-        checkboxLabel={t('confirm.deleteAllInstallments')}
+        message={
+          selectedTransaction?.installments && selectedTransaction.installments.total > 1
+            ? t('cards.deleteTransactionInstallments')
+            : (selectedTransaction?.isRecurrent || selectedTransaction?.fixedBillId)
+              ? t('debits.deleteRecurrent')
+              : t('cards.deleteTransactionMsg')
+        }
+        showCheckbox={(!!selectedTransaction?.installments && selectedTransaction.installments.total > 1) || !!selectedTransaction?.isRecurrent || !!selectedTransaction?.fixedBillId}
+        checkboxLabel={
+          selectedTransaction?.installments && selectedTransaction.installments.total > 1
+            ? t('confirm.deleteAllInstallments')
+            : t('debits.deleteAllMonths')
+        }
       />
 
       <ConfirmationModal 

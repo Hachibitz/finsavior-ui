@@ -3,7 +3,7 @@ import { useMonth } from '../contexts/MonthContext';
 import { 
   LayoutDashboard, CreditCard, Wallet, Receipt, BrainCircuit, ShieldCheck, 
   Menu, X, User, LogOut, Bell, Search, Tags, ArrowLeft, HelpCircle, Target,
-  MessageCircle
+  MessageCircle, Repeat
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { Notification } from '../types/notifications';
@@ -279,6 +279,16 @@ const Layout: React.FC<LayoutProps> = ({
                   <Tags size={20} />
                 </div>
                 <span className="font-medium">{t('nav.categories')}</span>
+              </button>
+
+              <button 
+                onClick={() => { setActiveTab('recurring'); setIsMenuOpen(false); }}
+                className="flex items-center gap-4 text-slate-300 hover:text-white w-full p-4 rounded-2xl hover:bg-white/5 transition-all group"
+              >
+                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                  <Repeat size={20} />
+                </div>
+                <span className="font-medium">Fixas & Parceladas</span>
               </button>
 
               <button 
