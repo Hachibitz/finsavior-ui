@@ -114,6 +114,71 @@ export interface Category {
   color: string;
 }
 
+export interface FixedBill {
+  id: number;
+  billName: string;
+  billValue: number;
+  billDescription?: string;
+  billCategory?: string;
+  billType: 'INCOME' | 'EXPENSE' | 'SAVINGS' | 'PAYMENT';
+  billTable: 'MAIN' | 'CREDIT_CARD' | 'PAYMENT_CARD' | 'ASSETS';
+  paymentType?: string;
+  cardId?: string;
+  dayOfMonth?: number;
+  startBillDate: string;
+  generationStrategy: FixedBillGenerationStrategy;
+  active: boolean;
+  instanceCount: number;
+  paidCount: number;
+}
+
+export interface UpdateFixedBillPayload {
+  billName: string;
+  billValue: number;
+  billDescription?: string;
+  billCategory?: string;
+  billTable?: 'MAIN' | 'CREDIT_CARD' | 'PAYMENT_CARD' | 'ASSETS';
+  cardId?: string;
+  dayOfMonth?: number;
+  generationStrategy?: FixedBillGenerationStrategy;
+  active?: boolean;
+  applyToFutureOpenBills?: boolean;
+}
+
+export interface InstallmentGroup {
+  id: number;
+  billName: string;
+  billValue: number;
+  totalValue: number;
+  remainingValue: number;
+  billCategory?: string;
+  billTable: 'MAIN' | 'CREDIT_CARD' | 'PAYMENT_CARD' | 'ASSETS';
+  cardId?: string;
+  totalInstallments: number;
+  paidCount: number;
+  remainingCount: number;
+  startBillDate: string;
+  endBillDate: string;
+  bills: Array<{
+    id: number;
+    billDate: string;
+    billName: string;
+    billValue: number;
+    paid: boolean;
+    currentInstallment?: number;
+    installmentCount?: number;
+  }>;
+}
+
+export interface UpdateInstallmentPayload {
+  billName: string;
+  billValue: number;
+  billCategory?: string;
+  billTable?: 'MAIN' | 'CREDIT_CARD' | 'PAYMENT_CARD' | 'ASSETS';
+  cardId?: string;
+  applyToUnpaidOnly?: boolean;
+}
+
 export interface AiBillExtractionDTO {
   billName?: string;
   billValue?: number;

@@ -1,5 +1,14 @@
 import { api } from './api';
-import { Bill, CardTransaction, Asset } from '../types';
+import {
+  Bill,
+  CardTransaction,
+  Asset,
+  FixedBill,
+  FixedBillGenerationStrategy,
+  UpdateFixedBillPayload,
+  InstallmentGroup,
+  UpdateInstallmentPayload
+} from '../types';
 import { resolveBillDateForDto, resolvePurchaseDateForDto } from '../utils/billDate';
 
 export interface BillDTO {
@@ -216,5 +225,37 @@ export const billService = {
 
   batchRegister: async (bills: Partial<BillDTO>[]): Promise<void> => {
     await api.post('/bill/batch-register', bills);
+  },
+
+  getFixedBills: async (): Promise<FixedBill[]> => {
+    return await api.get<FixedBill[]>('/bill/fixed');
+  },
+
+  updateFixedBill: async (id: number, payload: UpdateFixedBillPayload): Promise<FixedBill> => {
+    return await api.put<FixedBill>(`/bill/fixed/${id}`, payload);
+  },
+
+  migrateFixedBillStrategy: async (id: number, generationStrategy: FixedBillGenerationStrategy): Promise<FixedBill> => {
+    return await api.patch<FixedBill>(`/bill/fixed/${id}/strategy`, { generationStrategy });
+  },
+
+  toggleFixedBillActive: async (id: number, active: boolean): Promise<FixedBill> => {
+    return await api.patch<FixedBill>(`/bill/fixed/${id}/active`, { active });
+  },
+
+  deleteFixedBill: async (id: number, deleteFutureOnly: boolean = false): Promise<void> => {
+    await api.delete(`/bill/fixed/${id}?deleteFutureOnly=${deleteFutureOnly}`);
+  },
+
+  getInstallments: async (): Promise<InstallmentGroup[]> => {
+    return await api.get<InstallmentGroup[]>('/bill/installments');
+  },
+
+  updateInstallment: async (id: number, payload: UpdateInstallmentPayload): Promise<InstallmentGroup> => {
+    return await api.put<InstallmentGroup>(`/bill/installments/${id}`, payload);
+  },
+
+  deleteInstallment: async (id: number, deleteUnpaidOnly: boolean = false): Promise<void> => {
+    await api.delete(`/bill/installments/${id}?deleteUnpaidOnly=${deleteUnpaidOnly}`);
   }
 };
